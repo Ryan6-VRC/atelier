@@ -42,8 +42,16 @@ captures) are the single declarations of the two output dirs.
 `AgentInspector` walks selected/scene objects (incl. VRChat components,
 generically via `SerializedObject`) to JSON under `AvatarProject/Assets/Agent/Snapshots/`; the
 written path is emitted in-band on the console line (`… => OK | log=<path>`). Agent door:
-`AgentInspector.Snapshot("Root/Child/Path", includeChildren)` snapshots by hierarchy path and
-returns that summary.
+`AgentInspector.Snapshot("Root/Child/Path", includeChildren, followAssets)` snapshots by hierarchy
+path and returns that summary. Any objectReference resolving to a saved asset carries `guid`/`fileId`
+(sub-asset-safe) **unconditionally**, so every ref is edit-addressable; a scene-object ref keeps its
+`scenePath` instead. `followAssets` additionally inlines a generic `SerializedObject` dump (`fields`,
+recursive) of each **ScriptableObject-asset** ref — a `VRCExpressionsMenu` `subMenu` chain or
+`VRCExpressionParameters` expands to the whole tree in one snapshot. Non-SO assets (meshes, clips,
+controllers) get identity only, not expansion (no overlap with `ControllerReport`/`ClipReport`). The
+expansion is bounded by asset-hop depth and a walk-wide budget, and every cut is signaled inline
+(`assetDepthCapped`/`budgetSkipped`/`alreadyDumped`) plus a top-level `assetsTruncated` count — it
+dumps raw values; decoding them stays yours.
 
 `ImportVerify.VerifyFolder(path)` / `VerifySelection()` is the deterministic import
 health check — reports **missing** (not merely empty) material slots, meshes, and scripts, plus
