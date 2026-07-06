@@ -1,5 +1,62 @@
 {
+  "permissions": {
+    "deny": [
+      "mcp__UnityMCP__manage_probuilder",
+      "mcp__UnityMCP__manage_ui",
+      "mcp__UnityMCP__manage_vfx",
+      "mcp__UnityMCP__manage_build",
+      "mcp__UnityMCP__manage_graphics",
+      "mcp__UnityMCP__manage_profiler",
+      "mcp__UnityMCP__manage_physics",
+      "mcp__UnityMCP__create_script",
+      "mcp__UnityMCP__delete_script",
+      "mcp__UnityMCP__manage_script",
+      "mcp__UnityMCP__manage_script_capabilities",
+      "mcp__UnityMCP__script_apply_edits",
+      "mcp__UnityMCP__apply_text_edits",
+      "mcp__UnityMCP__validate_script",
+      "mcp__UnityMCP__find_in_file",
+      "mcp__UnityMCP__get_sha",
+      "mcp__UnityMCP__batch_execute",
+      "mcp__UnityMCP__manage_components",
+      "mcp__UnityMCP__manage_material",
+      "mcp__UnityMCP__manage_shader",
+      "mcp__UnityMCP__manage_texture",
+      "mcp__UnityMCP__manage_prefabs",
+      "mcp__UnityMCP__manage_scriptable_object",
+      "mcp__UnityMCP__unity_docs",
+      "mcp__UnityMCP__get_test_job",
+      "mcp__BlenderMCP__execute_blender_code_for_cli",
+      "mcp__BlenderMCP__get_blendfile_summary_datablocks_for_cli",
+      "mcp__BlenderMCP__get_blendfile_summary_missing_files_for_cli",
+      "mcp__BlenderMCP__get_blendfile_summary_of_linked_libraries_for_cli",
+      "mcp__BlenderMCP__get_blendfile_summary_path_info_for_cli",
+      "mcp__BlenderMCP__get_blendfile_summary_usage_guess_for_cli",
+      "mcp__BlenderMCP__jump_to_tab_by_name",
+      "mcp__BlenderMCP__jump_to_tab_by_space_type",
+      "mcp__BlenderMCP__jump_to_view3d_object_by_name",
+      "mcp__BlenderMCP__jump_to_view3d_object_data_by_name",
+      "mcp__BlenderMCP__render_thumbnail_to_path",
+      "mcp__BlenderMCP__render_viewport_to_path",
+      "mcp__BlenderMCP__get_screenshot_of_area_as_image",
+      "mcp__BlenderMCP__get_screenshot_of_window_as_json",
+      "mcp__BlenderMCP__get_python_api_docs",
+      "mcp__BlenderMCP__search_manual_docs"
+    ]
+  },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/tools/unity-instances-hook.sh\"",
+            "timeout": 10,
+            "statusMessage": "Reading Unity Editor heartbeats"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "mcp__UnityMCP.*__run_tests",

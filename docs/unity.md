@@ -11,11 +11,16 @@ Transport is stdio; the server brokers to each Editor's bridge across recompiles
 Registration, transport, and package-update wiring: `bootstrap.md`.
 
 - Read editor state via **resources** (`mcpforunity://editor/state`, `project_info`, …); perform
-  mutations via **tools** (`manage_scene`, `manage_gameobject`, `manage_components`, … — permission-gated).
+  mutations via **tools** (`manage_scene`, `manage_gameobject`, … — permission-gated) or `execute_code`.
 - After creating/editing scripts, check `read_console` for compile errors before using new types
   (poll `editor_state.isCompiling` for the domain reload).
-- With multiple Editors connected, pin/pass the **full** `Name@hash` (a bare name silently no-ops →
-  crosstalk); live values in the `mcpforunity://instances` resource.
+- The one `UnityMCP` server reaches every local Editor, carries no default instance, and does **not**
+  error on ambiguity — unpinned calls silently land on an arbitrary Editor (observed). So
+  `set_active_instance` is the first Unity call of every session, with the **full** `Name@hash`
+  (a bare name silently no-ops → crosstalk). The live instance table is injected into session
+  context at start (SessionStart hook → `tools/unity-instances-hook.sh`); also queryable via the
+  `mcpforunity://instances` resource. Hashes are path-derived cache keys — read them live, never
+  copy them into docs or config.
 - If `UnityMCP` tools are absent: the Editor isn't open on `AvatarProject`, or Claude Code needs a
   restart (`start-vrc.ps1` is the bring-up doctor).
 - **Trust the heartbeat, not the MCP window.** The Editor's *MCP for Unity* window can show "No Session"

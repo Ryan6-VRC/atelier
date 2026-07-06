@@ -53,9 +53,7 @@ not a hunch.
   [-1,1]** (255 steps ≈ 1/127; −1/0/+1 exact) — drivers/OSC can hold out-of-range or fine-precision
   values locally that remotes never see, so anything remote-visible must survive the quantized
   [-1,1]. PC↔mobile params match by **list position + type, not name** (why the VRCFury mobile
-  build aligns param order, below). Sync is batched on a ~0.1 s tick (~10 Hz); official docs add
-  that custom-param sync adapts down to ~1 s intervals and rises back to the 10 Hz rate while a
-  puppet control is open **(~)**. All params changed
+  build aligns param order, below). Sync is batched on a ~0.1 s tick (~10 Hz). All params changed
   within a tick replicate together as one **coherent snapshot** — a step index and its data land
   atomically, so a multiplexing protocol needn't guard against a torn step+data read. The constraint
   is rate and loss, not coherence: a param changed twice inside one tick loses the intermediate, and a

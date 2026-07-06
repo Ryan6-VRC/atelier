@@ -26,9 +26,9 @@ desktop.ini
 .DS_Store
 *.code-workspace
 
-# Personal/machine-specific setup and MCP wiring (use the .example as a template)
+# Personal/machine-specific setup (machine-specific MCP servers register at
+# local scope — bootstrap.md; the tracked .mcp.json carries only universal ones)
 CLAUDE.local.md
-.mcp.json
 
 # Internal working scratch — not for the public repo (kept locally, untracked)
 brainstorm-kickoffs.md

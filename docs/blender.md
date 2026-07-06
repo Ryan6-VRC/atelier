@@ -30,11 +30,11 @@ Preferred path: Blender open on a second screen with the MCP add-on enabled and 
 (the `BlenderMCP` server reaches it over localhost:9876; wiring/updates: `bootstrap.md`).
 
 - Read-only/observe: `get_objects_summary`, `get_object_detail_summary`, `get_blendfile_summary_*`,
-  `search_api_docs`, `search_manual_docs`, `get_screenshot_*`.
+  `search_api_docs`, `get_screenshot_of_window_as_image`.
 - Mutate: `execute_blender_code` (permission-gated — prefer `bpy.ops`/`bpy.data` over raw edits, and
   inspect the scene before changing it).
-- The headless `_for_cli` MCP variants time out at the server's 120s limit on this setup — use the
-  `--background` invocation above for headless work, not those tools.
+- The `_for_cli` MCP variants are deny-hidden (they time out at the server's 120s limit on this
+  setup) — headless work uses the `--background` invocation above.
 - If `BlenderMCP` tools are absent: Blender isn't open/connected, or Claude Code needs a restart
   (`start-vrc.ps1` is the bring-up doctor).
 

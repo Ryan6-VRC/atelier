@@ -5,7 +5,9 @@ From-zero bring-up of the workspace itself (installs, MCP wiring, package restor
 Folder conventions live in [`LAYOUT.md`](LAYOUT.md); hard constraints (git identity, package
 reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not restates.
 
-1. **Create the repo and set identity.** `git init`, set your git identity, add the remote.
+1. **Create the repo and set identity.** `git init`, set your git identity, add the remote. Add the
+   folder to the meta-repo's **local** ignore, `.git/info/exclude` — independent repos are not
+   tracked by the workspace, and project names stay out of the public `.gitignore`.
 2. **Add the Unity `.gitignore` + `.gitattributes`** — copy from an existing project (e.g.
    `AvatarProject`): `Vendor/` and RunLog `*.json.meta` rules after the `!*.meta` un-ignore line,
    large binaries gitignored (keep their `.meta`; back them up externally), and LFS limited to the
@@ -20,9 +22,15 @@ reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not 
 4. **Install the structure-snapshot hook** (below).
 5. **Generate the first snapshot:** `python ../tools/dump_asset_structure.py <ProjectDirName>`
    then commit the resulting `STRUCTURE.md`.
-6. **Register the MCP client** (if an agent will drive this Editor) — Unity MCP wiring: `bootstrap.md`.
-   The tracked `run_tests` block (`bootstrap.md`) has a `mcp__UnityMCP.*__run_tests` matcher, so it already
-   covers this new Editor with no action — leave it be; `run_tests` crashes this Editor too.
+6. **Wire this Editor for the agent** (if one will drive it) — install the in-Editor MCP package and
+   Roslyn so `execute_code` gets modern C#; both are per-Editor (mechanics + the mark-Editor-only Roslyn
+   gotcha: `bootstrap.md`). **Do not add a `.mcp.json` server for the project.** The workspace's one
+   `UnityMCP` server reaches every local Editor; sessions route explicitly (`set_active_instance`, full
+   `Name@hash` — `unity.md`). A per-project server name is a false promise — any server can connect to
+   any instance — and each extra server duplicates the whole tool surface and its deny list. A separate
+   server is earned only by a different trust posture, not a different project. The tracked `run_tests`
+   deny-hook already covers every Editor via its wildcard matcher — no action; just don't remove it
+   (`run_tests` crashes this Editor too).
 
 ## Structure-snapshot hook
 

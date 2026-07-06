@@ -41,13 +41,13 @@ runtime behavior — live in `docs/`. Read the relevant file before operating in
 - **`docs/blender.md`** — Blender operating knowledge: headless batch + Blender MCP usage, the `avatarprep` extension.
 - **`docs/workflow.md`** — cross-system orchestration above any one tool: goals, sequencing, Unity↔Blender handoffs.
 - **`docs/tooldesign.md`** — the interface lens for agent-facing tools; read before adding or changing tools in `vrc-unity-tools`, `vrc-blender-tools`, or skills that drive them.
-- **`TOOLS.md`** (repo root) — the system tool index: every callable across `vrc-unity-tools` / `vrc-blender-tools` / `vrc-skills`; keys hook-verified against code (its preamble names the mechanism). Read it to see the whole callable surface at once.
+- **`TOOLS.md`** (repo root) — the system tool index: every callable across `vrc-unity-tools` / `vrc-blender-tools` / `vrc-skills`. Read it to see the whole callable surface at once.
 - **`docs/runtime.md`** + **`docs/gimmicks.md`** + **`docs/verify.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns) then verify (how to prove a claim); skip for other work.
 - **`docs/menus.md`** — expression-menu authoring on composed avatars: where menus live, the control vocabulary, toggles as dependency closures, MA-first substrate choice. Read for any menu/toggle work.
 - **`docs/LAYOUT.md`** — AvatarProject folder conventions: untouched-`Vendor/` vs. our-work split, non-Unity files outside `Assets/`.
 - **`docs/bootstrap.md`** — from-zero workspace assembly: clone the sub-repos, install + wire Unity·Blender·MCP, verify. Point a fresh agent here to stand the workspace up.
 - **`docs/new-project.md`** — runbook for adding another Unity project to an already-working workspace (git/gitignore, VPM, the structure-snapshot hook). Skip in normal sessions.
-- **`docs/mochifitter.md`** — roadmap-only brief on the MochiFitter outfit-retargeting tool (not integrated): what it is, its data model, and the GPL/network traps that could block future base-to-base outfit conversion. Read only for that roadmap item.
+- **`docs/mochifitter.md`** — roadmap-only brief on the MochiFitter outfit-retargeting tool (not integrated). Read only for that roadmap item.
 - **`references/README.md`** — routing table of open-source projects we learn from.
 
 ## Rules

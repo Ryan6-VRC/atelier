@@ -45,8 +45,9 @@ Install per your host; all must exist before wiring:
 
 ## 3. Wire it
 
-**MCP config.** Copy `.mcp.json.example` → `.mcp.json` and fill the real paths (the Blender executable and
-the `blender-mcp` command).
+**MCP config.** The tracked `.mcp.json` carries only machine-invariant servers (currently `UnityMCP`) —
+nothing to fill in. Machine-specific servers (paths, private projects) register at **local scope** instead:
+`claude mcp add <Name> -s local -e KEY=VAL -- <command>` — BlenderMCP's registration is in its section below.
 
 **VPM packages — seed the repos, then resolve.** `vpm-manifest.json` pins community packages (VRCFury,
 Modular Avatar/NDMF, lilToon, Poiyomi, av3emulator, …) whose payloads are gitignored. A bare machine has only
@@ -65,9 +66,14 @@ the clone is enough.
 
 **Unity MCP** (per Editor, once). Package: CoplayDev/unity-mcp (MIT), git URL
 `https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main`. In Unity, *Window → MCP for Unity →
-Configure All Detected Clients* registers the client; then pin the `.mcp.json` entry with `--default-instance
-<Name@hash>` (live value in the `mcpforunity://instances` resource; the hash is path-derived, so re-pin after
-moving/renaming the project). Ports default from 6400 — keep each Editor's distinct. Transport is **stdio**
+Configure All Detected Clients* registers the client. The workspace keeps **one `UnityMCP` entry in
+`.mcp.json`, deliberately without `--default-instance`** — no pin is trustworthy: the server does not
+error on multi-Editor ambiguity, and unpinned calls silently land on an arbitrary Editor, so the only
+reliable routing is `set_active_instance` as every session's first Unity call (live `Name@hash` values
+in the `mcpforunity://instances` resource; the hash is path-derived and changes when a project moves
+or renames). If registration writes a pin or a new per-project server, collapse it back to the single
+entry (`new-project.md` step 6 has the policy). Ports default from
+6400 — keep each Editor's distinct. Transport is **stdio**
 (Claude launches `uvx mcp-for-unity`, which brokers to the Editor's bridge across domain reloads); don't
 switch to the http transport (`unity.md` says why). The git package is frozen to a commit in
 `packages-lock.json` (`#main` doesn't auto-track) — update via Package Manager → *MCP for Unity* → **Update**,
@@ -87,8 +93,9 @@ field reads `roslyn` (not `codedom`).
 Editor, current and future. It ships with the clone — no setup, just don't remove it. (Hooks load at launch,
 so it's live from the next session, not mid-session.)
 
-**Blender MCP.** `uv tool install blender-mcp` installs the MCP **server** (stdio, wired in `.mcp.json` as
-`BlenderMCP`). Separately, install the **blender-mcp add-on** into Blender — this is *not* the
+**Blender MCP.** `uv tool install blender-mcp` installs the MCP **server**; wire it at local scope with your
+machine's paths: `claude mcp add BlenderMCP -s local -e "BLENDER_PATH=<blender.exe>" -- <blender-mcp.exe>`.
+Separately, install the **blender-mcp add-on** into Blender — this is *not* the
 `avatarprep`/`vrc-blender-tools` extension — enable it, turn on **Allow Online Access**, and start its bridge
 on localhost:9876. Neither half auto-updates: bump the server with `uv tool upgrade blender-mcp`, re-install
 the add-on when it changes.
@@ -100,5 +107,5 @@ bridges are **necessary but not sufficient**: the Unity bridge heartbeats even o
 errors. Confirm a clean build too — once the bridge is up, read the Unity console (`read_console`) and check
 for zero errors. *That* is "verified working".
 
-The `.mcp.json` you just wrote is not live in the current Claude session (servers load at launch), so verify
-through the doctor's ports/heartbeat — the MCP tools you just wired come online on the next launch, not now.
+MCP config written mid-session is not live in that session (servers load at launch), so verify through the
+doctor's ports/heartbeat — the MCP tools you just wired come online on the next launch, not now.
