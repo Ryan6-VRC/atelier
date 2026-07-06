@@ -1,0 +1,25 @@
+#!/bin/sh
+# Warn, don't block: verify TOOLS.md against code and refresh the README tools block.
+# A sync problem must never gate committing real work (parity with the STRUCTURE.md hook).
+top="$(git rev-parse --show-toplevel)"
+# The tool surfaces are sibling repos, gitignored by this meta-repo and therefore
+# absent from any linked worktree (or partial checkout). Nothing to verify there —
+# skip cleanly so doc-only worktree commits don't trip the check. Sync is reconciled
+# in the main worktree, on merge or by a cleanup pass.
+if [ ! -d "$top/vrc-unity-tools" ] || [ ! -d "$top/vrc-blender-tools" ] || [ ! -d "$top/vrc-skills" ]; then
+  exit 0
+fi
+if command -v python >/dev/null 2>&1; then
+  # Capture stdout (the "README-UPDATED" marker); stderr flows to the terminal.
+  if out="$(python "$top/tools/sync_tool_inventory.py")"; then
+    case "$out" in
+      *README-UPDATED*)
+        git add "$top/README.md" || echo "pre-commit: could not stage README.md; continuing" >&2 ;;
+    esac
+  else
+    echo "pre-commit: tool-inventory drift or error (see above); committing without refresh" >&2
+  fi
+else
+  echo "pre-commit: python missing; skipping tool-inventory sync" >&2
+fi
+exit 0

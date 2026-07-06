@@ -1,0 +1,8 @@
+# ripgrep-only (not git): re-include the sibling sub-repos so agent Grep/Glob
+# can see their source. Each sub-repo's own .gitignore still prunes its junk
+# (e.g. AvatarProject/Library/, PackageCache/).
+!/AvatarProject/
+!/vrc-unity-tools/
+!/vrc-blender-tools/
+!/vrc-skills/
+!/vrc-bridge/

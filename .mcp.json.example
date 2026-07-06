@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "BlenderMCP": {
+      "type": "stdio",
+      "command": "/path/to/blender-mcp",
+      "args": [],
+      "env": {
+        "BLENDER_PATH": "/path/to/blender.exe"
+      }
+    },
+    "UnityMCP": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "mcpforunityserver==9.7.3", "mcp-for-unity", "--transport", "stdio", "--default-instance", "<YourProjectName>@<projectHash>"]
+    }
+  }
+}

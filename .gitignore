@@ -1,0 +1,35 @@
+# Sub-projects are their own independent git repos — versioned separately,
+# NOT tracked by this workspace meta-repo.
+/AvatarProject/
+/vrc-blender-tools/
+/vrc-skills/
+/vrc-bridge/
+/vrc-unity-tools/
+
+# Temporary files the user is providing for context or to help understand a task
+/docs/samples/
+
+# Brainstorming/design specs — local working artifacts, not workspace docs
+/docs/superpowers/
+
+# Reference clones are reproducible from references/README.md; track only the routing doc
+/references/*
+!/references/README.md
+
+# Python bytecode (from tools/)
+__pycache__/
+*.pyc
+
+# OS / editor junk
+Thumbs.db
+desktop.ini
+.DS_Store
+*.code-workspace
+
+# Personal/machine-specific setup and MCP wiring (use the .example as a template)
+CLAUDE.local.md
+.mcp.json
+
+# Internal working scratch — not for the public repo (kept locally, untracked)
+brainstorm-kickoffs.md
+fixups.md

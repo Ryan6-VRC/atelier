@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__UnityMCP.*__run_tests",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"MCP run_tests crashes this Unity Editor (the EditMode domain-reload path takes it down). Verify Editor C# behaviorally with execute_code instead; run the NUnit suite from the Test Runner window or in CI. (refresh_unity also reloads but recovers -- only run_tests crashes.)\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}
