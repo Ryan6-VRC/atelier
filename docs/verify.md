@@ -28,43 +28,24 @@ Rungs 1–3 are agent-automatable; rung 4 is not, and saying so is part of the r
 
 ## Rung 3 — the Av3Emulator harness
 
-**The play-entry gate — a hard gate before every play entry, in any workflow, not just rung-3.**
-A play entry builds every active avatar (minutes each, main thread blocked) and a mis-set scene
-silently invalidates everything observed. Never enter play without checking, and re-check every
-entry — scenes drift:
+**The play-entry gate is enforced in-Editor.** The `PlayGate` hook (`com.ryan6vrc.agent-tools`)
+evaluates the active scene on every entry and **cancels** a mis-set one, naming each offender and its
+fix in a `[PlayGate] … => FAIL` console line (plus a Scene-view overlay), with a one-shot
+`Tools/Agent/Play Gate/Allow Next Entry` override. It covers the hard preconditions — one active
+avatar and a VRCFury Fix Write Defaults feature, plus (when an enabled emulator is present) no active
+Gesture Manager and the emulator's `RunPreprocessAvatarHook`/`EnablePlayerContactPermissions` (a
+Gesture Manager only fights a *live* emulator). Read the verdict; don't hand-check them.
 
-- **Exactly one avatar root active** — the emulator builds every active descriptor (extras cost
-  their full build time each and make the runtime lists ambiguous); deactivate the rest, restore after.
-- **Gesture Manager disabled** — an active one (some avatars carry one) drives the avatar on play
-  and fights the emulator.
-- **Emulator control object enabled** — the emulator does not auto-spawn; the scene needs an
-  enabled `Avatars 3.0 Emulator Control` object carrying the `Av3Emulator` component
-  (**Tools → Avatars 3.0 Emulator → Enable** creates it; the Sandbox scene already carries it).
-  Missing or disabled, play mode spawns no runtimes and the whole harness reads empty — silently.
-- **`RunPreprocessAvatarHook` on** — this is what runs the non-destructive build on play (off →
-  you exercise the raw pre-build avatar and every VRCFury/compressor fact here is void); and
-  **`EnablePlayerContactPermissions` off** — the self+other default the fake-contact recipe below
-  leans on.
-- **The avatar carries a VRCFury Fix Write Defaults component** — the first build without one
-  pops a blocking dialog that stalls everything (`unity.md` §Sharp edges: create it mode-Disabled).
-  The one gate item the assert snippet below does **not** check (VRCFury's model is internal) —
-  confirm it separately.
+It does **not** check that an emulator control object is *enabled* — absence is a legitimate rung-2
+bake, so the gate stays silent, but rung-3 without it spawns no runtimes and the harness reads empty:
+
+- **Emulator control object enabled** — the emulator does not auto-spawn; the scene needs an enabled
+  `Avatars 3.0 Emulator Control` object with the `Av3Emulator` component (**Tools → Avatars 3.0
+  Emulator → Enable** creates it; the Sandbox scene has it).
 
 And capture every observation — runtime reads, `AvatarGrab` shots — **before exiting play**:
 exit reverts the scene to authoring state, so anything captured after proves nothing about
 driven behavior.
-
-Assert before trusting a session:
-
-```csharp
-var emu = UnityEngine.Object.FindObjectOfType<Lyuma.Av3Emulator.Runtime.Av3Emulator>();
-var gm  = UnityEngine.Object.FindObjectOfType<BlackStartX.GestureManager.GestureManager>();
-int avatars = UnityEngine.Object.FindObjectsOfType<
-  VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().Length;   // active only
-bool ready = emu != null && emu.isActiveAndEnabled
-  && emu.RunPreprocessAvatarHook && !emu.EnablePlayerContactPermissions
-  && (gm == null || !gm.isActiveAndEnabled) && avatars == 1;
-```
 
 **Runtimes.** On play the emulator spawns three `Lyuma.Av3Emulator.Runtime.LyumaAv3Runtime`: local
 (`IsLocal`), MirrorReflection (`IsMirrorClone`), ShadowClone (`IsShadowClone`). Each holds

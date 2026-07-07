@@ -79,4 +79,4 @@ Tasks pass between them as an exported FBX + Git diffs. **The FBX carries geomet
 ## Validate with a play-mode build
 
 Entering play mode runs the full non-destructive stack on the transient play copy — the one bake
-path and the universal comprehensive check (`unity.md`; pass `verify.md`'s play-entry gate first).
+path and the universal comprehensive check (`unity.md`; the play-entry gate is enforced — `verify.md`).

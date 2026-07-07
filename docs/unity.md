@@ -296,7 +296,7 @@ VRCFury features under `VF.Model.Feature.*` held by a `VF.Model.VRCFury` compone
 Validate the baked result without uploading: **enter play mode** — it runs the *whole* stack
 (VRCFury services + NDMF/MA + d4rk + LAC) on the transient play copy, removed on exit. One session
 is both the baked read (the built clone + `VRCFuryDebugInfo`) and the live drive (av3emulator).
-Pass `verify.md`'s **play-entry gate** first — it owns the preconditions and the rung-3 recipes.
+The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions and the rung-3 recipes.
 
 ## Sharp edges
 
@@ -333,8 +333,8 @@ Pass `verify.md`'s **play-entry gate** first — it owns the preconditions and t
 - **Reparenting a prefab instance's internal children silently no-ops.** `Transform.SetParent` on an
   object owned by a prefab instance reverts with no error — restructure before prefab conversion, or
   edit the asset via `PrefabUtility.LoadPrefabContents`. Verify by `childCount`, not `SetParent` calls.
-- **Never enter play mode without passing `verify.md`'s play-entry gate** — run its assert
-  snippet, plus the Fix Write Defaults check the snippet doesn't cover.
+- **The play-entry gate is enforced in-Editor** — the `PlayGate` hook cancels a mis-set entry with a
+  console `[PlayGate] … => FAIL` (each offender + its fix) and a one-shot override; see `verify.md`.
   Entering play **blocks the Editor main thread while the non-destructive build runs**
   (NDMF/VRCFury/d4rk/LAC): `editor_state` freezes and reads can time out for ~minutes on a heavy
   avatar. `execute_code` issued during it **queues and returns once the build frees the thread** — don't
