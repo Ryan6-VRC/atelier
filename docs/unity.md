@@ -98,18 +98,19 @@ operator hid). Angles are the six world axes `{front,back,left,right,top,bottom}
 success carries a `png=` trailer to `Read`.
 
 The traps a model won't hit by just calling it: the fit is the editor *preview*, not the baked upload
-clone (`nondestructive.md`) — a play-mode build and the operator's eye stay the bar — and it resolves
-only while Unity holds OS focus, so a headless grab can be stale (the summary flags it with a `note=`
-caveat). Angles are **world** axes, so a rotated target shows the scene's front (the upside: it also
+clone (`nondestructive.md`) — a play-mode build and the operator's eye stay the bar. **Grab in a separate
+call from any edit** — a same-call grab shows the pre-edit proxy; the summary's `note=` flags an in-flight
+rebuild but cannot catch the same-call case. Angles are **world** axes, so a rotated target shows the scene's front (the upside: it also
 works on a child or non-avatar object). Headlight shading is truthful for geometry/silhouette/clipping/
 fit, not matcap/rim/fresnel. INSPECTION-class: it restores the view transform, display toggles,
 selection, and root-level visibility, leaving the scene un-dirtied, and writes to
 `Application.temporaryCachePath`; visibility restore is coarse — a nested eye-hide the operator set
 under a subtree the grab hid isn't preserved. In **play mode** it captures the
-driven runtime, which resolves even headless (the game loop runs unfocused) — so it doubles as the way
-around the focus limit above and the visual companion to `verify.md`. The caveat is suppressed in play
-mode. **Grab driven state while still in play**: exiting play reverts the scene to authoring state, so
-a post-exit grab can verify only the static baseline — never a toggle/param-driven claim.
+driven runtime: play's game loop pumps `update` ticks continuously, so the reactive rebuild settles on its
+own — no separate-call step needed — and the `note=` is suppressed (nothing in flight to flag). It doubles
+as the visual companion to `verify.md`. **Grab driven state while still in play**: exiting play reverts the
+scene to authoring state, so a post-exit grab can verify only the static baseline — never a
+toggle/param-driven claim.
 
 `Unity.exe` is GUI-subsystem and does not block under `& exe`; use `Start-Process -Wait` for headless
 batchmode runs.
