@@ -117,7 +117,7 @@ skills themselves.
 | `ControllerReport` | Markdown digest of an `AnimatorController` — params/layers+WD/states/transitions/blend-trees, motions by path+GUID, typed VRC behaviour decode. |
 | `ClipReport` | Markdown binding digest of a clip (or every `.anim` under a folder) — `path.attribute = keys`. |
 | `AnimatorLint` | PASS/FAIL + tiered offenders for mechanically-detectable controller rot (root basis auto-detected from a merge site, or asserted). |
-| `AvatarGrab` | Isolated Scene-View render of one avatar subtree (NDMF preview-resolved), silhouette-framed from named world-axis angles, headlight-lit, to a temp contact-sheet PNG — the visual backstop for compose de-conflict/fit. |
+| `AvatarGrab` | Isolated Scene-View render of one avatar subtree (NDMF preview-resolved), silhouette-framed from named world-axis angles, headlight-lit, to a temp contact-sheet PNG — the visual backstop for compose de-conflict/fit. Grab in a separate call from any edit — a same-call grab is the pre-edit proxy. |
 | `GimmickReport` | Markdown topology digest of a gimmick subtree — contacts/physbones/constraints tables + constraint edge-list (TargetTransform indirection, weights, axes), VRCFury authoring inventory, and mechanically-certain idioms (world anchor, feedback loop, indirection, hold, editor/runtime swap). Read-only, to `Snapshots/`. |
 
 ### vrc-unity-tools · transplant kit (vendor → owned)
@@ -159,7 +159,7 @@ skills themselves.
 | `armature_compat` | Seam check: do two rigs share bone names/parents/positions, base, and state? (The merge dry-run.) |
 | `validate_profile` | Gate: will this proportion edge apply cleanly to the live scene? |
 | `report_stamps` | Read a `.blend`'s avatarprep provenance — per-armature base/state (+ kind) and a per-armature grouping of each bound mesh's `avatarprep_baked` map (+ an `unbound` bucket). The query counterpart of `stamp_base`. |
-| `mesh_grab` | Headless-Blender Workbench render of the scene's render-visible meshes (optionally narrowed by --only names) from named world-axis angles, in solid \| vertexcolor shading, to a stamped temp contact-sheet PNG — the Blender sibling of Unity's AvatarGrab, for mesh-state reads and the RBT "RBT Matched" vertex-color marker. |
+| `mesh_grab` | Headless Workbench contact-sheet render of scene meshes from named world-axis angles — solid \| vertexcolor (the RBT "RBT Matched" marker). AvatarGrab's Blender sibling. |
 
 ### vrc-blender-tools · armature & mesh ops
 
