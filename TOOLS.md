@@ -19,7 +19,7 @@ skills themselves.
 | `AvatarPackageGraph` | Vendor-package report: FBX/mesh inventory, superset FBX, FX toggles, MA/VRCFury/NDMF presence. |
 | `ReproportionFreshness` | Gate: does the humanoid bind still match the model geometry, or must `MatchHumanoidRig` re-run? |
 | `ControllerReport` | Markdown digest of an `AnimatorController` — params/layers+WD/states/transitions/blend-trees, motions by path+GUID, typed VRC behaviour decode. |
-| `ClipReport` | Markdown binding digest of a clip (or every `.anim` under a folder) — `path.attribute = keys`. |
+| `ClipReport` | Markdown binding digest of a clip (or every `.anim` under a folder) — one row per curve (`path \| type \| propertyName \| keys`). |
 | `AnimatorLint` | PASS/FAIL + tiered offenders for mechanically-detectable controller rot (root basis auto-detected from a merge site, or asserted). |
 | `AvatarLint` | PASS/CLASSIFY: on a placed in-scene avatar root, names the MA-scene-ref + clip/controller-binding refs a base rename silently broke (clip-binding carries `clipAssetPath` for the abort-and-own vs. inline route). Inspection-only. |
 | `AvatarGrab` | Isolated Scene-View render of one avatar subtree (NDMF preview-resolved), silhouette-framed from named world-axis angles, headlight-lit, to an OS-temp contact-sheet PNG — the visual backstop for compose de-conflict/fit. Grab in a separate call from any edit — a same-call grab is the pre-edit proxy. |

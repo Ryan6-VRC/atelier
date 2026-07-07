@@ -69,7 +69,7 @@ deterministic digests:
   split that surfaces a dangling motion GUID), the first-match transition ladder, and VRC
   state-machine behaviours decoded **typed**. To `Snapshots/`; `… layers=… states=… params=… => OK | log=<path>`.
 - `ClipReport.Report(clip)` / `ReportFolder(folder)` —
-  bindings as `path.attribute = keys`, paths as-authored (a `""` root shown as `(root)`, never
+  bindings as a `path | type | propertyName | keys` table (one row per curve), paths as-authored (a `""` root shown as `(root)`, never
   judged). To `Snapshots/`. Folder mode mirrors `ImportVerify.VerifyFolder`, down to the
   empty-but-valid `0 clips => OK`.
 - `AnimatorLint.Lint(controller, basis, mergeSite, avatarRoot, mountRoot)` — binary **PASS/FAIL**
@@ -152,7 +152,8 @@ reference-hardening model that governs what these path-based tools can rebind an
 
 - `AvatarPackageGraph.Report(vendorFolder)` — read-only: per-FBX mesh inventory, a head/body **guess**
   (`headGuess`/`bodyGuess`, a most-blendshapes heuristic — verify), the superset FBX (or "none"),
-  `_OFF`-toggle membership, constraint count, MA/VRCFury/NDMF detection.
+  toggle membership (renderers a clip drives via `m_IsActive` — GameObject-active — not a name
+  convention), constraint count, MA/VRCFury/NDMF detection.
 - `MatchHumanoidRig` — builds a fresh humanoid from our own model's skeleton (the bind, so it survives
   reproportioning) and conforms the vendor's bone mapping + muscle settings onto it (copying a rig
   wholesale is unreliable). `poseDriftMm` is informational only — a raw max world-space drift of the
@@ -221,8 +222,8 @@ FAIL in both `whatIf` and execute**, never a silent mis-bind.
   (the type-name list replaces the old `mode`). Matches components whose effective anchor descends from
   `targetRoot`, mints a holder under `destPath`, pins each anchor to its original transform — behavior-neutral,
   **never moves a bone**. Anchor field per type comes from the VRC table; a targeted type with **no table
-  anchor FAILs loud** (refuses MA/VRCF/NDMF *and* Unity built-in constraints). Count-parity idempotent; run
-  **pre-prefab**. Called N times at operator discretion; echoes matches for closed-accounting.
+  anchor FAILs loud** (refuses MA/VRCF/NDMF *and* Unity built-in constraints). Idempotent (skips a holder
+  already placed under `destPath`); run **pre-prefab**. Called N times at operator discretion; echoes matches for closed-accounting.
 - `GraftHierarchy(ownedRoot, vendorSource, subtreeRoots, renameMap=null, whatIf=false)` — copies named GO **subtrees
   wholesale**: scaffold the full structure (vendor verbatim local TRS) + copy **all** components on every
   GO (type-blind), remapped against the reach root. For pulling an outfit's authoring/menu subtree without
