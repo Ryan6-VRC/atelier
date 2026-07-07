@@ -34,34 +34,52 @@ result lands and why.
   the tools enforce (with a `force` override that records the breach loudly), not an OS-level lock.
 - **Non-Unity source files live outside `Assets/`** at the project root, so editing them never
   triggers an editor refresh:
-  - **`Blender/<Avatars|Outfits>/<Name>/`** — per-avatar (or per-outfit) folder, namespaced like
-    `Assets/`: the `<Name>.blend` source. The exported `<Name>.fbx` goes to `Assets/<…>/Models/` (Unity
-    imports only under `Assets/`), **not** here. Avatar folders also hold the **proportion profiles** the
-    reproportion skill reads/writes (see below); outfit folders carry none.
-  - **`Photoshop/<Avatars|Outfits>/<Name>/`** — `.psd` source art. A PSD is only worth bringing over
-    if we intend to modify it (the package already ships the untouched PNG exports), so PSDs are
-    *our* work, not vendor — no `Vendor/` namespace. Gitignored like all binaries (above) and kept
-    under external backup; the package ships the untouched PNG exports.
+  - **`Blender/Avatars/<Name>/`** — the `<Name>.blend` source, namespaced like `Assets/`; also holds
+    the **proportion profiles** the reproportion skill reads/writes (see below).
+  - **`Blender/Outfits/<Base>/<Outfit>/<Outfit>.blend`** — owned outfits go **base-first**: the base
+    you fitted to is held constant, the outfit varies underneath it (file by the axis held constant —
+    `Vendor/Outfits/<Outfit>/` stays **outfit-first**, since a vendor product's base varies *inside*
+    one package). The exported `.fbx` mirrors this at `Assets/Outfits/<Base>/<Outfit>/Models/` (Unity
+    imports only under `Assets/`, **not** here); outfit folders carry no proportion profile of their
+    own (see below). One outfit fitted to two bases is **two buckets, two `.blend`s** — duplication
+    accepted for clarity, no cross-base sharing.
+  - **`Photoshop/Avatars/<Name>/`** and **`Photoshop/Outfits/<Outfit>/`** — `.psd` source art, kept
+    **outfit-first** (no `<Base>` segment) unlike the owned Blender/Assets trees above — reproportioning
+    is geometry-only, so PSD art is base-independent and the outfit is the constant. A PSD is only
+    worth bringing over if we intend to modify it (the package already ships the untouched PNG
+    exports), so PSDs are *our* work, not vendor — no `Vendor/` namespace. Gitignored like all
+    binaries (above) and kept under external backup.
 
 ## Proportion profiles & state naming
 
 Reproportioning edges (JSON) are **co-located per avatar** in `Blender/Avatars/<Name>/`; the shared
-`vrc-blender-tools/profiles/` holds only examples/fixtures. An edge is authored against one rig's
-literal bone names, so it is owned by the avatar it targets. **Outfits have no edge of their own** — an
-outfit is fitted to a (re)proportioned avatar by applying that **avatar's** edge to the outfit's armature.
+`vrc-blender-tools/profiles/` is a **curated, shipped sample library** (migrated edges plus known
+base-equivalency samples), not examples/fixtures. A profile is a **typed edge** `(source_base,
+source_state) → (target_base, target_state)`, authored against one rig's literal bone names, so it is
+owned by the avatar it targets. **Outfits have no proportion-edge JSON of their own** — an outfit is
+fitted to a (re)proportioned avatar by applying that **avatar's** edge to the outfit's armature. That
+doesn't mean an outfit's base is unknown, though: its lineage is separately stamped as `avatarprep_base`
+on the outfit's own armature.
 
 State names are **stamped onto the armature** (`avatarprep_state`) and travel with the `.blend`; they are
-**never exported to FBX** (the export recipe omits `use_custom_props`). The source-state guard reads them
-**in Blender** (`validate_profile`), before apply — so they must be self-describing:
-- **Avatar-qualified and descriptive.** Bare adjectives (`custom`, `base`, `final`, `new`) are
-  disallowed as a whole name — qualify them (`shinano-base`, `plum-tall`). (The banned adjective `base`
-  is unrelated to the avatar-base noun (`nondestructive.md`) or the `avatarprep_base` slot below.)
-- **`vendor`** is the one reserved generic (the untouched import origin).
-- **Filenames mirror the `source`/`target` fields** — `vendor-to-shinano-base.json` — keeping
-  file ↔ stamp ↔ fields consistent.
+**never exported to FBX** (the export recipe omits `use_custom_props`). `validate_profile` reads them **in
+Blender**, before apply, exact-matching both the state and the separate `avatarprep_base` stamp — an
+absent base is an **offender** (stamp it first), an absent state only warns:
+- **State values are base-neutral.** `custom` is the correct target state, not `custom_shinano` or
+  `plum-tall` — body identity belongs to the `avatarprep_base` stamp, never the state label.
+- **`unproportioned`** is the one reserved generic (the as-imported origin state; replaces the old
+  `vendor` word, which conflated provenance with shape).
+- **Filenames may carry the base the state value doesn't**, in two cases: a **reproportion** (same
+  base) is named for its target config — `custom_shinano.json` (target state + base, for legibility);
+  a **base-change/equivalency** is named `<source_base>-to-<target_base>.json` — `plum-to-chiffon.json`.
 
-`avatarprep_state` is one slot of a two-slot base/state model; its behavior (and the `avatarprep_base`
-lineage slot) lives in `blender.md`.
+The folder tree above is for **browsing**; the authoritative provenance is always the `(base, state)`
+stamp in the **mirrored `.blend`** (see below). If a stamp is missing at filing or fit time, the fix is
+to ask the operator, write the stamp back, and refile into the correct base bucket — that loop lives in
+the `own-mergeable` skill, not here.
+
+`avatarprep_state` is one axis of a three-axis base/state/baked model; its behavior (and the
+`avatarprep_base`/`avatarprep_baked` axes) lives in `blender.md`.
 
 ## gitignore note
 
@@ -91,3 +109,8 @@ The stock `!/[Aa]ssets/**/*.meta` un-ignore is load-bearing in two directions:
   (`Avatars/Chocolat` next to `Vendor/Avatars/Chocolat`) are a **convention, not authoritative
   linkage** — a renamed or GUID-only dependency won't line up by name. True dependency resolution
   is a separate concern, out of scope for the snapshot.
+- The **owned** mirror is a stronger claim than that vendor convention: an owned outfit's
+  `Assets/Outfits/<Base>/<Outfit>/` and `Blender/Outfits/<Base>/<Outfit>/` **are** the same logical
+  asset in two trees — **load-bearing**, not cosmetic — and a fit gate resolves the `.blend` from
+  that mirror. Baked-vs-unbaked never forks a separate `<Base>` bucket: baked-ness is a mesh stamp
+  (`avatarprep_baked`), not a folder axis.
