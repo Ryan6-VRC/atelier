@@ -25,13 +25,17 @@ How menu controls are authored on avatars composed non-destructively — the mod
   bust size, Saturation 0.8). One radial may drive several coordinated values (fresnel + mask on
   one Transparency knob).
 - **Button** — rare; reset/transform pulses only.
-- **Submenus** — category-first, ≤2 levels; both MA (GO parenting) and VRCFury (slash-paths in
-  the toggle name) build depth for free. A menu page holds **8 controls**; both frameworks
+- **Submenus** — the house shape (vendors + `AvatarMenu`): nearly everything grouped into
+  **3–6 top-level category submenus** with leaves one level down; a loose control at the root is
+  the exception, not the rule. Category-first, ≤2 levels (depth 3 only to split one oversized
+  category by region); both MA (GO parenting) and VRCFury (slash-paths in the toggle name) build
+  depth for free. A menu page holds **8 controls**; both frameworks
   auto-chain a "More" slot on overflow — poor UI, and visible only in the baked menu. Restructure
   any submenu that would exceed 8 at plan time (split by region or type; strip minor toggles into
   an accessories group). Propose a grouping per avatar
-  and let the user reshape it — there is no canonical taxonomy. No icons unless the user supplies
-  them. TwoAxis/FourAxis puppets are effectively unused here.
+  and let the user reshape it — the recurring vendor vocabulary (Costume/Hair/Face/Accessory/Option,
+  plus avatar-specifics like Kemono / Breast Size) is a familiar default, not a fixed taxonomy. No
+  icons unless the user supplies them. TwoAxis/FourAxis puppets are effectively unused here.
 
 **Defaults.** `saved` = identity (worn state, colors, fit); unsaved = session tweaks and gimmick
 enables. Synced = intent only — sensing stays local (`gimmicks.md`). Bool for on/off — an int
@@ -64,15 +68,26 @@ to the outfit root, not a per-piece toggle.
 
 ## Substrate: MA-first, escalate to VRCFury
 
-All authored menu nodes live under one **`AvatarMenu`** child of the avatar root — the menu
-analogue of `AvatarDynamics`. MA writes the least: one scene GO per toggle under it — a `Menu Item`
-toggle (`automaticValue`, empty parameter) plus `Object Toggle` / `Shape Changer` on the node
-(**a default-visible object needs the inverted closure**: `Inverted=true` + entry `Active=false`,
-firing on param-off — the naive `Active=true` entry on an already-active object compiles to a
-silent no-op);
-dependencies are extra list entries; no controller, no `MA Parameters`, one auto-named synced
-bool each (`nondestructive.md`). Submenu parents are `Menu Item` SubMenus sourcing `Children` —
-`MenuSource` governs only where a SubMenu gets its children and is inert on a leaf toggle.
+Organize authored nodes under one **`AvatarMenu`** child of the avatar root — the menu analogue of
+`AvatarDynamics` — but that container only *groups*; it installs nothing. **A `Menu Item` is one
+control (a leaf, or a SubMenu whose children come from its `MenuSource`); it reaches the avatar's
+menu only through a `Menu Installer` on its own GameObject** (install target unset = root menu).
+There is no child-of-root auto-install — a `Menu Item` with no installer on its GO, and no installed
+SubMenu/`Menu Group` above it, generates its parameter but adds **zero** controls. The installer
+roots one menu source; a SubMenu `Menu Item` sourcing `Children` (or a `Menu Group`, which installs
+its children flat, no wrapper control) pulls the nodes beneath it, and deeper nesting rides that
+chain — only the top of each installed branch carries an installer.
+
+So each top-level category is one GO with **`Menu Installer` + a SubMenu `Menu Item`(`Children`)**,
+toggles as installer-less children (the vendor and `AvatarMenu` shape); a lone root control is
+one GO with **`Menu Installer` + a Toggle `Menu Item`**. `MenuSource` governs only where a SubMenu
+gets its children and is inert on a leaf.
+
+A toggle node is a `Menu Item` (`automaticValue`, empty parameter — one auto-named synced bool, no
+controller, no `MA Parameters`; `nondestructive.md`) plus its `Object Toggle` / `Shape Changer`
+reactions, dependencies as extra list entries. **A default-visible object needs the inverted
+closure**: `Inverted=true` + entry `Active=false`, firing on param-off — the naive `Active=true`
+entry on an already-active object compiles to a silent no-op.
 
 Escalate a **control** to a VRCFury `Toggle` when it needs what MA lacks: exclusive tags,
 a slider driving material properties, a global/OSC param (`useGlobalParam` — one radial can drive
