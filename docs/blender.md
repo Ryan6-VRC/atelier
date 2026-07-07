@@ -50,6 +50,11 @@ still needed on Blender 5.1+ (which abandoned CATS). The callable ops are listed
   extension's `profiles/` holds fixtures/examples only).
 - `operators.py` + `ui.py` — thin N-panel wrappers giving end users installable buttons.
 - `cli/` — headless entry points.
+- **Mesh-state visual capture** is headless too: the `mesh_grab` cli (`--background`, Workbench render
+  to a stamped contact-sheet PNG the agent reads — solid or vertexcolor, named world-axis angles) gives
+  back the deterministic render the denied `render_*_to_path` MCP tools removed, for mesh reads and the
+  RBT vertex-color marker. It covers mesh-state contact sheets, not the live UI/viewport inspection that
+  `get_screenshot_of_window_as_image` still serves.
 
 **Code freshness — which door sees your edits.** Headless `cli/` runs the repo source directly
 (`sys.path`-inserted under `--factory-startup`), so every edit is live on the next launch — no

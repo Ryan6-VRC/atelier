@@ -63,6 +63,7 @@ skills themselves.
 | `armature_compat` | Seam check: do two rigs share bone names/parents/positions, base, and state? (The merge dry-run.) |
 | `validate_profile` | Gate: will this proportion edge apply cleanly to the live scene? |
 | `report_stamps` | Read a `.blend`'s avatarprep provenance — per-armature base/state (+ kind) and a per-armature grouping of each bound mesh's `avatarprep_baked` map (+ an `unbound` bucket). The query counterpart of `stamp_base`. |
+| `mesh_grab` | Headless Workbench contact-sheet render of scene meshes from named world-axis angles — solid \| vertexcolor (the RBT "RBT Matched" marker). AvatarGrab's Blender sibling. |
 
 ### vrc-blender-tools · armature & mesh ops
 
