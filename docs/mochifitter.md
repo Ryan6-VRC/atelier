@@ -8,12 +8,13 @@ Its own compatible-avatar list runs to a few hundred products. We have the vendo
 (~1 GB) on the asset NAS. Nothing here is wired in; this brief exists so future work doesn't unknowingly
 close the door.
 
-**Intended role if adopted.** One more *edge type* over the same base-to-base graph the proportion system
-crosses (`blender.md`, `reproportion`): proportion edges reshape the *body*, a mochi edge transfers
-an *outfit* between bodies. Scope is deliberately narrow — **convert outfits between bases using
-pre-authored conversion data only.** We would not adopt its field-authoring pipeline (the expensive part),
-so the install/Blender/auto-download machinery below stays out of scope; we consume its data, not its
-front-end.
+**Intended role if adopted.** Topo-preserving base changes (scale, bone ops, shapekeys) are already
+handled by equivalency *profiles* (`vrc-blender-tools/profiles/`, `reproportion`'s Decision-8 edge kind) —
+mochifitter's remaining, distinct scope is the case a transform can't reach: **genuine mesh-topology
+retargeting**, warping a garment between bodies whose topology no scale/bone-op bridges. Scope is
+deliberately narrow — **convert outfits between bases using pre-authored conversion data only.** We would
+not adopt its field-authoring pipeline (the expensive part), so the install/Blender/auto-download
+machinery below stays out of scope; we consume its data, not its front-end.
 
 ## Shape of the thing
 
