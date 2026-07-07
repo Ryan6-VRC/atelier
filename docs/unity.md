@@ -315,10 +315,8 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
   error"); clear the console + `refresh_unity` (mode=force, scope=all).
 - **`execute_code` wraps your snippet as a method body**, so no top-level `using` directives — the
   wrapper pre-imports `System`, `System.Collections.Generic`, `System.Linq`, `System.Reflection`,
-  `UnityEngine`, `UnityEditor`; fully-qualify anything else. It compiles with modern C# (Roslyn); the
-  response's `compiler` field reads `roslyn`. If it ever reads `codedom`, Roslyn isn't installed in that
-  Editor and you've dropped to the C# 6 fallback — install it (`bootstrap.md` §3). Scene creation is
-  `NewSceneMode`, not `NewSceneSetupMode`.
+  `UnityEngine`, `UnityEditor`; fully-qualify anything else. Scene creation is `NewSceneMode`, not
+  `NewSceneSetupMode`.
 - **VRCFury's first build of an avatar lacking a "Fix Write Defaults" component pops a blocking
   dialog** that stalls the build waiting for a click. Hard-check before any build; if absent, add
   the VRCFury Fix Write Defaults component with mode **Disabled** (suppresses the prompt, changes
