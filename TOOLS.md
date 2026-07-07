@@ -92,3 +92,4 @@ skills themselves.
 | `compose-mergeable` | Place a seam-authored outfit/hair/accessory onto an avatar base (verify seam, de-conflict meshes, shape coherence). |
 | `author-menu` | Generate expression-menu controls/params/wiring on a composed avatar (MA-first); place or front a gimmick's menu. |
 | `reproportion` | Reshape proportions and reconcile the Unity side. |
+| `showcase-record` | Film a work session (ffmpeg screen capture) and cut it into a short showcase video; manifest-driven `start`/`check`/`stop`/`beats`/`cut`/`teaser`. |
