@@ -10,7 +10,10 @@ Two ways a vendor asset enters an avatar; choose by whether you need to own its 
 - **Compose (default).** Drop the *untouched* vendor prefab in and attach it non-destructively (Modular
   Avatar / VRCFury). The vendor asset is never edited; the stack resolves at upload on a clone. Right for
   anything you don't need to durably change — props, accessories, outfits that fit. Placing one is the
-  **`compose-mergeable`** skill.
+  **`compose-mergeable`** skill, which runs `AvatarLint` on the placed root: an MA-scene-ref miss is
+  retargeted in place (stays a compose), but a **clip-binding** miss whose `.anim` is unowned vendor
+  geometry (`clipAssetPath` under `Assets/Vendor/`|`Packages/`) **aborts the compose and routes to owning**
+  — that fix is a geometry round-trip compose can't do; an already-owned clip is repathed inline.
 - **Own.** When you need a durable change to the geometry, build your own copy — a new `.blend` +
   exported `.fbx`, reusing vendor **materials**/**textures**, owning deeper only where customization
   needs it. Once the proportioning system is in play, every piece that **deforms with the body** must be

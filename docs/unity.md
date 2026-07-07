@@ -85,6 +85,25 @@ deterministic digests:
   Under `auto`, broken-binding demotes to advisory (the build rewrites paths, so an authored-scene
   resolve would false-FAIL).
 
+`AvatarLint.Inspect(avatarRoot)` is the scene-scoped companion to those digests: on an instantiated
+in-scene avatar (descriptor) root it names the two path-encoded reference breaks a base rename leaves after
+a placement — **MA scene refs** (the `referencePath`+`targetObject` `AvatarObjectReference` signature:
+reactive family / BlendshapeSync / Mesh Settings) and **clip/controller bindings** (descriptor playable
+layers + every MA MergeAnimator / VRCFury FullController). It resolves every ref against the **placed
+scene** — a to-be-merged bone is present pre-bake and resolves now, a base-rename break does not, so it
+predicts nothing about what the build will move and never leans on the `Armature.<Name>` convention —
+reusing `AnimatorLint`'s extracted binding-walk (MA at its one fixed frame; VRCFury by upward-strip against
+every ancestor to the avatar root, so a legit avatar-level ref at a non-mount frame is not a break) with
+the build-rewrite demotion off, and resolving MA refs through MA's own `.Get()` (which honours
+`targetObject` before `referencePath`) behind a guarded self-resolve fallback — every reflective hop
+guarded, never throws. Its verdict is a **new family token, `CLASSIFY`** (unresolved refs found — a finding
+for the agent to route, not a tool failure: `Debug.LogWarning`), distinct from `PASS` (`Debug.Log`) and a
+bad-input bare `FAIL` (`Debug.LogError`, no trailer). It computes **no** heuristic — it names each offender
+and its class, and a `clip-binding` offender carries a distinct `clipAssetPath` (the field the compose
+agent routes on: owned/writable ⇒ inline `UC2` clip-fix; `Assets/Vendor/`|`Packages/` ⇒ abort the compose
+and route to `own-mergeable`). Inspection-only — no scene dirty, no `.anim` write; the remedy lives in the
+skill, not the tool.
+
 `AvatarGrab.Capture(target, angles, hide, margin, showGizmos, resolution)` drives the
 operator's **Scene View** to render **one** avatar subtree in isolation to a temp contact-sheet PNG —
 the clipping/fit backstop `compose-mergeable` defers to the operator. Where the MCP

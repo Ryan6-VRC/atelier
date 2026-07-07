@@ -9,7 +9,8 @@ and read-path rules — don't restate them).
 
 1. **Static** — read the assets, run nothing. Animator lint (missing motion GUIDs,
    undeclared/orphaned params, entry-ladder shadowing, WD inconsistency per layer, cross-package GUID
-   refs), and constraint-graph review.
+   refs), a placement check on the in-scene avatar root (`AvatarLint`: MA-scene-ref + clip-binding refs a
+   base rename silently broke — `PASS`/`CLASSIFY`), and constraint-graph review.
    Cheapest; catches the mechanical bug classes.
 2. **Bake** — enter play mode (the build runs on the transient play copy; gate below) and read what it
    produced — VRCFury prefix rewrites, Parameter-Compressor membership, layer provenance, and the
