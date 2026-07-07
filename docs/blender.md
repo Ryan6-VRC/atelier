@@ -92,33 +92,53 @@ bake folds a morph into Basis without corrupting the other morphs' effects.
 ### State stamps (`avatarprep_` namespace)
 
 Irreversible mutating ops record their trace in an `avatarprep_` custom-property namespace through one
-helper (`scene_utils`). Stamps are **advisory and strippable** — Git/RunLogs are authoritative, and a
-**missing stamp reads as _unknown_, not compatible**. They live **in the `.blend` only**: the Unity export
-recipe omits `use_custom_props`, so nothing crosses to FBX. Two armature slots plus one mesh map:
+helper (`scene_utils`). Stamps are **advisory and strippable** — Git/RunLogs are authoritative. A
+**missing stamp reads as _unknown_, not compatible** — at the runtime merge/compose gate that means
+warn-and-proceed; at filing or fit time (`own-mergeable`, `compose-mergeable`) it means ask the operator,
+write the stamp back, and refile. They live **in the `.blend` only**: the Unity export recipe omits
+`use_custom_props`, so nothing crosses to FBX. **Three independent axes, one writer each** — two on the
+armature, one on meshes. Each stays in its lane: base is body lineage, state is proportion state, baked is
+folded morphs — a profile transitions the `(base, state)` pair; the axes don't leak into each other.
 
-- **`avatarprep_base`** (armature, str) — avatar **body lineage** (e.g. `shinano`). A deliberate agent
-  assertion: written only through the `stamp_base` door, never parsed or guessed, and never overwritten by a
-  state op. Stamp each source FBX of a multi-FBX base; the merge gate then rejects a wrong-base mismatch.
-- **`avatarprep_state`** (armature, str) — proportion/shape state. `import_fbx` stamps `vendor` at ingest;
-  `apply_profile` writes the `<applying>` sentinel before mutating, then the target. A stamp left at the
-  sentinel is a crashed mid-apply over half-transformed geometry, so it is a **hard-FAIL**, not a soft
-  unknown. Base plus `state=vendor` identifies an untouched import, so `vendor` stays a valid state.
+- **`avatarprep_base`** (armature, str) — lineage of an avatar **or a mergeable** (the owned base an
+  outfit was fitted to; e.g. `shinano`). A deliberate agent assertion, never parsed or guessed:
+  **created** by `stamp_base`, then **transitioned only by a profile's `target_base` along a gated
+  edge** — a pure reproportion re-asserts it unchanged, an equivalency edge moves it to a topo-equivalent
+  base. Stamp each source FBX of a multi-FBX base; the merge gate then rejects a wrong-base mismatch.
+  `compose-mergeable` resolves-and-reads it to gate an owned outfit's fit against the target base.
+- **`avatarprep_state`** (armature, str) — proportion state. `import_fbx` stamps the reserved origin
+  **`unproportioned`** at ingest (a fresh import is, by definition, unproportioned; state values are
+  base-neutral — `custom`, not `custom_shinano`). `apply_profile` writes the `<applying>` sentinel before
+  mutating, then the target. A stamp left at the sentinel is a crashed mid-apply over half-transformed
+  geometry, so it is a **hard-FAIL**, not a soft unknown. The guard exact-matches a profile's edge against
+  both axes — `state == source_state` and `base == source_base` — and **base absent at apply is an
+  offender** ("stamp_base first"); state absent still only warns-and-assumes.
 - **`avatarprep_baked`** (mesh, `{shapekey: cumulative_value}`) — body morphs `bake_shapekey` folded into
   Basis. Reversible: the morph block is **never renamed or deleted**, and only the small body-shape-morph
   subset is ever baked. A reconciler treats a `~0` cumulative (a reversed bake) as **absent** — the block stays.
 
-The **merge gate** (`armature_compat`) checks base and state alongside the structural seam: a mismatch,
-sentinel, or corrupt value is a named FAIL; a one-sided missing stamp warns and proceeds. The override is
-**split** — `force` clears structural (skeleton-doubling) offenders, `force_stamps` clears stamp offenders,
-neither clears the other, and an override is logged loudly. Baked morphs are recorded but **not** gated
-here — their coherence bites at compose time.
+A profile is a typed edge `(source_base, source_state) → (target_base, target_state)`. On success,
+`apply_profile` writes `avatarprep_base` (`target_base`) **then** `avatarprep_state` (`target_state`) —
+state last, since it carries the crash sentinel. **Equivalency** profiles — identity no-op for a shared
+body, or pure-scale for a rescaled-identical one — are a first-class edge kind that changes only base.
+**mochifitter** (roadmap, not built) owns the future *non-topo* mesh-retarget case a transform can't
+reach; topo-preserving base changes stay profiles.
+
+The **merge gate** (`armature_compat`) — the **Blender structural merge gate** — checks base and state
+alongside the structural seam: a mismatch, sentinel, or corrupt value is a named FAIL; a one-sided missing
+stamp warns and proceeds. It is distinct from the **Unity `compose-mergeable` stamp/fit gate**, which
+compares an owned mergeable's `(base, state)` against the target base at compose time (see
+`nondestructive.md`). The override here is **split** — `force` clears structural (skeleton-doubling)
+offenders, `force_stamps` clears stamp offenders, neither clears the other, and an override is logged
+loudly. Baked morphs are recorded but **not** gated here — their coherence bites at compose time.
 
 Read stamps back with **`report_stamps`**, the query counterpart of `stamp_base`: every armature's base/state
 plus, grouped **under each owning armature**, its bound meshes' baked maps (meshes owned by no single
 armature fall to an `unbound` bucket). It **groups; it does not collapse** — a two-armature `.blend` (e.g.
 `own-mergeable`'s appended base reference) can't fuse its rigs' morphs; the collapse to one value per morph
 is compose-time work (`compose-mergeable` step 5), honoring the invariant whose authority is the
-`reproportion` skill (*Realizing shapekeys*) — the tool only groups. A fresh import carries `state=vendor`,
-which `validate_profile` **warns-and-assumes** matches any named-source edge (a fresh piece takes a base
-edge without a re-stamp); the hard-FAIL is reserved for a genuine mismatch between a non-`vendor` state
-and the edge's source.
+`reproportion` skill (*Realizing shapekeys*) — the tool only groups. A fresh import carries
+`state=unproportioned` and no base stamp yet; `validate_profile` **exact-matches** state, so a named-source
+edge applied to an `unproportioned` rig is now an offender — the old vendor-matches-any-source wildcard is
+gone. Apply `stamp_base` first, or route through a profile whose source is genuinely `unproportioned`; the
+hard-FAIL is reserved for a stamp left mid-apply at the sentinel or a genuine state mismatch.

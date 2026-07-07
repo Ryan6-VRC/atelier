@@ -99,7 +99,12 @@ Consequences:
 - A faithful copy reproduces the vendor's authoring so an owned (e.g. reproportioned) FBX is
   **drop-in-equivalent** to the vendor. Re-authoring discretion — cleaning up a messy prefab, customizing
   menus — is deliberate human work; placement itself is the `compose-mergeable` skill, which flags the
-  menu/animator pass as a required follow-up outside its scope. Repairing renamed paths splits
+  menu/animator pass as a required follow-up outside its scope. Placing an **owned** mergeable also runs
+  a provenance fit gate: `compose-mergeable` resolves the mergeable's stamped `(base, state)` (Blender's
+  `avatarprep_` namespace) and compares it to the target base being composed onto — a mismatch, or either
+  stamp missing, is a loud may-block **WARNING**, writes nothing, and routes back to `own-mergeable`
+  (Decision 3), operator-overridable. Vendor/unstamped mergeables have no such stamp and fall back to
+  bone-hit-rate instead. Repairing renamed paths splits
   by seam: **animation-clip bindings** on owned on-disk `.anim` assets are now in tooling scope
   (`RepathClips` / `OwnControllerClips`, directed by a caller that knows the moves), while the **Modular
   Avatar scene-ref** renamed-segment seam (above) stays in-scene placement/skill work.
