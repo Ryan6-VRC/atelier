@@ -40,7 +40,7 @@ runtime behavior — live in `docs/`. Read the relevant file before operating in
 - **`docs/unity.md`** — Unity operating knowledge: MCP usage, inspection/reporting + avatar-tools contracts, geometry-change reconcile, sharp edges.
 - **`docs/blender.md`** — Blender operating knowledge: headless batch + Blender MCP usage, the `avatarprep` extension.
 - **`docs/workflow.md`** — cross-system orchestration above any one tool: goals, sequencing, Unity↔Blender handoffs.
-- **`docs/tooldesign.md`** — the interface lens for agent-facing tools; read before adding or changing tools in `vrc-unity-tools`, `vrc-blender-tools`, or skills that drive them.
+- **`docs/tool-design.md`** — the interface lens for agent-facing tools; read before adding or changing tools in `vrc-unity-tools`, `vrc-blender-tools`, or skills that drive them.
 - **`TOOLS.md`** (repo root) — the system tool index: every callable across `vrc-unity-tools` / `vrc-blender-tools` / `vrc-skills`. Read it to see the whole callable surface at once.
 - **`docs/runtime.md`** + **`docs/gimmicks.md`** + **`docs/verify.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns) then verify (how to prove a claim); skip for other work.
 - **`docs/menus.md`** — expression-menu authoring on composed avatars: where menus live, the control vocabulary, toggles as dependency closures, MA-first substrate choice. Read for any menu/toggle work.
