@@ -92,6 +92,7 @@ skills themselves.
 | `own-base` | Build our owned, uploadable copy of a vendor base body. |
 | `own-mergeable` | Build our owned copy of a mergeable's geometry (outfit/hair/accessory) — extract, reproportion, seam — so it composes like a vendor one. |
 | `compose-mergeable` | Place a seam-authored outfit/hair/accessory onto an avatar base (verify seam, de-conflict meshes, shape coherence). |
+| `map-outfit-shapes` | Reason out how a body's blendshapes couple to its clothing/outfit meshes (the shape↔mesh map, across FX/MA/VRCFury idioms), then act on it — de-conflict overlapping clothing (base-under-outfit or multi-outfit merge) + release coupled shapes, feed toggle closures and morph-coherence reads. |
 | `author-menu` | Generate expression-menu controls/params/wiring on a composed avatar (MA-first); place or front a gimmick's menu. |
 | `reproportion` | Reshape proportions and reconcile the Unity side. |
 | `showcase-record` | Film a work session (ffmpeg screen capture) and cut it into a short showcase video; manifest-driven `start`/`check`/`stop`/`beats`/`cut`/`teaser`. |

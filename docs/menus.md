@@ -6,6 +6,13 @@ How menu controls are authored on avatars composed non-destructively — the mod
 
 ## Where a menu lives
 
+**Three origins — survey the first two before authoring the third.** A vendor base's
+**`VRCAvatarDescriptor`** (`expressionsMenu` / `expressionParameters` / FX playable layer) is already a
+complete menu with **zero MA/VRCFury components** — the default vendor state (`outfits.md`); a **Full
+Controller** (VRCFury `FullController`, or a raw menu/params/controller trio) merges one in at build;
+**MA/VRCFury components** author new controls on top. *Absent components never means absent menu* —
+read the descriptor first (`author-menu` §1).
+
 - **Clothing/prop menus are avatar-level, authored after composition.** Mergeables ship bare
   (seam + physics, blank physbone params, no menu) by design: the avatar picks which pieces get
   controls, mixes pieces across outfits without menu baggage, and keeps never-toggled geometry
@@ -50,8 +57,11 @@ one per mesh. This bounds the *default*, never the user: build whatever they exp
 
 "Toggle the shoes" is never just a mesh: real toggles carry edges — shoes bend `Toe_heels` and
 un-shrink feet, a top hides `Nipple_OFF`/pasties and the bra, a sweater reshapes the hair, pants
-exclude socks. Bases are often authored **pre-shrunk** (hands/legs) with the garment *deleting*
-the shrink shape to restore them. Discovery, in authority order:
+exclude socks. Several are the base's clothing↔blendshape coupling (`outfits.md`): a garment sits
+over a pre-collapsed body region, so a toggle that hides it must release that shape and one that
+shows it must re-apply it. Discovery here ranks **authored edges on the composed mergeables** (MA
+reactions first); a base's own **shipped** couplings invert the top two — FX graph first (`outfits.md`
+/ `map-outfit-shapes`). In authority order:
 
 1. **Existing MA reactions** on the composed mergeables — `Shape Changer`/`Object Toggle` entries
    reaching into `Body_Base` or sibling meshes are declared dependency edges. Read them from the

@@ -71,7 +71,8 @@ Consequences:
   error while the outfit skins to bones that never move. `Bone Proxy`
   attaches by **humanoid-bone enum** + subpath — the most portable seam. `Mesh Settings` / `Blendshape
   Sync` carry path refs. The **menu system** is an authoring GO subtree (installer / group / item /
-  toggle) whose targets are path refs; a `Menu Item` toggle with `automaticValue` + empty parameter
+  toggle) whose targets are path refs — it *adds to* the avatar's descriptor-borne menu
+  (`expressionsMenu`/`expressionParameters`/FX), not the sole menu source; a `Menu Item` toggle with `automaticValue` + empty parameter
   **mints one synced bool named from its GameObject** at build, and the **reactive components**
   (`Object Toggle` / `Shape Changer` / `Material Setter`) fire from their host GO's active state —
   one menu bool drives a mesh toggle plus any number of declared reactions, all compiled into FX

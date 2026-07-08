@@ -44,6 +44,7 @@ runtime behavior — live in `docs/`. Read the relevant file before operating in
 - **`TOOLS.md`** (repo root) — the system tool index: every callable across `vrc-unity-tools` / `vrc-blender-tools` / `vrc-skills`. Read it to see the whole callable surface at once.
 - **`docs/runtime.md`** + **`docs/gimmicks.md`** + **`docs/verify.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns) then verify (how to prove a claim); skip for other work.
 - **`docs/menus.md`** — expression-menu authoring on composed avatars: where menus live, the control vocabulary, toggles as dependency closures, MA-first substrate choice. Read for any menu/toggle work.
+- **`docs/outfits.md`** — base-body (kisekae) clothing conventions: layered toggleable clothing meshes, the clothing↔body-blendshape coupling, and the FX controller as its authoritative map. Read before de-conflicting a base under a composed outfit (the `map-outfit-shapes` skill executes it).
 - **`docs/LAYOUT.md`** — AvatarProject folder conventions: untouched-`Vendor/` vs. our-work split, non-Unity files outside `Assets/`.
 - **`docs/bootstrap.md`** — from-zero workspace assembly: clone the sub-repos, install + wire Unity·Blender·MCP, verify. Point a fresh agent here to stand the workspace up.
 - **`docs/new-project.md`** — runbook for adding another Unity project to an already-working workspace (git/gitignore, VPM, the structure-snapshot hook). Skip in normal sessions.
