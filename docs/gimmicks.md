@@ -3,7 +3,9 @@
 Building avatar systems — state machines, constraints, contacts, network sync — that are complex
 inside and simple to use. `runtime.md` is the physics this doc builds on; read it first. Compose
 these named patterns freely, but the first instinct should be the *parsimonious* system for the
-goal, not to stack every pattern that fits.
+goal, not to stack every pattern that fits. To author an FX layer as a reviewed, recompilable artifact
+instead of by hand in the Animator window, see `CompileController` (`unity.md`) — a YAML→controller write
+substrate whose worked examples (`fixtures/animator-substrate/`) encode several of the patterns below.
 
 ## First principles
 

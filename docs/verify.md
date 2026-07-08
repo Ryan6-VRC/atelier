@@ -8,8 +8,8 @@ and read-path rules — don't restate them).
 ## The ladder
 
 1. **Static** — read the assets, run nothing. Animator lint (missing motion GUIDs,
-   undeclared/orphaned params, entry-ladder shadowing, WD inconsistency per layer, cross-package GUID
-   refs), a placement check on the in-scene avatar root (`AvatarLint`: MA-scene-ref + clip-binding refs a
+   undeclared/orphaned params, entry-ladder shadowing, never-firing transitions, WD inconsistency per
+   layer, cross-package GUID refs), a placement check on the in-scene avatar root (`AvatarLint`: MA-scene-ref + clip-binding refs a
    base rename silently broke — `PASS`/`CLASSIFY`), and constraint-graph review.
    Cheapest; catches the mechanical bug classes.
 2. **Bake** — enter play mode (the build runs on the transient play copy; gate below) and read what it
@@ -63,6 +63,16 @@ foreach (var rt in rts) if (rt.IsLocal) local = rt;
 a driver-written output reverts each frame); it lands next tick. Read outputs from the runtime lists,
 scene transforms/blendshapes, or `ContactReceiver.paramValue` — matching the observable to the output
 channel (material / transform / blendshape / GO-active), or a naive scene-diff misses it.
+
+**Observation channels — don't cross them.** Three output kinds live in three places. **Driver** outputs
+(`VRC_AvatarParameterDriver` Set/Add/Copy — a debounce flag, codec bits) land in the runtime's
+`Bools/Floats` mirror: write an input `.value`, read the output there. **Blend-tree / AAP** outputs (a
+Direct-tree smoother's feedback float) are **not** in the mirror — read them off the live animator by setting
+`local.DebugDuplicateAnimator = VRCAvatarDescriptor.AnimLayerType.FX`, then
+`avatar.GetComponent<Animator>().GetFloat("<VF##_>name")` (VRCFury prefixes the param). But the debug
+animator **runs without the avatar's init drivers**, so drivers don't execute on it: read driver outputs from
+the mirror with debug **off**, AAP outputs from the debug animator with debug **on**, never both in one
+session (exiting play resets the mode). Crossing them is why a working codec reads all-zero.
 
 **Two-call assertion** (frames advance only between calls; persist across them in `EditorPrefs`,
 editor-local — delete the key after):

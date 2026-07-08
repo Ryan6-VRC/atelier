@@ -74,9 +74,10 @@ deterministic digests:
   empty-but-valid `0 clips => OK`.
 - `AnimatorLint.Lint(controller, basis, mergeSite, avatarRoot, mountRoot)` — binary **PASS/FAIL**
   (FAIL iff an `error`-tier rule fires) + per-kind counts + a
-  two-tier offender body, to `RunLogs/`. Only four `error` rules flip the verdict —
+  two-tier offender body, to `RunLogs/`. Only five `error` rules flip the verdict —
   unresolvable-motion-GUID, undeclared-param (VRC built-ins exempt), unconditional-entry-shadow,
-  broken-binding; every heuristic (WD disagreement, orphans, dead layers, cross-package/archive refs)
+  never-firing transition (a state hop with no condition **and** no exit time), broken-binding; every
+  heuristic (WD disagreement, orphans, dead layers, cross-package/archive refs)
   stays **advisory**, so the verdict never rests on a guess. Binding resolution
   needs a root the `.controller` lacks: `basis=auto` reads the merge component at `mergeSite` to take
   the frame the build will (MA `pathMode` / VRCFury prop-root preference — `nondestructive.md`),
@@ -260,6 +261,22 @@ blend-trees, behaviours, transitions) plus dead-end transitions, then compacts t
 applies **no `IsSubAsset` filter**: a controller's real orphans are `HideInHierarchy`, for which `IsSubAsset`
 returns false — the same reason `AnimatorLint`'s orphan advisory drops it, so detector and remover census one
 set. Extracted from DreadScripts' ControllerCleaner (VRLabs, MIT).
+
+`CompileController(sourcePath, outDir, whatIf=false)` is the animator **write substrate** — the inverse of
+`ControllerReport`: it compiles a declarative YAML document into a persisted `.controller` (+ inline clips,
+embedded blend trees, and a `VRCExpressionParameters` asset listing every non-builtin/non-scratch param,
+**unsynced included, for legibility**). Pipeline: parse → validate → emit → the shared `ControllerRules`
+graph lint → atomic persist. Atomic + PASS/FAIL: nothing reaches `outDir` unless every stage passes, a
+`whatIf` preview leaves nothing on disk, and a recompile of the same source to the same `outDir` is
+idempotent (reset-in-place, stable GUID). The RunLog body carries never-failing advisories — per-layer
+frame latency (the longest firing-transition chain — conditional or exit-time; a conditional hop is ~1
+frame, an exit-time hop costs its state's clip length) and driver↔AAP isolation conflicts
+(a driver cannot durably set a clip-written param — `runtime.md`). The schema — every key, accepted
+values, and traps — is `docs/animator-schema.md`; the three worked fixtures
+(`vrc-unity-tools/fixtures/animator-substrate/{debounce,smoother,codec}.yaml` — a dwell timer, an AAP
+exponential smoother, a float→bool codec) are its runnable companions, each compiling clean, linting PASS,
+and rung-3 verified. `ControllerRules` is the lint engine extracted from `AnimatorLint` so the **same** rules run on
+this emitted in-memory controller as on a saved asset — the two doors can never disagree.
 
 Two standalone **scene utilities** round out the kit, simple enough that the signature is the contract
 (open the tool): `RemapMaterials` — swap materials by **asset path** across a hierarchy, in place (no
