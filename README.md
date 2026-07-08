@@ -141,6 +141,7 @@ skills themselves.
 | `RepathClips` | Segment-safe repath of a controller's owned clip bindings (caller supplies the moves). |
 | `OwnControllerClips` | Fork vendor-linked clips to owned copies + retarget the controller's motion slots. |
 | `SweepController` | Mark-and-sweep an owned controller's orphaned sub-assets + dead-end transitions (guarded, `whatIf`-previewable) — the mutating half of `AnimatorLint`'s detection. |
+| `CompileController` | The animator **write substrate**: compile a declarative YAML document into a persisted `.controller` (+ inline clips, embedded blend trees, `VRCExpressionParameters`). parse→validate→emit→`ControllerRules` lint→atomic persist; idempotent (stable GUID), `whatIf`-previewable. Schema: [`docs/animator-schema.md`](docs/animator-schema.md). |
 | `SplitHSVGClips` | Generate per-channel HSVG constant-value variant clips (lilToon/Poiyomi `_MainTexHSVG`). |
 | `NormalizeExpressionClips` | Make expression clips share one binding/key-time set; optionally prune unused curves. |
 
@@ -188,6 +189,7 @@ skills themselves.
 | `own-base` | Build our owned, uploadable copy of a vendor base body. |
 | `own-mergeable` | Build our owned copy of a mergeable's geometry (outfit/hair/accessory) — extract, reproportion, seam — so it composes like a vendor one. |
 | `compose-mergeable` | Place a seam-authored outfit/hair/accessory onto an avatar base (verify seam, de-conflict meshes, shape coherence). |
+| `map-outfit-shapes` | Reason out how a body's blendshapes couple to its clothing/outfit meshes (the shape↔mesh map, across FX/MA/VRCFury idioms), then act on it — de-conflict overlapping clothing (base-under-outfit or multi-outfit merge) + release coupled shapes, feed toggle closures and morph-coherence reads. |
 | `author-menu` | Generate expression-menu controls/params/wiring on a composed avatar (MA-first); place or front a gimmick's menu. |
 | `reproportion` | Reshape proportions and reconcile the Unity side. |
 | `showcase-record` | Film a work session (ffmpeg screen capture) and cut it into a short showcase video; manifest-driven `start`/`check`/`stop`/`beats`/`cut`/`teaser`. |
