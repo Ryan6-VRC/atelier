@@ -41,10 +41,11 @@ ref-breaks — one walk, so the two doors can't disagree on how a binding resolv
 These mutate on-disk assets. All are `avatar-tools` static methods, `whatIf`-previewable and idempotent
 (conventions in `unity.md`).
 
-- `CleanController(sourceFx, ownedRoot, outDir, keepLayerNames, whatIf=false)` — minimal controller keeping
-  the **named** layers (base layer 0 always retained; FAILs on an absent/ambiguous name — no magic layer
-  count), its **parameter list pruned to what the kept layers reference**, + empty expression params/menu,
-  wired into the descriptor. **Create-if-missing / reuse-if-present** with GUID-stable shared asset names
+- `CleanController(sourceFx, ownedRoot, outDir, keepLayerNames, whatIf=false)` — **resets an owned avatar's
+  FX to a blank slate at the start of a build**: discards the vendor's elaborate FX down to a minimal
+  controller keeping the **named** layers (base layer 0 always retained; FAILs on an absent/ambiguous name —
+  no magic layer count), its **parameter list pruned to what the kept layers reference**, + empty expression
+  params/menu, wired into the descriptor. **Create-if-missing / reuse-if-present** with GUID-stable shared asset names
   (`<sourceFx>_Clean.controller`, `VRCExpressionParameters_Empty.asset`, `VRCExpressionsMenu_Empty.asset`)
   so variations of one base share assets; never delete-recreate. `whatIf` reports what it would
   create/reuse, trim, and wire — touching no asset.

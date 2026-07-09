@@ -137,7 +137,7 @@ skills themselves.
 
 | Key | Purpose |
 | --- | --- |
-| `CleanController` | Trim a controller to named layers, prune its params to kept-layer references, wire clean FX/params/menu. |
+| `CleanController` | Reset an owned avatar's FX to a blank slate: keep named layers (+ base 0), empty params/menu, wire the descriptor. Blank-slate only — for anything richer, `Decompile→edit→Compile` + own the controller instead. |
 | `RepathClips` | Segment-safe repath of a controller's owned clip bindings (caller supplies the moves). |
 | `OwnControllerClips` | Fork vendor-linked clips to owned copies + retarget the controller's motion slots. |
 | `CompileController` | The animator **write substrate**: compile a declarative YAML document into a persisted `.controller` (+ inline clips, embedded blend trees, `VRCExpressionParameters`). parse→validate→emit→`ControllerRules` lint→atomic persist; idempotent (stable GUID), `whatIf`-previewable. Schema: [`docs/animator-schema.md`](docs/animator-schema.md). |
