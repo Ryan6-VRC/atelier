@@ -46,6 +46,7 @@ skills themselves.
 | `OwnControllerClips` | Fork vendor-linked clips to owned copies + retarget the controller's motion slots. |
 | `SweepController` | Mark-and-sweep an owned controller's orphaned sub-assets + dead-end transitions (guarded, `whatIf`-previewable) — the mutating half of `AnimatorLint`'s detection. |
 | `CompileController` | The animator **write substrate**: compile a declarative YAML document into a persisted `.controller` (+ inline clips, embedded blend trees, `VRCExpressionParameters`). parse→validate→emit→`ControllerRules` lint→atomic persist; idempotent (stable GUID), `whatIf`-previewable. Schema: [`docs/animator-schema.md`](docs/animator-schema.md). |
+| `DecompileController` | The animator **read substrate**, inverse of `CompileController`: reachability-walk a built `.controller` back to animator-schema YAML. A READ tool (self-logs to Snapshot, never mutates); named refusals for out-of-vocabulary constructs; `whatIf`. `Decompile→edit→Compile` is the lossless round-trip oracle. Schema: [`docs/animator-schema.md`](docs/animator-schema.md). |
 | `SplitHSVGClips` | Generate per-channel HSVG constant-value variant clips (lilToon/Poiyomi `_MainTexHSVG`). |
 | `NormalizeExpressionClips` | Make expression clips share one binding/key-time set; optionally prune unused curves. |
 
