@@ -239,7 +239,8 @@ clips:
   `Prop/Renderer.enabled` → path `Prop`, `Renderer`, `enabled`. The split takes the first dot because a
   component type never contains one but a property can, so `Body/SkinnedMeshRenderer.blendShape.Smile` and
   `Hat/MeshRenderer.material._Color.r` resolve — blendshapes and material sub-properties are authorable
-  inline.
+  inline. `Component` resolves in the **`UnityEngine` namespace only** (Renderer, SkinnedMeshRenderer,
+  Light, Transform, …); UI (`UnityEngine.UI`) and VRC-SDK components are out of scope and refused fail-loud.
 - **Carrier.** A `seconds`-only clip (no `set`/`curves`) emits a flat curve on a reserved scratch Animator
   parameter (`_CompilerNull` — declared on the controller on first use, kept out of the emitted
   VRCExpressionParameters) purely to give the clip an honest length: it animates nothing and resolves against
