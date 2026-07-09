@@ -63,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"MCP run_tests crashes this Unity Editor (the EditMode domain-reload path takes it down). Verify Editor C# behaviorally with execute_code instead; run the NUnit suite from the Test Runner window or in CI. (refresh_unity also reloads but recovers -- only run_tests crashes.)\"}}'"
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"MCP run_tests runs in this live editor — the wrong venue. Run the EditMode suite headless via tools/run-editmode-tests.ps1; live-object mutation is verified with execute_code. Why: docs/verify.md (test venue).\"}}'"
           }
         ]
       }

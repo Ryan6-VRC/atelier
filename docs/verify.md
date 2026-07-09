@@ -27,6 +27,17 @@ and read-path rules — don't restate them).
 
 Rungs 1–3 are agent-automatable; rung 4 is not, and saying so is part of the report.
 
+## Test venue — NUnit vs execute_code
+
+NUnit EditMode tests may build and read live `UnityEngine.Object`s, but must not **mutate** them
+(`SerializedObject`/`SerializedProperty` writes, `AddComponent`, `CopySerialized`) when those objects
+will later be destroyed: doing so corrupts Unity's global object registry (`ms_IDToPointer` double-
+erase → SIGSEGV) at the next allocation, and the crash is unfixable by teardown hygiene (proven — see
+the run-tests-test-venue spec). Verify mutation behavior by running the tool via `execute_code` on a
+real avatar (the operator's gate above). Run the NUnit suite headless with
+`tools/run-editmode-tests.ps1` against the generated `TestEditor` (bootstrap.md) — never MCP
+`run_tests`, which runs in the live editor.
+
 ## Rung 3 — the Av3Emulator harness
 
 **The play-entry gate is enforced in-Editor.** The `PlayGate` hook (`com.ryan6vrc.agent-tools`)

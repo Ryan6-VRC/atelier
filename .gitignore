@@ -33,3 +33,9 @@ CLAUDE.local.md
 # Internal working scratch — not for the public repo (kept locally, untracked)
 brainstorm-kickoffs.md
 fixups.md
+
+# Local, script-generated headless test project (tools/setup-test-editor.ps1) — never committed.
+/TestEditor/
+# Runner artifacts (tools/run-editmode-tests.ps1).
+tools/results-*.xml
+tools/run-*.log

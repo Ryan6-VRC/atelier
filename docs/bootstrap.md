@@ -87,11 +87,16 @@ Platform": select each DLL under `Assets/Plugins/Roslyn/`, set platform to Edito
 is gitignored — **restore per Editor, don't commit it**. Verify: any `execute_code` response's `compiler`
 field reads `roslyn` (not `codedom`).
 
-**`run_tests` is blocked — leave it that way.** Calling the Unity MCP `run_tests` tool *crashes the Editor*
-(EditMode domain reload). A tracked `PreToolUse` hook in `.claude/settings.json` denies it and redirects to
-`execute_code` / the Test Runner window / CI; its `mcp__UnityMCP.*__run_tests` matcher covers every UnityMCP
-Editor, current and future. It ships with the clone — no setup, just don't remove it. (Hooks load at launch,
-so it's live from the next session, not mid-session.)
+**`run_tests` is blocked — leave it that way.** MCP `run_tests` runs NUnit in the live Editor, the wrong
+venue; a tracked `PreToolUse` hook in `.claude/settings.json` denies it and redirects to the headless
+runner. Its `mcp__UnityMCP.*__run_tests` matcher covers every UnityMCP Editor, current and future. It
+ships with the clone — no setup, just don't remove it. (Hooks load at launch, so it's live from the
+next session, not mid-session.)
+
+**Running the EditMode suite headless.** Run `tools/setup-test-editor.ps1` once per machine — it needs
+AvatarProject's VRChat SDK already resolved — to generate the local, gitignored `TestEditor`; then
+`tools/run-editmode-tests.ps1` runs the suite against it. See `docs/verify.md` for why this split
+exists (the venue rule and the root cause it's built on).
 
 **Blender MCP.** `uv tool install blender-mcp` installs the MCP **server**; wire it at local scope with your
 machine's paths: `claude mcp add BlenderMCP -s local -e "BLENDER_PATH=<blender.exe>" -- <blender-mcp.exe>`.

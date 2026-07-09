@@ -30,7 +30,7 @@ reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not 
    any instance — and each extra server duplicates the whole tool surface and its deny list. A separate
    server is earned only by a different trust posture, not a different project. The tracked `run_tests`
    deny-hook already covers every Editor via its wildcard matcher — no action; just don't remove it
-   (`run_tests` crashes this Editor too).
+   (run the EditMode suite headless — see docs/verify.md).
 
 ## Structure-snapshot hook
 
