@@ -379,6 +379,13 @@ or a flow delimiter (it can't survive the `<param> <op> <value>` grammar).
 round-trips exactly, which makes the round-trip the compiler's own lossless-verification oracle. The single
 acknowledged lossy step is a genuinely-broken vendor motion ref (`unresolved` → null slot → empty child).
 
+The always-present, schema-spanning witness is `RoundtripStressTests` (Arm A authored-YAML fixpoints across
+blend trees / addressing / behaviours / clips / a cross-cluster integration graph; Arm B pinned refusal
+witnesses for the covered out-of-vocabulary mechanisms; Arm C the import tolerances). Constructs the round-trip structurally cannot
+witness — canonicalized metadata (`basis`/`role`/`scratch`/`vrc`), the unresolved-ref lossy step, and
+refusals whose seed can't be built from an Editor test assembly — are enumerated in
+`docs/superpowers/specs/2026-07-09-roundtrip-stress-fixture-design.md` ("Excluded from this oracle").
+
 ## Not yet in the schema
 
 A compile rejects these — listed so an "unknown field" error reads as deferred, not a syntax slip:
