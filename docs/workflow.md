@@ -10,7 +10,7 @@ Two ways a vendor asset enters an avatar; choose by whether you need to own its 
 - **Compose (default).** Drop the *untouched* vendor prefab in and attach it non-destructively (Modular
   Avatar / VRCFury). The vendor asset is never edited; the stack resolves at upload on a clone. Right for
   anything you don't need to durably change — props, accessories, outfits that fit. Placing one is the
-  **`compose-mergeable`** skill, which runs `AvatarLint` on the placed root: an MA-scene-ref miss is
+  **`compose-mergeable`** skill, which runs `CheckAvatar` on the placed root: an MA-scene-ref miss is
   retargeted in place (stays a compose), but a **clip-binding** miss whose `.anim` is unowned vendor
   geometry (`clipAssetPath` under `Assets/Vendor/`|`Packages/`) **aborts the compose and routes to owning**
   — that fix is a geometry round-trip compose can't do; an already-owned clip is repathed inline.
@@ -28,7 +28,7 @@ Crystallized as the **`own-base` skill** (judgment, gates, sequencing) over the
 `com.ryan6vrc.avatar-tools` Unity tools and the `avatarprep` Blender functions. The skill is the entry
 point; this is the shape it drives:
 
-1. **Graph & decide** — `AvatarPackageGraph` reports the vendor package (read-only). Pick the superset
+1. **Graph & decide** — `ReportPackage` reports the vendor package (read-only). Pick the superset
    FBX; the owned base stays **outfit-agnostic**, so keep every non-identical body mesh rather than
    choosing one variant up front (the prefab consumer disables the unwanted ones per outfit). Surface
    to the operator: vendor import settings that differ from ours, a **no-superset case** (variations
@@ -44,9 +44,10 @@ point; this is the shape it drives:
    automatic — `own-base`). Convert to a prefab variant, move the FBX into `Models/`,
    ask the operator to **test-drive**, then build the clean FX.
 
-Each Unity tool emits a PASS/FAIL diagnostic + RunLog; treat a vendor-leak or nulled-ref count as a
-stop-and-investigate gate (usually a name/path mismatch), not something to push past — but a
-flagged-missing host is the expected subset case (PASS), not a gate.
+Each Unity tool emits a one-line diagnostic + RunLog — a `Check` or write gate carries a PASS/FAIL
+verdict, a `Report` (e.g. `ReportPackage`) a verdict-free `=> OK` digest. Treat a vendor-leak or
+nulled-ref count as a stop-and-investigate gate (usually a name/path mismatch), not something to push
+past — but a flagged-missing host is the expected subset case, not a gate.
 
 Outfit / hair / accessory owning is the **`own-mergeable`** skill — the same three-phase spine minus the
 body-only steps. Deferred (a later arc): copying Modular Avatar / VRCFury / NDMF systems off a base.

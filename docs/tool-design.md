@@ -32,6 +32,16 @@ not for isolation.
   keys, menu paths, docs. Same kind of result, same envelope — one diagnostic shape, not one per
   tool. A new tool's interface should be guessable from the last one; rename to converge rather
   than alias; name a heuristic as a heuristic, not a fact.
+- **The read-verb set is closed; route by observable output.** Every tool is `<Verb><Subject>`
+  (Unity PascalCase, Blender `verb_noun`). Read tools pick their verb from what they *return*, not
+  why they were called: `Report` (descriptive digest of one subject — may classify, never emits a
+  verdict token), `Check` (a PASS/FAIL gate on whether a state holds), `Compare` (a two-subject diff
+  payload; may carry a summary verdict — a bare two-subject go/no-go with no diff is a `Check`),
+  `Render` (an image). Write tools use a specific action verb; that set is open. The only sanctioned
+  exceptions are a closed, enumerated pair — `AgentInspector` (the generic, domain-blind walk) and
+  `DecompileController` (emits re-editable YAML, the codec-inverse of `CompileController`) — not a
+  category a new tool can qualify into. Dry-run is `whatIf` (bool); its `whatIf`/`whatif` casing is
+  idiomatic per language.
 - **The schema can't lie.** Descriptions and limits match real behavior; a misuse returns a
   refusal that names the fix — the error is part of the interface.
 - **Say it once.** Per-tool detail in the tool; cross-cutting guidance at one entry point; never

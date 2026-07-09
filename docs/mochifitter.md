@@ -9,7 +9,7 @@ Its own compatible-avatar list runs to a few hundred products. We have the vendo
 close the door.
 
 **Intended role if adopted.** Topo-preserving base changes (scale, bone ops, shapekeys) are already
-handled by equivalency *profiles* (`vrc-blender-tools/profiles/`, `reproportion`'s Decision-8 edge kind) —
+handled by equivalency *edges* (`vrc-blender-tools/edges/`, `reproportion`'s Decision-8 edge kind) —
 mochifitter's remaining, distinct scope is the case a transform can't reach: **genuine mesh-topology
 retargeting**, warping a garment between bodies whose topology no scale/bone-op bridges. Scope is
 deliberately narrow — **convert outfits between bases using pre-authored conversion data only.** We would

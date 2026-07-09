@@ -12,16 +12,16 @@ grammar every mutating tool obeys.
 Three read-only introspection tools (`agent-tools`) turn raw `.controller`/`.anim` YAML into cheap
 deterministic digests:
 
-- `ControllerReport.Report(controller)` — a ~50:1 markdown digest that *decodes* animator semantics rather
+- `ReportController.Report(controller)` — a ~50:1 markdown digest that *decodes* animator semantics rather
   than echoing YAML: parameters, layers (+ per-layer Write-Defaults), states and their motions (clips named
   by **asset-path + GUID**, an empty-vs-broken split that surfaces a dangling motion GUID), the first-match
   transition ladder, and VRC state-machine behaviours decoded **typed**. To `Snapshots/`; `… layers=…
   states=… params=… => OK | log=<path>`.
-- `ClipReport.Report(clip)` / `ReportFolder(folder)` — bindings as a `path | type | propertyName | keys`
+- `ReportClip.Report(clip)` / `ReportFolder(folder)` — bindings as a `path | type | propertyName | keys`
   table (one row per curve), paths as-authored (a `""` root shown as `(root)`, never judged). To
-  `Snapshots/`. Folder mode mirrors `ImportVerify.VerifyFolder` (`unity.md`), down to the empty-but-valid
+  `Snapshots/`. Folder mode mirrors `CheckPackage.VerifyFolder` (`unity.md`), down to the empty-but-valid
   `0 clips => OK`.
-- `AnimatorLint.Lint(controller, basis, mergeSite, avatarRoot, mountRoot)` — binary **PASS/FAIL** (FAIL iff
+- `CheckAnimator.Lint(controller, basis, mergeSite, avatarRoot, mountRoot)` — binary **PASS/FAIL** (FAIL iff
   an `error`-tier rule fires) + per-kind counts + a two-tier offender body, to `RunLogs/`. Only five `error`
   rules flip the verdict — unresolvable-motion-GUID, undeclared-param (VRC built-ins exempt),
   unconditional-entry-shadow, never-firing transition (a state hop with no condition **and** no exit time),
@@ -33,7 +33,7 @@ deterministic digests:
   asserts `avatarRoot`/`mountRoot`. Under `auto`, broken-binding demotes to advisory (the build rewrites
   paths, so an authored-scene resolve would false-FAIL).
 
-`AnimatorLint`'s binding-walk is the same one `AvatarLint` (`unity.md`) reuses for scene-placement
+`CheckAnimator`'s binding-walk is the same one `CheckAvatar` (`unity.md`) reuses for scene-placement
 ref-breaks — one walk, so the two doors can't disagree on how a binding resolves.
 
 ## Owning & consolidating a controller
@@ -55,7 +55,7 @@ different domain from `RemapReferencesByPath` (scene-object refs, `unity.md`). B
 **frame-blind** rewriters — the **caller owns frame-correctness** (descriptor / MA MergeAnimator / VRCFury
 FullController frames differ, VRCFury may mix absolute + relative in one controller; no whole-avatar sweep)
 — though the frame is **discoverable from the merge component** (`nondestructive.md`), which is exactly what
-`AnimatorLint`'s `auto` basis reads.
+`CheckAnimator`'s `auto` basis reads.
 
 - `RepathClips(controller, oldPaths, newPaths, force=false, whatIf=false)` — deterministic **segment-safe**
   repath of the bindings a controller references (float + objectReference; `Armature/Hips` rewrites
@@ -69,17 +69,10 @@ FullController frames differ, VRCFury may mix absolute + relative in one control
   the controller**, repointing every motion slot; disk-truthful residual post-condition. `UC2 =
   OwnControllerClips → RepathClips`.
 
-`SweepController(controller, force=false, whatIf=false)` is the mutating half of `AnimatorLint`'s orphan
-detection — it destroys an owned controller's sub-assets reachable from no layer (states, state-machines,
-blend-trees, behaviours, transitions) plus dead-end transitions, then compacts the null slots left behind.
-It applies **no `IsSubAsset` filter**: a controller's real orphans are `HideInHierarchy`, for which
-`IsSubAsset` returns false — the same reason `AnimatorLint`'s orphan advisory drops it, so detector and
-remover census one set. Extracted from DreadScripts' ControllerCleaner (VRLabs, MIT).
-
 ## The compile/decompile substrate
 
 `CompileController(sourcePath, outDir, whatIf=false)` is the animator **write substrate** — the inverse of
-`ControllerReport`: it compiles a declarative YAML document into a persisted `.controller` (+ inline clips,
+`ReportController`: it compiles a declarative YAML document into a persisted `.controller` (+ inline clips,
 embedded blend trees, and a `VRCExpressionParameters` asset listing every non-builtin/non-scratch param,
 **unsynced included, for legibility**). Pipeline: parse → validate → emit → the shared `ControllerRules`
 graph lint → atomic persist. Atomic + PASS/FAIL: nothing reaches `outDir` unless every stage passes, a
@@ -105,18 +98,17 @@ Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) ride
 **The round-trip reframes the owning tools above.** `Decompile→edit→Compile` emits a controller that is a
 pure function of the document, so for any controller you are willing to **own** (decompile), orphan
 sub-assets, unwanted layers, and stale clip refs all vanish on recompile — subsuming the in-vocabulary use
-of `CleanController`, `OwnControllerClips`, and `SweepController`. Each is nonetheless **KEEP**, narrowed to
+of `CleanController` and `OwnControllerClips`. Each is nonetheless **KEEP**, narrowed to
 the niche the round-trip can't reach: **vendor-lineage controllers we deliberately don't decompile**
 (Decompile refuses their out-of-vocabulary constructs). `CleanController` trims those by layer **name**
 without parsing contents; `OwnControllerClips` forks vendor `.anim`s the compiler holds outside its document
-scope; `SweepController` strips orphans from an owned-but-undecompiled controller — the **narrowest** niche,
-and the **first delete candidate** if it stays empty in practice.
+scope.
 
 `SchemaValidation` (pre-emit gate on the typed document — condition operator-vs-param-type legality,
 reserved names, base-fx layer floor, dangling default/inline-clip refs) and `ControllerRules` (post-emit
 graph oracle on the built asset — missing motions, undeclared params, orphans, dead transitions) **stay
 separate**: two representations, not two copies of one check. They share the one rule library
-`ControllerRules.Run` (both `AnimatorLint` and `CompileController` call it); each pass catches what only its
+`ControllerRules.Run` (both `CheckAnimator` and `CompileController` call it); each pass catches what only its
 representation can express, and the lone overlap — parameter declaration — is partitioned by an explicit
 deferral, so there is no duplicated rule to merge.
 

@@ -47,8 +47,8 @@ class TestUnityExtractor(unittest.TestCase):
         # churn under refactors, so this smoke test only proves the extractor reads
         # the real tree — stable tools present, non-tools (stubs) absent, sane floor.
         keys = s.extract_unity_keys(WORKSPACE / "vrc-unity-tools")
-        for expected in ("CopyComponents", "GraftHierarchy", "AvatarPackageGraph",
-                         "CopyDescriptor", "RelocateComponents"):
+        for expected in ("CopyComponents", "GraftHierarchy", "ReportPackage",
+                         "CopyDescriptor", "MoveComponents"):
             self.assertIn(expected, keys)
         self.assertNotIn("Ping", keys)
         self.assertNotIn("AgentSelfTest", keys)
@@ -76,10 +76,9 @@ class TestBlenderExtractor(unittest.TestCase):
 
     def test_live_surface_union_dedup(self):
         keys = s.extract_blender_keys(WORKSPACE / "vrc-blender-tools")
-        self.assertIn("apply_pose_as_rest", keys)   # operator == cli stem (one key)
-        self.assertIn("apply_recipe", keys)          # cli-only
-        self.assertIn("validate_profile", keys)
-        self.assertEqual(len(keys), 9)
+        self.assertIn("apply_pose", keys)   # operator == cli stem (one key)
+        self.assertIn("import_fbx", keys)
+        self.assertEqual(len(keys), 11)
 
     def test_operator_in_any_module_and_single_quote(self):
         # An operator declared outside operators.py is still found (glob), and a
@@ -99,9 +98,14 @@ class TestBlenderExtractor(unittest.TestCase):
 
 class TestSkillsExtractor(unittest.TestCase):
     def test_live_surface_names(self):
+        # Smoke test only (mirrors the Unity extractor): skill names churn, so prove
+        # the extractor reads the real tree — a few stable skills present + a sane
+        # floor — not an exact census (that is enforced by TOOLS.md + --check).
         keys = s.extract_skills_keys(WORKSPACE / "vrc-skills")
-        self.assertEqual(keys, {"import-vendor-asset", "own-base",
-                                "reproportion-avatar"})
+        for expected in ("import-vendor-asset", "own-base", "reproportion",
+                         "own-mergeable"):
+            self.assertIn(expected, keys)
+        self.assertGreaterEqual(len(keys), 8)
 
 
 class TestParseAndCheck(unittest.TestCase):

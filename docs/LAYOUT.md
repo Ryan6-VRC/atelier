@@ -53,7 +53,7 @@ result lands and why.
 ## Proportion profiles & state naming
 
 Reproportioning edges (JSON) are **co-located per avatar** in `Blender/Avatars/<Name>/`; the shared
-`vrc-blender-tools/profiles/` is a **curated, shipped sample library** (migrated edges plus known
+`vrc-blender-tools/edges/` is a **curated, shipped sample library** (migrated edges plus known
 base-equivalency samples), not examples/fixtures. A profile is a **typed edge** `(source_base,
 source_state) → (target_base, target_state)`, authored against one rig's literal bone names, so it is
 owned by the avatar it targets. **Outfits have no proportion-edge JSON of their own** — an outfit is
@@ -62,7 +62,7 @@ doesn't mean an outfit's base is unknown, though: its lineage is separately stam
 on the outfit's own armature.
 
 State names are **stamped onto the armature** (`avatarprep_state`) and travel with the `.blend`; they are
-**never exported to FBX** (the export recipe omits `use_custom_props`). `validate_profile` reads them **in
+**never exported to FBX** (the export recipe omits `use_custom_props`). `apply_proportion_edge --whatif` reads them **in
 Blender**, before apply, exact-matching both the state and the separate `avatarprep_base` stamp — an
 absent base is an **offender** (stamp it first), an absent state only warns:
 - **State values are base-neutral.** `custom` is the correct target state, not `custom_shinano` or

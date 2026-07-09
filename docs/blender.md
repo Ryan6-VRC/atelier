@@ -45,12 +45,12 @@ still needed on Blender 5.1+ (which abandoned CATS). The callable ops are listed
 `TOOLS.md` (vrc-blender-tools section); this file covers how they behave, not what exists. Dual-use layout:
 
 - `avatarprep/core/` — pure `bpy` functions the agent calls headless: `import_fbx`/`observe_import`,
-  `prune_zero_weight_bones`, `apply_pose_as_rest`, `export_unity_fbx`, `armature_compat`/`merge_armatures`,
-  `proportions.apply_profile`, `shapekey_bake.bake_shapekey_to_basis` (edge files live per-avatar in `Blender/Avatars/<Name>/`; the
-  extension's `profiles/` holds fixtures/examples only).
+  `prune_zero_weight_bones`, `apply_pose`, `export_unity_fbx`, `compare_armatures`/`merge_armatures`,
+  `proportions.apply_proportion_edge`, `shapekey_bake.bake_shapekey_to_basis` (edge files live per-avatar in `Blender/Avatars/<Name>/`; the
+  extension's `edges/` holds fixtures/examples only).
 - `operators.py` + `ui.py` — thin N-panel wrappers giving end users installable buttons.
 - `cli/` — headless entry points.
-- **Mesh-state visual capture** is headless too: the `mesh_grab` cli (`--background`, Workbench render
+- **Mesh-state visual capture** is headless too: the `render_mesh` cli (`--background`, Workbench render
   to a stamped contact-sheet PNG the agent reads — solid or vertexcolor, named world-axis angles) gives
   back the deterministic render the denied `render_*_to_path` MCP tools removed, for mesh reads and the
   RBT vertex-color marker. It covers mesh-state contact sheets, not the live UI/viewport inspection that
@@ -67,10 +67,10 @@ operator/UI-free `bpy` code — safe to import and reload). Treat the installed 
 human's N-panel buttons; refreshing those needs a rebuild + reinstall and a Reload Scripts.
 
 The structural **seam** — how two skeletons line up to be mergeable — is surfaced read-only by
-`armature_compat`; like every core op, the seam ops (compat / merge / prune) are reachable both
+`compare_armatures`; like every core op, the seam ops (compat / merge / prune) are reachable both
 headless via `cli/` and as N-panel buttons. This Blender **merge seam** is distinct from the Unity
 **attach seam** (the MA/VRCFury component resolved at build — `nondestructive.md`); same word, different
-pipeline stage, and `armature_compat` knows nothing of MA/VRCFury.
+pipeline stage, and `compare_armatures` knows nothing of MA/VRCFury.
 
 `import_fbx` runs the same under `--background` and over the windowed MCP path (it wraps the operator in
 `scene_utils.op_override` only when a VIEW_3D area exists); it uses the current `wm.fbx_import` — the
@@ -108,7 +108,7 @@ folded morphs — a profile transitions the `(base, state)` pair; the axes don't
   `compose-mergeable` resolves-and-reads it to gate an owned outfit's fit against the target base.
 - **`avatarprep_state`** (armature, str) — proportion state. `import_fbx` stamps the reserved origin
   **`unproportioned`** at ingest (a fresh import is, by definition, unproportioned; state values are
-  base-neutral — `custom`, not `custom_shinano`). `apply_profile` writes the `<applying>` sentinel before
+  base-neutral — `custom`, not `custom_shinano`). `apply_proportion_edge` writes the `<applying>` sentinel before
   mutating, then the target. A stamp left at the sentinel is a crashed mid-apply over half-transformed
   geometry, so it is a **hard-FAIL**, not a soft unknown. The guard exact-matches a profile's edge against
   both axes — `state == source_state` and `base == source_base` — and **base absent at apply is an
@@ -118,13 +118,13 @@ folded morphs — a profile transitions the `(base, state)` pair; the axes don't
   subset is ever baked. A reconciler treats a `~0` cumulative (a reversed bake) as **absent** — the block stays.
 
 A profile is a typed edge `(source_base, source_state) → (target_base, target_state)`. On success,
-`apply_profile` writes `avatarprep_base` (`target_base`) **then** `avatarprep_state` (`target_state`) —
+`apply_proportion_edge` writes `avatarprep_base` (`target_base`) **then** `avatarprep_state` (`target_state`) —
 state last, since it carries the crash sentinel. **Equivalency** profiles — identity no-op for a shared
 body, or pure-scale for a rescaled-identical one — are a first-class edge kind that changes only base.
 **mochifitter** (roadmap, not built) owns the future *non-topo* mesh-retarget case a transform can't
 reach; topo-preserving base changes stay profiles.
 
-The **merge gate** (`armature_compat`) — the **Blender structural merge gate** — checks base and state
+The **merge gate** (`compare_armatures`) — the **Blender structural merge gate** — checks base and state
 alongside the structural seam: a mismatch, sentinel, or corrupt value is a named FAIL; a one-sided missing
 stamp warns and proceeds. It is distinct from the **Unity `compose-mergeable` stamp/fit gate**, which
 compares an owned mergeable's `(base, state)` against the target base at compose time (see
@@ -138,7 +138,7 @@ armature fall to an `unbound` bucket). It **groups; it does not collapse** — a
 `own-mergeable`'s appended base reference) can't fuse its rigs' morphs; the collapse to one value per morph
 is compose-time work (`compose-mergeable` step 5), honoring the invariant whose authority is the
 `reproportion` skill (*Realizing shapekeys*) — the tool only groups. A fresh import carries
-`state=unproportioned` and no base stamp yet; `validate_profile` **exact-matches** state, so a named-source
+`state=unproportioned` and no base stamp yet; `apply_proportion_edge --whatif` **exact-matches** state, so a named-source
 edge applied to an `unproportioned` rig is now an offender — the old vendor-matches-any-source wildcard is
 gone. Apply `stamp_base` first, or route through a profile whose source is genuinely `unproportioned`; the
 hard-FAIL is reserved for a stamp left mid-apply at the sentinel or a genuine state mismatch.

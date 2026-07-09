@@ -9,7 +9,7 @@ and read-path rules — don't restate them).
 
 1. **Static** — read the assets, run nothing. Animator lint (missing motion GUIDs,
    undeclared/orphaned params, entry-ladder shadowing, never-firing transitions, WD inconsistency per
-   layer, cross-package GUID refs), a placement check on the in-scene avatar root (`AvatarLint`: MA-scene-ref + clip-binding refs a
+   layer, cross-package GUID refs), a placement check on the in-scene avatar root (`CheckAvatar`: MA-scene-ref + clip-binding refs a
    base rename silently broke — `PASS`/`CLASSIFY`), and constraint-graph review.
    Cheapest; catches the mechanical bug classes.
 2. **Bake** — enter play mode (the build runs on the transient play copy; gate below) and read what it
@@ -55,7 +55,7 @@ bake, so the gate stays silent, but rung-3 without it spawns no runtimes and the
   `Avatars 3.0 Emulator Control` object with the `Av3Emulator` component (**Tools → Avatars 3.0
   Emulator → Enable** creates it; the Sandbox scene has it).
 
-And capture every observation — runtime reads, `AvatarGrab` shots — **before exiting play**:
+And capture every observation — runtime reads, `RenderAvatar` shots — **before exiting play**:
 exit reverts the scene to authoring state, so anything captured after proves nothing about
 driven behavior.
 

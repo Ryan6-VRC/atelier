@@ -67,10 +67,10 @@ reactions first); a base's own **shipped** couplings invert the top two — FX g
    reaching into `Body_Base` or sibling meshes are declared dependency edges. Read them from the
    **live scene**, not prefab YAML: instance overrides correct prefab-local reference paths.
 2. **The vendor's original toggle clips/controllers** — for raw-regime sources the edges are
-   frozen in clip curves (`ClipReport`); re-express them as reactions.
+   frozen in clip curves (`ReportClip`); re-express them as reactions.
 3. **Blendshape naming conventions** on the base (`Shrink_*`, `*_OFF`, `Corset`, `Toe_heels`) —
    suggestive, not authoritative.
-4. **Ask the user, or verify visually** — `AvatarGrab` both states.
+4. **Ask the user, or verify visually** — `RenderAvatar` both states.
 
 When a garment mesh duplicates a base-body blendshape name, dependent reactions drive **every**
 mesh carrying it, in lockstep. Edges that hold whenever the outfit is worn (heels, corset) attach

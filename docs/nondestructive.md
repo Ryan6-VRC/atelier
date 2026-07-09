@@ -17,7 +17,7 @@ deliberate: identical names collide when the mergeable attaches (VRCFury discour
 collisions), and the distinct name is what lets Blender-side tools scope to one rig in a two-armature
 `.blend`. This **attach seam** — the MA/VRCFury component resolved at build — is a different check from
 the Blender-side structural **merge seam** (do two skeletons' bone names/parents/positions line up to be
-union-merged — `armature_compat`, `blender.md`), which runs before Unity ever sees the asset.
+union-merged — `compare_armatures`, `blender.md`), which runs before Unity ever sees the asset.
 
 ## The build is non-destructive, on a clone
 

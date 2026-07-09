@@ -36,7 +36,7 @@ FX graph.
 The base's **FX layers and their animation clips** encode the coupling: the state that *hides* a
 garment is the same state that drives its coupled body blendshapes to their garment-off values. That
 graph — not a naming convention — is the source of truth for "what else moves when this mesh goes
-away." Read it (`ControllerReport` / `ClipReport`): find the garment's off state, and statically apply
+away." Read it (`ReportController` / `ReportClip`): find the garment's off state, and statically apply
 the body-blendshape values it sets when you disable the mesh.
 
 Authority, high to low:
@@ -48,7 +48,7 @@ Authority, high to low:
 4. **Ask the user** — a mesh absent from the FX graph, or a base with no FX layer at all, has no
    declared coupling; the user is the reliable fallback. Do not guess a coupling into existence.
 
-`AvatarGrab` can *confirm* a hypothesised coupling, but only by **before/after comparison** — grab the
+`RenderAvatar` can *confirm* a hypothesised coupling, but only by **before/after comparison** — grab the
 region with the shape worn and again zeroed, and read the difference; never infer a coupling from a
 single capture. A confirmation aid, not the basis for an edge.
 
