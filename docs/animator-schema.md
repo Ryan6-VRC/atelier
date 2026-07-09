@@ -137,6 +137,36 @@ State fields: `motion`, `speed`, `speedParam`, `motionTimeParam`, `mirror`, `wri
 `any:` rung (fail-loud on `entry:`). A `default:` naming a direct sub-machine enters it as an unconditional
 catch-all, ordered after any `entry:` rungs.
 
+### layout
+
+`layout:` records Unity graph node positions so a hand-arranged controller survives `Decompile→edit→Compile`.
+A machine-body key (root and every sub-machine may carry one), it is authored by hand only rarely —
+`DecompileController` writes it, and only for a machine whose nodes sit off their defaults, so a block's
+**presence signals a human arrangement; its absence, don't-care.**
+
+```yaml
+    layout:
+      nodes: { Idle: [300, 0], Aim: [600, 0] }   # states + sub-machine nodes, by name; [x, y]
+      entry: [50, 0]                             # the four special nodes
+      any:   [50, 60]
+      exit:  [50, 120]
+      parent: [50, -60]                          # the "up" node; sub-machines only
+```
+
+- **`nodes` keys are `EscapeSegment`-encoded** (an addressing form — a `/` in a name becomes `\/`), **not**
+  the raw literal a `states:` key carries. One node's name has two representations by design: literal as its
+  own key, escaped as an address. In double-quoted YAML the backslash then doubles (`"A\\/B"`).
+- **Absent → grid.** No block ⇒ every node lands on the compiler's default grid; a hand-authored document
+  needs no coordinates.
+- **Partial → listed win, rest grid.** List only the nodes you place. This is how you drop a new state into
+  an existing arrangement: add its `nodes` entry near its siblings' coordinates; omit it to grid-fallback.
+- **Unknown node → compile error.** A `nodes` key naming no state/sub-machine of its machine fails (a
+  leftover after a rename/delete, or a typo).
+
+Overlap is **unmanaged by design** — a placed or gridded node may land on another; a one-drag fix for the
+human, not the compiler's concern. `ControllerEmit` owns the grid and the four special-node default
+positions (it writes them every compile); decompile compares against them to decide a machine is arranged.
+
 ## transitions and conditions
 
 ```yaml
@@ -316,6 +346,9 @@ serializes it back to this schema. What the read side layers on top of the autho
 channel. It emits `_notes: { orphans: N, unresolved: [guids…], tolerances: [notes…] }`: the count of
 unreachable sub-assets it dropped, the dangling motion GUIDs it recovered, and the import tolerances it
 applied. Inert on re-compile.
+
+**Layout.** Each arranged machine emits a `layout:` block ([above](#layout)); a machine whose nodes all sit
+at the default grid/constants emits none, so decompiling a never-touched controller adds no coordinate noise.
 
 **Import tolerances** (applied silently, listed in `_notes.tolerances`):
 - **Mixed Write Defaults** → the layer's **modal** WD value becomes the layer policy and the minority states

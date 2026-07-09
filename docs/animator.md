@@ -97,7 +97,8 @@ Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) ride
 `_notes:` block, which re-compiles inert.
 
 **The round-trip reframes the owning tools above.** `Decompile→edit→Compile` emits a controller that is a
-pure function of the document, so for any controller you are willing to **own** (decompile), orphan
+pure function of the document — **graph node layout included, so a hand-arranged controller round-trips its
+positions** (`animator-schema.md` §layout). For any controller you are willing to **own** (decompile), orphan
 sub-assets, unwanted layers, and stale clip refs all vanish on recompile — subsuming the in-vocabulary use
 of `CleanController` and `OwnControllerClips`. Each is nonetheless **KEEP**, narrowed to
 the niche the round-trip can't reach: **vendor-lineage controllers we deliberately don't decompile**
