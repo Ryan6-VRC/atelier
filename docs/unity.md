@@ -60,31 +60,9 @@ one-line PASS/FAIL summary ends with the RunLog path in-band (`… => RESULT | l
 early return is a bare `[ImportVerify] FAIL: …` with no trailer. Distinguishing missing from intentionally-empty submesh slots is the whole
 point; raw null counts false-alarm. Call it after every vendor import.
 
-Three read-only **animator-introspection** tools turn raw `.controller`/`.anim` YAML into cheap
-deterministic digests:
-
-- `ControllerReport.Report(controller)` — a ~50:1 markdown
-  digest that *decodes* animator semantics rather than echoing YAML: parameters, layers (+ per-layer
-  Write-Defaults), states and their motions (clips named by **asset-path + GUID**, an empty-vs-broken
-  split that surfaces a dangling motion GUID), the first-match transition ladder, and VRC
-  state-machine behaviours decoded **typed**. To `Snapshots/`; `… layers=… states=… params=… => OK | log=<path>`.
-- `ClipReport.Report(clip)` / `ReportFolder(folder)` —
-  bindings as a `path | type | propertyName | keys` table (one row per curve), paths as-authored (a `""` root shown as `(root)`, never
-  judged). To `Snapshots/`. Folder mode mirrors `ImportVerify.VerifyFolder`, down to the
-  empty-but-valid `0 clips => OK`.
-- `AnimatorLint.Lint(controller, basis, mergeSite, avatarRoot, mountRoot)` — binary **PASS/FAIL**
-  (FAIL iff an `error`-tier rule fires) + per-kind counts + a
-  two-tier offender body, to `RunLogs/`. Only five `error` rules flip the verdict —
-  unresolvable-motion-GUID, undeclared-param (VRC built-ins exempt), unconditional-entry-shadow,
-  never-firing transition (a state hop with no condition **and** no exit time), broken-binding; every
-  heuristic (WD disagreement, orphans, dead layers, cross-package/archive refs)
-  stays **advisory**, so the verdict never rests on a guess. Binding resolution
-  needs a root the `.controller` lacks: `basis=auto` reads the merge component at `mergeSite` to take
-  the frame the build will (MA `pathMode` / VRCFury prop-root preference — `nondestructive.md`),
-  refusing on zero/multiple/mismatched components and rendering the choice
-  (`basis=auto→mount(<path>) [MA MergeAnimator]`); `basis=explicit` asserts `avatarRoot`/`mountRoot`.
-  Under `auto`, broken-binding demotes to advisory (the build rewrites paths, so an authored-scene
-  resolve would false-FAIL).
+`.controller`/`.anim` files have their own read-only reporters — `ControllerReport`, `ClipReport`,
+`AnimatorLint` (whose binding-walk `AvatarLint` below reuses) — contracted with the rest of the animator
+tooling in `docs/animator.md`.
 
 `AvatarLint.Inspect(avatarRoot)` is the scene-scoped companion to those digests: on an instantiated
 in-scene avatar (descriptor) root it names the two path-encoded reference breaks a base rename leaves after
@@ -230,53 +208,13 @@ FAIL in both `whatIf` and execute**, never a silent mis-bind.
   GO (type-blind), remapped against the reach root. For pulling an outfit's authoring/menu subtree without
   listing every GameObject. Inverted contract vs CopyComponents: a missing host is **expected/normal**
   (you are scaffolding), never flagged. Count-parity + reuse-by-path idempotent.
-- `CleanController(sourceFx, ownedRoot, outDir, keepLayerNames, whatIf=false)` — minimal controller keeping
-  the **named** layers (base layer 0 always retained; FAILs on an absent/ambiguous name — no magic layer
-  count), its **parameter list pruned to what the kept layers reference**, + empty
-  expression params/menu, wired into the descriptor. **Create-if-missing / reuse-if-present** with
-  GUID-stable shared asset names (`<sourceFx>_Clean.controller`, `VRCExpressionParameters_Empty.asset`,
-  `VRCExpressionsMenu_Empty.asset`) so variations of one base share assets; never delete-recreate. `whatIf`
-  reports what it would create/reuse, trim, and wire — touching no asset.
 
-The **clip-repathing pair** rewrites *clip binding paths* / motion refs in on-disk `.anim` assets — a different
-domain from `RemapReferencesByPath` (scene-object refs). Both obey the **read-only-asset rule** (`LAYOUT.md`:
-`Assets/Vendor/` + `Packages/` read-only) and are single-controller, **frame-blind** rewriters — the **caller
-owns frame-correctness** (descriptor / MA MergeAnimator / VRCFury FullController frames differ, VRCFury may mix
-absolute + relative in one controller; no whole-avatar sweep) — though the frame is **discoverable
-from the merge component** (`nondestructive.md`), which is exactly what `AnimatorLint`'s `auto` basis reads.
-
-- `RepathClips(controller, oldPaths, newPaths, force=false, whatIf=false)` — deterministic **segment-safe**
-  repath of the bindings a controller references (float + objectReference; `Armature/Hips` rewrites
-  `Armature/Hips[/…]`, never `Armature/HipsFoo`). **Owned-clips-only** (a read-only clip a move would touch
-  FAILs unless `force`); curve-collision + duplicate/empty-path FAIL; every write is re-read from disk and
-  content-verified (`force` never bypasses that). Mutates each `.anim` in place; idempotent. `whatIf` previews.
-- `OwnControllerClips(controller, outDir, scope=VendorOnly, force=false, whatIf=false)` — closes the CleanController
-  gap (owned controller still referencing **vendor clips by GUID**): copies in-scope clips (`VendorOnly` default
-  | `All`) to owned `.anim` copies under `outDir` (absent-only reuse) and **mutates the controller**, repointing
-  every motion slot; disk-truthful residual post-condition. `UC2 = OwnControllerClips → RepathClips`.
-
-`SweepController(controller, force=false, whatIf=false)` is the mutating half of `AnimatorLint`'s orphan
-detection — it destroys an owned controller's sub-assets reachable from no layer (states, state-machines,
-blend-trees, behaviours, transitions) plus dead-end transitions, then compacts the null slots left behind. It
-applies **no `IsSubAsset` filter**: a controller's real orphans are `HideInHierarchy`, for which `IsSubAsset`
-returns false — the same reason `AnimatorLint`'s orphan advisory drops it, so detector and remover census one
-set. Extracted from DreadScripts' ControllerCleaner (VRLabs, MIT).
-
-`CompileController(sourcePath, outDir, whatIf=false)` is the animator **write substrate** — the inverse of
-`ControllerReport`: it compiles a declarative YAML document into a persisted `.controller` (+ inline clips,
-embedded blend trees, and a `VRCExpressionParameters` asset listing every non-builtin/non-scratch param,
-**unsynced included, for legibility**). Pipeline: parse → validate → emit → the shared `ControllerRules`
-graph lint → atomic persist. Atomic + PASS/FAIL: nothing reaches `outDir` unless every stage passes, a
-`whatIf` preview leaves nothing on disk, and a recompile of the same source to the same `outDir` is
-idempotent (reset-in-place, stable GUID). The RunLog body carries never-failing advisories — per-layer
-frame latency (the longest firing-transition chain — conditional or exit-time; a conditional hop is ~1
-frame, an exit-time hop costs its state's clip length) and driver↔AAP isolation conflicts
-(a driver cannot durably set a clip-written param — `runtime.md`). The schema — every key, accepted
-values, and traps — is `docs/animator-schema.md`; the three worked fixtures
-(`vrc-unity-tools/fixtures/animator-substrate/{debounce,smoother,codec}.yaml` — a dwell timer, an AAP
-exponential smoother, a float→bool codec) are its runnable companions, each compiling clean, linting PASS,
-and rung-3 verified. `ControllerRules` is the lint engine extracted from `AnimatorLint` so the **same** rules run on
-this emitted in-memory controller as on a saved asset — the two doors can never disagree.
+The **controller owning/consolidation kit and the compile/decompile substrate** — `CleanController`, the
+clip-repathing pair (`RepathClips`/`OwnControllerClips`), `SweepController`, `CompileController`/
+`DecompileController`, and the `SchemaValidation`↔`ControllerRules` split — are `avatar-tools` members
+obeying the same static-method + `whatIf` + RunLog conventions as the tools above. Their contracts, the
+`Decompile→Compile` round-trip that reframes the owning tools, and the YAML authoring language are in
+`docs/animator.md` (schema: `docs/animator-schema.md`).
 
 Two standalone **scene utilities** round out the kit, simple enough that the signature is the contract
 (open the tool): `RemapMaterials` — swap materials by **asset path** across a hierarchy, in place (no
@@ -285,7 +223,7 @@ source hierarchy, no name matching — a different operation from `ConformRender
 
 **Preview grammar.** Every mutating tool takes a default-off preview: **`whatIf`** when the tool can run
 its full plan and mutate nothing (preview == execute — `CopyComponents`/`RelocateComponents`/`GraftHierarchy`
-/`ConformRenderers`/`CopyDescriptor`/`FixViewpoint`/`CleanController`/`RepathClips`/`OwnControllerClips`/`SweepController`), or **`preflight`** when the operation can't be
+/`ConformRenderers`/`CopyDescriptor`/`FixViewpoint`, and the animator-doc owning tools), or **`preflight`** when the operation can't be
 dry-run at all and only its preconditions are checkable (`MatchHumanoidRig`, whose reimport *is* the
 operation). The dividing line is *ran the plan and mutated nothing* vs *couldn't run the op at all* — not
 complete-vs-incomplete numbers (so `CopyDescriptor` stays `whatIf` even though its remap counts land only on
@@ -340,10 +278,6 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 
 - **Bridge "Connection closed" on the first call** after the Editor's been idle or just reloaded —
   retry once; it reconnects.
-- **Reading `VRCAvatarDescriptor.baseAnimationLayers` from YAML: the `type` field is the
-  `AnimLayerType` enum — Base=0, Additive=2, Gesture=3, Action=4, FX=5 (the enum skips 1,
-  `Deprecated0`; special layers: Sitting=6, TPose=7, IKPose=8).** Array index ≠ enum value; an
-  off-by-one read misattributes the FX slot as Sitting (a real past misread).
 - **`execute_code` is async-blind.** `AssetDatabase.ImportPackage(path, false)` returns before the
   import finishes — verify the asset/folder exists in a separate call before chaining dependent ops.
 - **`execute_code` `safety_checks` blocks destructive patterns** (`AssetDatabase.DeleteAsset`,

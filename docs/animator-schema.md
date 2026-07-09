@@ -1,6 +1,6 @@
 # Animator schema — the `CompileController` authoring surface
 
-The YAML language `CompileController` compiles into a `.controller` (`unity.md` owns the tool contract —
+The YAML language `CompileController` compiles into a `.controller` (`animator.md` owns the tool contract —
 PASS/FAIL, atomicity, advisories). This document is the surface you author against: every key, the
 accepted values, and the traps. The **enforcement mechanism is the parser + validator** — they refuse
 unknown keys, bad values, and semantic defects **by name and line**, so a wrong guess is a legible error,
@@ -9,11 +9,16 @@ never silent corruption. Author against this, and iterate on the error text when
 The three fixtures under `vrc-unity-tools/fixtures/animator-substrate/` (`debounce`, `smoother`, `codec`)
 are the runnable companions — each compiles clean, lints PASS, and is emulator-verified. Snippets below are
 drawn from them. The definitive grammar is `AnimatorSchemaYaml.cs` (parse) + `ControllerEmit.cs` (emit) +
-`SchemaValidation.cs` (validate); when this doc and those disagree, the code wins — tell someone.
+`SchemaValidation.cs` (validate), and on the read side `ControllerDecompile.cs` + `AnimatorSchemaEmit.cs`
+(serialize); when this doc and those disagree, the code wins — tell someone.
 
-**Pair-1 scope.** The write half shipped first; the read half (`DecompileController`) and the constructs
-it needs are not all authorable yet. The [Not yet in the schema](#not-yet-in-the-schema) section lists
-exactly what a compile will reject, so you don't spend time guessing at syntax that isn't wired.
+The surface is the compile↔decompile round-trip for the controller **graph**: the layers, states,
+transitions, motions, and behaviours you author both compile and survive a `DecompileController` read
+([Decompile output](#decompile-output)). Authoring metadata a `.controller` does not store — `basis`,
+`role`, and per-param `aap`/`scratch`/`vrc` (they live in the descriptor / `VRCExpressionParameters`) —
+decompiles to canonical form, not its authored value (`avatar-root` / `fx`; params rebuild as name+type+
+default only). The much-shrunken [Not yet in the schema](#not-yet-in-the-schema) section lists what a
+compile still rejects.
 
 ## YAML subset
 
@@ -86,7 +91,9 @@ tunes the entries.
 
 ## layers and states
 
-A layer is a **flat** state machine: named states, per-state transition ladders, and one `default` state.
+A layer wraps a **root state machine**: named states, nested sub-machines, Entry/AnyState ladders, and one
+`default`. `states:`, `machines:`, `entry:`, `any:`, `behaviours:`, and `default:` are the **machine body** —
+the identical keys a layer's root and every sub-machine carry, so nesting recurses.
 
 ```yaml
 layers:
@@ -109,12 +116,26 @@ layers:
           - driver: { set: { Debounced: 1 } }
         transitions:
           - { to: Idle, when: [ RawInput is false ] }
-    default: Idle            # must name a state in this layer; the machine enters here
+    default: Idle            # a direct state OR direct sub-machine of this machine; the machine enters here
 ```
 
 State fields: `motion`, `speed`, `speedParam`, `motionTimeParam`, `mirror`, `writeDefaults`, `behaviours`,
-`transitions`. `default:` must name a declared state. Transition ladders are **first-match, top to bottom**
-per source state (list order is priority).
+`transitions`. Transition ladders are **first-match, top to bottom** per source state (list order is priority).
+
+### sub-machines and Entry/AnyState ladders
+
+```yaml
+    machines:                                            # nested sub-machines (same machine body, recursively)
+      Aim:
+        states: { … }
+        entry: [ { to: Ready, when: [ Loaded is true ] } ]     # Entry ladder — conditions only
+        any:   [ { to: Reset, when: [ Abort is true ], canTransitionToSelf: false } ]
+        default: Ready
+```
+
+`entry:` / `any:` are ordered, first-match transition lists. `canTransitionToSelf` is valid **only** on an
+`any:` rung (fail-loud on `entry:`). A `default:` naming a direct sub-machine enters it as an unconditional
+catch-all, ordered after any `entry:` rungs.
 
 ## transitions and conditions
 
@@ -124,9 +145,10 @@ transitions:
   - { to: Exit,   when: [ Done is true ] }          # `to: Exit` is the exit transition
 ```
 
-Transition fields: `to` (a state name, or `Exit`), `when` (condition list, empty = unconditional), `exitTime`,
-`duration`, `fixedDuration` (default **true**), `interruption`, `ordered` (default **true**),
-`canTransitionToSelf`. Unset `duration`/`exitTime`/`interruption` inherit `defaults`.
+Transition fields: `to` (a target address — below — or `Exit`), `when` (condition list, empty = unconditional),
+`exitTime`, `duration`, `fixedDuration` (default **true**), `interruption`, `ordered` (default **true**),
+`mute` / `solo` (bool, default-elided when false). `canTransitionToSelf` is an `any:`-ladder-only field.
+Unset `duration`/`exitTime`/`interruption` inherit `defaults`.
 
 **Conditions are strings: `<param> <op> <value>`, exactly three tokens.** `value` is `true`/`false` or a
 number. The operator must match the parameter's declared type (validated):
@@ -141,6 +163,24 @@ number. The operator must match the parameter's declared type (validated):
 no exit time** can never fire; the graph lint fails the compile (`deadTransition`). An unconditional hop
 needs `exitTime` (and its source state a motion, or the default 1s empty-state length — see the codec
 fixture). A motionless state's exit-time still advances; that is not an error.
+
+### Cross-machine addressing
+
+A `to:` target names a state or sub-machine by one of these disjoint forms (`ControllerEmit.ResolveName`):
+
+- **bare `Name`** — resolves in the referencing machine's **own** scope (its direct states + direct
+  sub-machines) only.
+- **`Sub/State`** — a path from the **layer root**: each non-final segment a sub-machine, the last a state
+  or sub-machine.
+- **`/Name`** — absolute from the layer root. This is the only way to hit a **top-level** entity from inside
+  a nested machine (a bare single segment would read as local).
+- **bare `/`** — the layer-root state machine itself ("re-enter the layer at its default").
+
+`default:` is always a bare **local** name (a direct state or sub-machine of its own machine), never a path.
+
+**Name escaping.** A literal `/` or `\` inside a state/machine name is escaped `\/` / `\\` **in an
+addressing/path context**; a path splits on **unescaped** `/` only. A bare local reference and non-path
+scalars (a state's own name key) stay unescaped.
 
 ## motions and blend trees
 
@@ -163,16 +203,19 @@ motion:                                               # a blend tree
 
 Tree `kind` (case-sensitive): `1d`, `simpleDirectional2d`, `freeformDirectional2d`, `freeformCartesian2d`,
 `direct`. A tree carries `param` (blend X) and `paramY` (2D only); `direct` uses per-child `directWeight`
-instead. Each child is a motion **plus** its placement:
+instead, and may set `normalized: <bool>` (the Direct "Normalized Blend Values" toggle — sum-to-1 vs raw
+additive; omitted ⇒ Unity's default). Each child is a motion **plus** its placement:
 
 - **1D**: `threshold: <n>`
 - **2D**: `x`/`posX` and `y`/`posY`
 - **Direct**: `directWeight: <paramName>`
 - any child: `timeScale` (negative is legal — reversed motion), `mirror`, `cycleOffset`.
 
-Trees nest (a child with `tree:`) and refs chain across `.asset` files. **Trap:** a `ref: { guid }` must
-resolve at compile time in pair 1 — an unresolvable GUID fails the compile even with `unresolved: true`
-(that marker is for Decompile's lossless round-trip, not authoring against a missing asset).
+Trees nest (a child with `tree:`) and refs chain across `.asset` files. A **bare** `ref: { guid }` that
+doesn't resolve fails the compile. Marking it `ref: { guid: …, unresolved: true }` instead **tolerates** a
+genuinely-missing asset: the motion slot emits null (a clean-empty state) and the compile writes a RunLog
+advisory naming the owning state + the verbatim GUID. This is the round-trip's one lossy step (a dangling
+vendor ref decompiles back with the same marker) — not a license to author against an asset you could fix.
 
 ## clips
 
@@ -206,9 +249,10 @@ clips:
 
 ## behaviours (state-machine behaviours)
 
-A `behaviours:` list (on a state or a layer's root machine) of **single-key maps** — `{ <kind>: { … } }`.
-**Pair 1 implements `driver` only**; any other kind (`tracking`, `playableLayer`, `locomotion`,
-`poseSpace`, `playAudio`, `layerControl`) compiles to a fail-loud error.
+A `behaviours:` list (on a state or any machine's root) of **single-key maps** — `{ <kind>: { … } }`. All
+seven VRC SMB kinds are implemented; an unknown kind or field is fail-loud by name. Enum-valued fields take
+a **camelCase token**, never a raw number — the token→enum maps are `ControllerEmit`'s `*Tokens`
+dictionaries, the single authority both compile and decompile read.
 
 ```yaml
 behaviours:
@@ -233,14 +277,79 @@ fail loud (`set`/`add`/`copy`/`random`/`localOnly` only).
 AAP), a driver `set`/`add` on that same param is overwritten each frame. The compiler surfaces this as an
 advisory in the RunLog; heed it (`runtime.md`).
 
+### the other six behaviour kinds
+
+Each is a flat field map; the enum fields use the tokens shown (fail-loud on an unlisted token).
+
+```yaml
+- tracking: { head: tracking, leftHand: animation, eyes: noChange }   # channels: head/leftHand/rightHand/
+                                                                       #   hip/leftFoot/rightFoot/leftFingers/
+                                                                       #   rightFingers/eyes/mouth
+                                                                       # state:  noChange|tracking|animation
+- playableLayer: { layer: fx, goalWeight: 1, blendDuration: 0.25 }     # layer: action|fx|gesture|additive
+- locomotion:    { disableLocomotion: true }
+- poseSpace:     { enterPoseSpace: true, fixedDelay: true, delayTime: 0 }
+- layerControl:  { playable: fx, layer: 3, goalWeight: 1, blendDuration: 0.1 }
+- playAudio:                                                           # AudioSource by hierarchy path
+    sourcePath: "Head/Voice"
+    clips: [ "Assets/Sfx/beep.wav" ]                                   # asset paths; fail-loud if missing
+    volume: [ 1, 1 ]                                                   # [min, max] range (pitch likewise)
+    playbackOrder: roundabout                                          # random|uniqueRandom|roundabout|parameter
+    volumeApply: alwaysApply                                           # *Apply: alwaysApply|applyIfStopped|neverApply
+    playOnEnter: true
+```
+
+**`layerControl` vs `playableLayer` asymmetry (the SDK's, not ours):** `playableLayer.layer` is an **enum
+token** (which playable), while `layerControl.layer` is an **int index** (which layer *within* the
+`playable:` playable). `playAudio` carries the full `VRCAnimatorPlayAudio` surface — `sourcePath`,
+`parameter`, `volume`/`pitch` ranges, the four `*Apply` settings, `clips`, `delaySeconds`, `loop`, and the
+four `playOnEnter`/`stopOnEnter`/`playOnExit`/`stopOnExit` flags — see `ControllerEmit.PopulatePlayAudio`
+for every field.
+
+## Decompile output
+
+`DecompileController` (the read door; contract in `animator.md`) reachability-walks a built controller and
+serializes it back to this schema. What the read side layers on top of the authoring surface:
+
+**The `_notes:` block.** Any **top-level** `_`-prefixed key is compile-ignored — Decompile's output
+channel. It emits `_notes: { orphans: N, unresolved: [guids…], tolerances: [notes…] }`: the count of
+unreachable sub-assets it dropped, the dangling motion GUIDs it recovered, and the import tolerances it
+applied. Inert on re-compile.
+
+**Import tolerances** (applied silently, listed in `_notes.tolerances`):
+- **Mixed Write Defaults** → the layer's **modal** WD value becomes the layer policy and the minority states
+  keep an explicit `writeDefaults:` override (tie → `true`); re-emit reproduces the same per-state mix.
+- **`timeParameterActive` with an empty parameter** (every vendor Gesture ships this) → normalized to
+  unbound motion time (no `motionTimeParam:`).
+
+**Named refusals.** A construct the schema's shape can't round-trip makes Decompile return a bare `FAIL:`
+naming each and write **no** yaml (it refuses to approximate). Two kinds. *Out of vocabulary:* synced
+layers, a `Trigger` param, an IK-pass layer, a mirror/cycleOffset **parameter** binding, a sub-machine's
+outgoing (on-Exit) transition, an unsupported SMB or motion type, an unknown driver `ChangeType` or
+condition mode — and, as a backstop, **any** non-default top-level field the decoder does not model on a
+state, transition, blend tree, or VRC behaviour: a completeness sweep refuses whatever it doesn't explicitly
+consume, so a field the schema lacks (a state's constant `cycleOffset`, foot IK `iKOnFeet`, or `tag`; a
+transition `offset`; a future SDK addition) fails loud instead of silently dropping. (The sweep covers those
+four object families' scalar fields; array-element structs and the layer / state-machine families stay
+guarded by the hand decoders.) *Not expressible in the canonical form:*
+sibling states or sub-machines with identical names (→ duplicate keys), a direct state and sub-machine
+sharing a name (→ an unaddressable sub-machine — a bare name resolves states first), or two sibling
+**states** differing only in whitespace (a legibility hazard); a real state/sub-machine named `Exit`
+addressed bare (collides
+with the exit keyword); driver operations that interleave change-types or repeat a `(type, name)` (the
+name-keyed set/add/copy/random buckets would reorder or collapse them); two **distinct** embedded clips
+sharing a name (the name-keyed `clips:` map would collapse them); a condition parameter carrying whitespace
+or a flow delimiter (it can't survive the `<param> <op> <value>` grammar).
+
+**The fixpoint.** Decompile→Compile→Decompile reaches a fixpoint: a controller you **own** (decompile)
+round-trips exactly, which makes the round-trip the compiler's own lossless-verification oracle. The single
+acknowledged lossy step is a genuinely-broken vendor motion ref (`unresolved` → null slot → empty child).
+
 ## Not yet in the schema
 
-A compile will reject these — they are listed so you don't mistake an "unknown field" error for a syntax
-mistake:
+A compile rejects these — listed so an "unknown field" error reads as deferred, not a syntax slip:
 
-- **Sub-state machines, AnyState ladders, explicit Entry ladders.** A pair-1 layer is one flat machine; a
-  state can only transition to another state or `Exit`, and `default:` is the sole entry. (The model has the
-  fields; the parser doesn't bind them yet.)
-- **Behaviour kinds other than `driver`** — they land with pair 2's fixtures.
-- **`unresolved: true` guid refs against a genuinely missing asset** — pair-1 emit still requires the GUID
-  to resolve.
+- **AvatarMask emission.** A layer's `mask:` references an existing `AvatarMask` by path; the compiler never
+  **emits** one (external refs only).
+- **CustomObjectSync-scale parameterized codegen** — its own future slice.
+- **An NDMF build-time pass** — the compiler writes assets, not a build hook.
