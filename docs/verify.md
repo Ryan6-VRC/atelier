@@ -1,31 +1,32 @@
 # Verifying a gimmick
 
-How to prove a claim about an avatar system, and how strong the proof is. Every claim states its
-**rung**. This is the method; `gimmicks.md` is the patterns, `runtime.md` the physics, `unity.md` the
-`execute_code`/MCP plumbing the rung-3 recipes run on (its §Sharp edges owns the compiler-backend, build-queues,
-and read-path rules — don't restate them).
+How to prove a claim about an avatar system. The bar is **compiles + `Check*` PASS + behaves in the
+emulator** — that is tested as far as an agent can test. This is the method; `gimmicks.md` is the
+patterns, `runtime.md` the physics, `unity.md` the `execute_code`/MCP plumbing the emulator recipes run
+on (its §Sharp edges owns the compiler-backend, build-queues, and read-path rules — don't restate them).
 
-## The ladder
+## The method
 
-1. **Static** — read the assets, run nothing. Animator lint (missing motion GUIDs,
-   undeclared/orphaned params, entry-ladder shadowing, never-firing transitions, WD inconsistency per
-   layer, cross-package GUID refs), a placement check on the in-scene avatar root (`CheckAvatar`: MA-scene-ref + clip-binding refs a
-   base rename silently broke — `PASS`/`CLASSIFY`), and constraint-graph review.
-   Cheapest; catches the mechanical bug classes.
-2. **Bake** — enter play mode (the build runs on the transient play copy; gate below) and read what it
-   produced — VRCFury prefix rewrites, Parameter-Compressor membership, layer provenance, and the
-   **true synced-param count** (the pre-build asset under-counts — MA/VRCF/prefab merges add synced
-   params at build). The build is
-   deterministic and fails loud, so **read the result, don't reconcile it against intent**: VRCFury
-   reports its own reshaping in a `VRCFuryDebugInfo` "Parameter Compressor" component on the baked root
-   (bit totals, sync delay, compressed-param membership — `runtime.md` §VRCFury build-time reshaping).
-3. **Emulator** — play mode + Av3Emulator: drive inputs, observe outputs, spawn a remote clone,
-   inject contacts, induce a physbone grab/pose. The bulk of this doc.
-4. **In-game** — two real clients. The only rung that shows true network timing, IK delay, culling,
-   grab/pose late-sync, and feel. Produce a targeted checklist for the human tester; say a claim
-   rests on rung 4 rather than asserting it.
+**Static** — read the assets, run nothing. Animator lint (missing motion GUIDs,
+undeclared/orphaned params, entry-ladder shadowing, never-firing transitions, WD inconsistency per
+layer, cross-package GUID refs), a placement check on the in-scene avatar root (`CheckAvatar`: MA-scene-ref + clip-binding refs a
+base rename silently broke — `PASS`/`CLASSIFY`), and constraint-graph review.
+Cheapest; catches the mechanical bug classes.
 
-Rungs 1–3 are agent-automatable; rung 4 is not, and saying so is part of the report.
+**Bake** — enter play mode (the build runs on the transient play copy; gate below) and read what it
+produced — VRCFury prefix rewrites, Parameter-Compressor membership, layer provenance, and the
+**true synced-param count** (the pre-build asset under-counts — MA/VRCF/prefab merges add synced
+params at build). The build is
+deterministic and fails loud, so **read the result, don't reconcile it against intent**: VRCFury
+reports its own reshaping in a `VRCFuryDebugInfo` "Parameter Compressor" component on the baked root
+(bit totals, sync delay, compressed-param membership — `runtime.md` §VRCFury build-time reshaping).
+
+**Emulator** — play mode + Av3Emulator: drive inputs, observe outputs, spawn a remote clone,
+inject contacts, induce a physbone grab/pose. The bulk of this doc.
+
+These are agent-automatable and together are the bar. What only two real clients in-game can show —
+true network timing, IK delay, culling, grab/pose late-sync, and feel — is a property of the specific
+behavior, not a grade: name it and hand the human tester a targeted checklist rather than asserting it.
 
 ## Test venue — NUnit vs execute_code
 
@@ -38,7 +39,7 @@ real avatar (the operator's gate above). Run the NUnit suite headless with
 `tools/run-editmode-tests.ps1` against the generated `TestEditor` (bootstrap.md) — never MCP
 `run_tests`, which runs in the live editor.
 
-## Rung 3 — the Av3Emulator harness
+## The Av3Emulator harness
 
 **The play-entry gate is enforced in-Editor.** The `PlayGate` hook (`com.ryan6vrc.agent-tools`)
 evaluates the active scene on every entry and **cancels** a mis-set one, naming each offender and its
@@ -48,8 +49,8 @@ avatar and a VRCFury Fix Write Defaults feature, plus (when an enabled emulator 
 Gesture Manager and the emulator's `RunPreprocessAvatarHook`/`EnablePlayerContactPermissions` (a
 Gesture Manager only fights a *live* emulator). Read the verdict; don't hand-check them.
 
-It does **not** check that an emulator control object is *enabled* — absence is a legitimate rung-2
-bake, so the gate stays silent, but rung-3 without it spawns no runtimes and the harness reads empty:
+It does **not** check that an emulator control object is *enabled* — absence is a legitimate bake-only
+check, so the gate stays silent, but driving the emulator without it spawns no runtimes and the harness reads empty:
 
 - **Emulator control object enabled** — the emulator does not auto-spawn; the scene needs an enabled
   `Avatars 3.0 Emulator Control` object with the `Av3Emulator` component (**Tools → Avatars 3.0
@@ -104,7 +105,7 @@ side on the clone). The emulator models 8-bit float quantization (~1/127 steps) 
 tick (`NonLocalSyncInterval`). **But the `synced` flag lies both ways** — the baked flag reads
 synced-false for compressed params that still replicate (VRCFury's Parameter Compressor), and the
 pre-build asset under-counts (build-time MA/VRCF/prefab merges add synced params) — so judge the
-synced-bit cost from the post-build `VRCFuryDebugInfo` bit totals (rung 2), never a raw param-asset
+synced-bit cost from the post-build `VRCFuryDebugInfo` bit totals (from the bake), never a raw param-asset
 flag.
 
 **Fake another player's contact.** A scripted sender fires an `allowOthers`-only receiver solo (the
@@ -133,12 +134,12 @@ permanently at their un-driven defaults while local shows the driven value — d
 
 ## What the emulator reproduces — and doesn't
 
-**Reproduced (assert on rung 3):** local param drive/read, driven outputs, `IsLocal`-branch
+**Reproduced (assert in the emulator):** local param drive/read, driven outputs, `IsLocal`-branch
 divergence, 8-bit sync quantization + the ~0.1 s tick, local contact physics, a scripted "other"
 sender, **mirror-clone SMB-asymmetry** (so mirror-detection is testable), and a real **local**
 physbone grab/pose.
 
-**Not faithful — keep on rung 4:** network-sync *correctness* (the compressor hides it), remote-side
+**Not faithful — needs two clients in-game:** network-sync *correctness* (the compressor hides it), remote-side
 contacts/trackers, real IK smoothing / ~0.5 s body delay, a *networked* grab or **pose late-sync** (a
 locally-posed bone does not transport to the clone), distance-culling animator pause, and true feel /
 framerate-dependent constants (the editor throttles to ~12 fps unfocused). Don't spend a play session

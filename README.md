@@ -36,7 +36,7 @@ available.
   Study a vendor controller, modify it, or author a new system from a declarative document.
 - **Emulator fluency.** Drive parameters, frame-step, induce physbone grabs, fake another player's
   contacts, spawn remote clones; behavioral claims are verified in play mode rather than asserted,
-  and the verification ladder is explicit about what only a real two-client test can show.
+  and what only a real two-client test can show is called out explicitly.
 
 ## Tools for AI
 

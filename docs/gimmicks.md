@@ -157,10 +157,9 @@ a late joiner, and by what you can verify without two clients):
 - In-editor UX: the prefab drops in at avatar root; anchors self-place (ArmatureLink/BoneProxy);
   anything the installer must hand-place is a defect.
 
-## Verification ladder
+## Verification
 
-Every claim about a gimmick states its **rung** — 1 Static (lint the assets), 2 Bake (diff the built
-non-destructive stack), 3 Emulator (drive/observe in play mode; induce grab/pose; verify
-mirror-detection), 4 In-game (two clients for network timing, IK delay, culling, feel). Rungs 1–3 are
-agent-automatable; rung 4 is not, and saying so is part of the report. Mechanics and recipes:
-`verify.md`.
+The bar for a gimmick claim: it **compiles, passes `Check*`, and behaves in the emulator** — lint the
+assets, diff the built non-destructive stack, drive/observe in play mode, induce grab/pose, verify
+mirror-detection. Beyond that — network timing, IK delay, culling, feel — name the specific behavior
+that needs two clients in-game and hand it off. Mechanics and recipes: `verify.md`.

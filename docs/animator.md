@@ -84,7 +84,7 @@ frame, an exit-time hop costs its state's clip length) and driver↔AAP isolatio
 durably set a clip-written param — `runtime.md`). The schema — every key, accepted values, and traps — is
 `animator-schema.md`; the three worked fixtures (`vrc-unity-tools/fixtures/animator-substrate/{debounce,
 smoother,codec}.yaml` — a dwell timer, an AAP exponential smoother, a float→bool codec) are its runnable
-companions, each compiling clean, linting PASS, and rung-3 verified.
+companions, each compiling clean, linting PASS, and emulator-verified.
 
 `DecompileController(controllerPath, outPath, whatIf=false, stripLayout=false)` is the animator **read substrate**, mirror of
 `CompileController`: it reachability-walks a built `.controller` and serializes it back to animator-schema

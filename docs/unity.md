@@ -274,7 +274,7 @@ VRCFury features under `VF.Model.Feature.*` held by a `VF.Model.VRCFury` compone
 Validate the baked result without uploading: **enter play mode** — it runs the *whole* stack
 (VRCFury services + NDMF/MA + d4rk + LAC) on the transient play copy, removed on exit. One session
 is both the baked read (the built clone + `VRCFuryDebugInfo`) and the live drive (av3emulator).
-The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions and the rung-3 recipes.
+The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions and the emulator recipes.
 
 ## Sharp edges
 

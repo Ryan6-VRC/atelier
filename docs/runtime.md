@@ -78,8 +78,8 @@ not a hunch.
   exploitable as a mirror-clone detector (drive a flag on the real avatar; the clone spawns with it
   pre-set and routes differently), yielding local-real / remote / mirror-clone discrimination. The
   emulator reproduces it — the MirrorReflection clone's driver-set params stay at their un-driven
-  defaults while the local avatar shows the driven values — so mirror-detection is **rung-3
-  verifiable** (`verify.md`).
+  defaults while the local avatar shows the driven values — so mirror-detection is
+  **emulator-verifiable** (`verify.md`).
 - **A culled avatar stops running its animator.** VRChat culls what you can't see — off-camera view
   culling, distance-hide, max-avatars-shown, manual/perf hide — and a culled animator simply doesn't
   run. So make animators **deterministic**: resolve to the correct state from current parameter values
