@@ -164,8 +164,7 @@ A machine-body key (root and every sub-machine may carry one), it is authored by
   leftover after a rename/delete, or a typo).
 
 Overlap is **unmanaged by design** — a placed or gridded node may land on another; a one-drag fix for the
-human, not the compiler's concern. `ControllerEmit` owns the grid and the four special-node default
-positions (it writes them every compile); decompile compares against them to decide a machine is arranged.
+human, not the compiler's concern.
 
 ## transitions and conditions
 
@@ -375,16 +374,9 @@ name-keyed set/add/copy/random buckets would reorder or collapse them); two **di
 sharing a name (the name-keyed `clips:` map would collapse them); a condition parameter carrying whitespace
 or a flow delimiter (it can't survive the `<param> <op> <value>` grammar).
 
-**The fixpoint.** Decompile→Compile→Decompile reaches a fixpoint: a controller you **own** (decompile)
-round-trips exactly, which makes the round-trip the compiler's own lossless-verification oracle. The single
-acknowledged lossy step is a genuinely-broken vendor motion ref (`unresolved` → null slot → empty child).
-
-The always-present, schema-spanning witness is `RoundtripStressTests` (Arm A authored-YAML fixpoints across
-blend trees / addressing / behaviours / clips / a cross-cluster integration graph; Arm B pinned refusal
-witnesses for the covered out-of-vocabulary mechanisms; Arm C the import tolerances). Constructs the round-trip structurally cannot
-witness — canonicalized metadata (`basis`/`role`/`scratch`/`vrc`), the unresolved-ref lossy step, and
-refusals whose seed can't be built from an Editor test assembly — are enumerated in
-`docs/superpowers/specs/2026-07-09-roundtrip-stress-fixture-design.md` ("Excluded from this oracle").
+**The fixpoint.** A controller you **own** (decompile) round-trips exactly — Decompile→Compile→Decompile
+reaches a fixpoint. The single acknowledged lossy step is a genuinely-broken vendor motion ref
+(`unresolved` → null slot → empty child).
 
 ## Not yet in the schema
 
