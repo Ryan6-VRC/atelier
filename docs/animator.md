@@ -86,11 +86,12 @@ durably set a clip-written param — `runtime.md`). The schema — every key, ac
 smoother,codec}.yaml` — a dwell timer, an AAP exponential smoother, a float→bool codec) are its runnable
 companions, each compiling clean, linting PASS, and rung-3 verified.
 
-`DecompileController(controllerPath, outPath, whatIf=false)` is the animator **read substrate**, mirror of
+`DecompileController(controllerPath, outPath, whatIf=false, stripLayout=false)` is the animator **read substrate**, mirror of
 `CompileController`: it reachability-walks a built `.controller` and serializes it back to animator-schema
 YAML at `outPath`. PASS/FAIL like the compile door — a clean run returns `[DecompileController] <name>:
 layers=… states=… orphans=… unresolved=… => OK | log=<path>`, writing the `.yaml` plus a Snapshot RunLog;
-`whatIf` runs the whole walk but writes no `.yaml`; a refusal (an out-of-vocabulary or malformed construct)
+`whatIf` runs the whole walk but writes no `.yaml`; `stripLayout` (default off) drops all graph-layout
+capture — the own-a-vendor path, where the vendor's node arrangement is noise; a refusal (an out-of-vocabulary or malformed construct)
 is a bare `[DecompileController] FAIL:` naming each, writing nothing. A **READ** tool — it never mutates the
 controller, so it self-logs to the **Snapshot** dir (read-capture channel), not the verdict RunLog dir.
 Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) rides in the document's

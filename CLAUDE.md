@@ -18,6 +18,7 @@ Atelier/                        (this folder = session cwd; workspace docs + lau
 ├─ vrc-unity-tools/             Unity editor packages (creator tools, the agent inspection harness, avatar tools)
 ├─ vrc-skills/                  Claude Code skills (plugin)
 ├─ vrc-blender-tools/           Blender extension (FBX import/prune + shape-key-safe rest-pose bake + Unity FBX export)
+├─ vrc-patterns/                reusable pattern/gimmick example library (YAML-sourced VPM package; own repo)
 ├─ references/                  open-source projects we study/replicate; routing in references/README.md
 └─ start-vrc.ps1                one-command session launcher
 ```

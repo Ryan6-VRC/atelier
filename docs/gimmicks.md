@@ -6,6 +6,8 @@ these named patterns freely, but the first instinct should be the *parsimonious*
 goal, not to stack every pattern that fits. To author an FX layer as a reviewed, recompilable artifact
 instead of by hand in the Animator window, see `CompileController` (`animator.md`) — a YAML→controller write
 substrate whose worked examples (`fixtures/animator-substrate/`) encode several of the patterns below.
+Generalized, installable versions of these patterns live in the `vrc-patterns/` sibling repo (its
+routing index is keyed on the pattern names in this doc).
 
 ## First principles
 
