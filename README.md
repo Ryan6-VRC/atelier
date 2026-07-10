@@ -60,6 +60,10 @@ own independent git repo, gitignored here as a sibling you clone into place.
   same core.
 - **[`vrc-skills/`](https://github.com/Ryan6-VRC/vrc-skills)** — the Claude Code skills plugin:
   the import / own / compose / reproportion / menu workflows as repeatable, gated units of work.
+- **[`vrc-patterns/`](https://github.com/Ryan6-VRC/vrc-patterns)** — a VPM library of reusable,
+  verified avatar patterns, controllers, and drop-in gimmick modules: YAML-sourced
+  (`CompileController`), gated on compile→decompile-equality, with built assets committed only where
+  a prefab references them by GUID.
 - **[`vrc-bridge/`](https://github.com/Ryan6-VRC/vrc-bridge)** — a Python runtime bridge between
   SteamVR controller input and VRChat OSC: zero-config discovery (OSCQuery/mDNS), hot-swappable
   control mappings, camera-system routing.

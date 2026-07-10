@@ -10,7 +10,7 @@ The install steps name *what* must exist, not an OS-specific recipe — resolve 
 ## 1. Assemble the repos
 
 Atelier is a container of independent git repos. Cloning the meta-repo alone gets you the docs + launcher,
-**not** the tools — the five sub-repos are gitignored siblings you clone into place:
+**not** the tools — the six sub-repos are gitignored siblings you clone into place:
 
 ```
 Atelier/
@@ -18,13 +18,13 @@ Atelier/
 ├─ vrc-unity-tools/     github.com/Ryan6-VRC/vrc-unity-tools
 ├─ vrc-blender-tools/   github.com/Ryan6-VRC/vrc-blender-tools
 ├─ vrc-bridge/          github.com/Ryan6-VRC/vrc-bridge
+├─ vrc-patterns/        github.com/Ryan6-VRC/vrc-patterns
 └─ vrc-skills/          github.com/Ryan6-VRC/vrc-skills
 ```
 
 The **folder names are load-bearing**: `start-vrc.ps1`, the VPM `file:` refs, and `AvatarProject`'s
 `../../vrc-unity-tools` package refs all resolve by these exact paths. Clone each as a sibling under
-`Atelier/`. (These repos are private until flipped public — cloning needs git auth to the Ryan6-VRC account
-for now.)
+`Atelier/`.
 
 ## 2. Prerequisites
 
