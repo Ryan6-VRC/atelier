@@ -31,9 +31,10 @@ result lands and why.
   *reference*, not of a folder.
 - **`Assets/Vendor/` and `Packages/` are read-only to our tooling.** A tool that would mutate an asset
   there must **materialize an owned copy first**; writability is judged **per-asset, by path** (an owned
-  controller may still reference a vendor clip — that clip stays read-only). This is a **policy** guard, not
-  physical immutability — VPM-restored `Packages/` payloads are writable on disk, so the rule is a convention
-  the tools enforce (with a `force` override that records the breach loudly), not an OS-level lock.
+  controller may still reference a vendor clip — that clip stays read-only). This is a **policy** guard on
+  *deliberate* edits, not a byte contract: it means fork-before-you-change (a `force` override records any
+  breach loudly), not that vendor bytes never move — VPM restores and importer migrations rewrite
+  `Vendor/`/`Packages/` on disk with no agent and no breach (see *Vendor mutation*).
 - **`Assets/Materials/<Avatars|Outfits>/<Name>/`** — owned materials and their exported textures,
   mirroring `Photoshop/` by name. Base-independent like the PSD art (texture work doesn't change with
   proportions), so one bucket serves every base wearing the outfit — but when the geometry is *also*
@@ -85,9 +86,9 @@ being tampering, so the rule is **sanctioned mutation, marked**:
   re-import that reverted the patch. A patched-variant package reproduces by re-running the import on
   the base + DLC packages, or restoring `Vendor/` from backup — never by re-importing the base alone,
   which restores vanilla only.
-- **Importer migration is in-place and benign.** lilToon rewrites a vendor `.mat` at import
-  (`_lilToonVersion` bump + new default props) with no agent acting. A vendor-integrity check must
-  whitelist importer migrations, never read them as tampering.
+- **Benign in-place drift is not tampering.** lilToon rewrites a vendor `.mat` at import
+  (`_lilToonVersion` bump + new default props) with no agent acting. A vendor-integrity check protects
+  *intent*, not *bytes*.
 
 ## Proportion profiles & state naming
 
