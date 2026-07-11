@@ -87,6 +87,7 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | `import-vendor-asset` | Bring a vendor avatar, outfit, hair, or accessory into the Unity project. |
 | `own-base` | Build our owned, uploadable copy of a vendor base body. |
 | `own-mergeable` | Build our owned copy of a mergeable's geometry (outfit, hair, accessory): extract, reproportion, seam, so it composes like a vendor one. |
+| `own-material` | Build our owned, editable copy of a vendor material or texture — recolor, repaint, emission mask, shader convert; materialize the owned copy before any write under `Vendor/`. |
 | `compose-mergeable` | Place a seam-authored outfit, hair, or accessory onto an avatar base: verify the seam, de-conflict meshes, check shape coherence. |
 | `map-outfit-shapes` | Map how a body's blendshapes couple to its clothing meshes across FX/MA/VRCFury idioms, then act on it: de-conflict overlapping clothing, release coupled shapes, feed toggle closures and morph-coherence reads. |
 | `author-menu` | Author expression-menu controls, params, and wiring on a composed avatar (MA-first); place or front a gimmick's menu. |
