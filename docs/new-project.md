@@ -11,7 +11,10 @@ reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not 
 2. **Add the Unity `.gitignore` + `.gitattributes`** — copy from an existing project (e.g.
    `AvatarProject`): `Vendor/` and RunLog `*.json.meta` rules after the `!*.meta` un-ignore line,
    large binaries gitignored (keep their `.meta`; back them up externally), and LFS limited to the
-   VPM bootstrap DLLs. See [`LAYOUT.md`](LAYOUT.md) for the why.
+   VPM bootstrap DLLs. **Seed the Agent-I/O tree the gitignore assumes** — `Assets/Agent/` with
+   `Snapshots/` tracked and `RunLogs/`+`Scratch/` ignored — by committing a `.gitkeep` (and its folder
+   `.meta`) in each ignored dir, or the first `Check*`/tool write leaves an untracked `Assets/Agent.meta`
+   residue no worker surfaces. See [`LAYOUT.md`](LAYOUT.md) for the why.
 3. **Set up packages / VPM** per the CLAUDE.md hard constraints (track `vpm-manifest.json`,
    gitignore SDK payloads); `vrc-get resolve -p <ProjectDir>` restores. VPM mechanics: `bootstrap.md`.
    If the avatar skills will run here, the hard floor — copy from `AvatarProject`'s manifests and
@@ -31,6 +34,10 @@ reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not 
    server is earned only by a different trust posture, not a different project. The tracked `run_tests`
    deny-hook already covers every Editor via its wildcard matcher — no action; just don't remove it
    (run the EditMode suite headless — see docs/verify.md).
+7. **Seed a known-noise ledger.** Some projects emit benign console lines on every domain reload (a
+   package firing a harmless `[MACS]` / Mecanim exception, say). Record each — line + source package +
+   why benign — in a short per-project ledger workers can find, so every agent doesn't pay the same
+   rule-out detour.
 
 ## Structure-snapshot hook
 

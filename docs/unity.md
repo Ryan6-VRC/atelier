@@ -96,7 +96,9 @@ operator hid). Angles are the six world axes `{front,back,left,right,top,bottom}
 success carries a `png=` trailer to `Read`.
 
 The traps a model won't hit by just calling it: the fit is the editor *preview*, not the baked upload
-clone (`nondestructive.md`) — a play-mode build and the operator's eye stay the bar. **Grab in a separate
+clone (`nondestructive.md`) — a play-mode build and the operator's eye stay the bar. **A model-read of the
+sheet is not an agent fit gate** — quantified checks decide fit/alignment; the render corroborates for the
+operator (`verify.md`). **Grab in a separate
 call from any edit** — a same-call grab shows the pre-edit proxy; the summary's `note=` flags an in-flight
 rebuild but cannot catch the same-call case. Angles are **world** axes, so a rotated target shows the scene's front (the upside: it also
 works on a child or non-avatar object). Headlight shading is truthful for geometry/silhouette/clipping/

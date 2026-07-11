@@ -64,16 +64,24 @@ Consequences:
 
 ## What you'll see when you inspect these components
 
+These summaries orient; the **authority is the package source** — Modular Avatar under
+`Packages/nadena.dev.modular-avatar/`, VRCFury under `Packages/com.vrcfury.vrcfury/`. For what a
+component does to *your* case — a mechanism, an edge, an exact field — read it there or measure live;
+don't assert a mechanism from the summary alone.
+
 - **Modular Avatar** — the avatar-relative reference appears as a path string (plus a cached object that
   is trusted only while it still belongs to the current avatar). `Merge Armature` fuses an outfit
   armature into the avatar's by **bone-name match** under a target (prefix/suffix strip); bones with no
   match are silently auto-created on the avatar (**phantom bones**), so a wrong-base merge reports no
-  error while the outfit skins to bones that never move. `Bone Proxy`
+  error while the outfit skins to bones that never move. The merge is **identity-preserving**: it retargets
+  bones exactly as they sit in the scene and reconciles nothing, so a mismatched rest pose bakes through
+  unchanged — what you see pre-build is what ships. `Bone Proxy`
   attaches by **humanoid-bone enum** + subpath — the most portable seam. `Mesh Settings` / `Blendshape
   Sync` carry path refs. The **menu system** is an authoring GO subtree (installer / group / item /
   toggle) whose targets are path refs — it *adds to* the avatar's descriptor-borne menu
   (`expressionsMenu`/`expressionParameters`/FX), not the sole menu source; a `Menu Item` toggle with `automaticValue` + empty parameter
-  **mints one synced bool named from its GameObject** at build, and the **reactive components**
+  **mints one synced bool** at build, named `__MA/AutoParam/<GOName>$<hash>` (a hashed internal name,
+  **not** the GameObject name), and the **reactive components**
   (`Object Toggle` / `Shape Changer` / `Material Setter`) fire from their host GO's active state —
   one menu bool drives a mesh toggle plus any number of declared reactions, all compiled into FX
   layers at build, no controller authored (the menu-authoring model: `menus.md`). `Merge Animator` carries a readable `pathMode`
@@ -83,7 +91,8 @@ Consequences:
 - **VRCFury** — one feature per component. `Full Controller` merges a controller + menu + params
   (asset refs, GUID-safe); it **auto-detects each binding's frame** — prop-root vs avatar-root per
   binding, **preferring the prop (mount) root on ties**. `Armature Link` mirrors Merge Armature: the avatar side is a bone-enum/path
-  (hardenable), the **prop side is a raw ref**. Toggles / object & material actions reference scene
+  (hardenable), the **prop side is a raw ref**; its analogous align-to-base options apply **at build**,
+  not in edit mode, so MA's "what you see is what bakes" invariant does not hold for VRCFury. Toggles / object & material actions reference scene
   objects by **raw ref**. A `Toggle` feature generates the menu control, the parameter, *and* the FX
   layer at build from its declarative action list — VRCFury has **no reactive components**, so a
   toggle's side effects (hide the feet under shoes) stack as additional actions on that one Toggle,
@@ -97,6 +106,10 @@ Consequences:
   reproduce Modular-Avatar-as-Modular-Avatar and VRCFury-as-VRCFury. Never flatten, bake, or re-author.
 - **Copy from the standalone vendor prefab**, not an outfit already placed on an avatar — a placed
   component carries cached avatar-relative state that a blind copy would mis-resolve.
+- **Don't lean on MA/VRCFury to move an armature into alignment.** The two apply it differently — MA as a
+  one-shot edit-mode action, VRCFury at build — so the result isn't predictable across systems. Measure the
+  seam (world-space per-bone delta) and, where a genuine misalignment needs correcting, make the transform
+  edit **in code**; framework auto-align is an operator convenience, not an agent's alignment path.
 - A faithful copy reproduces the vendor's authoring so an owned (e.g. reproportioned) FBX is
   **drop-in-equivalent** to the vendor. Re-authoring discretion — cleaning up a messy prefab, customizing
   menus — is deliberate human work; placement itself is the `compose-mergeable` skill, which flags the

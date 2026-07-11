@@ -28,6 +28,14 @@ These are agent-automatable and together are the bar. What only two real clients
 true network timing, IK delay, culling, grab/pose late-sync, and feel — is a property of the specific
 behavior, not a grade: name it and hand the human tester a targeted checklist rather than asserting it.
 
+**A render is not an agent verdict.** A model can't judge fit or alignment from a single contact sheet — a
+~5 cm offset, even a missing body, reads as correct at every tier, and higher tiers only raise the
+confidence of the miss. Where a quantified signal (a seam delta, a param read, a `Check*`) and an image
+read disagree, the measurement is authoritative and the image is narrative. Renders serve the operator's
+eye and the audit trail. The one agent-readable use is **differential** — a before/after pair around a
+discrete change (a toggle, a blendshape) shows whether it took effect; a single-sheet absolute judgment
+does not.
+
 ## Test venue — NUnit vs execute_code
 
 NUnit EditMode tests may build and read live `UnityEngine.Object`s, but must not **mutate** them
@@ -45,7 +53,8 @@ real avatar (the operator's gate above). Run the NUnit suite headless with
 evaluates the active scene on every entry and **cancels** a mis-set one, naming each offender and its
 fix in a `[PlayGate] … => FAIL` console line (plus a Scene-view overlay), with a one-shot
 `Tools/Agent/Play Gate/Allow Next Entry` override. It covers the hard preconditions — one active
-avatar and a VRCFury Fix Write Defaults feature, plus (when an enabled emulator is present) no active
+avatar and a VRCFury Fix Write Defaults feature (**skipped on a VRCFury-free avatar** — `fury.Count == 0`),
+plus (when an enabled emulator is present) no active
 Gesture Manager and the emulator's `RunPreprocessAvatarHook`/`EnablePlayerContactPermissions` (a
 Gesture Manager only fights a *live* emulator). Read the verdict; don't hand-check them.
 
@@ -121,12 +130,17 @@ s.collisionTags = new System.Collections.Generic.List<string>{ "Hand" };
 ```
 
 **Induce a physbone grab/pose.** `VRC.Dynamics.PhysBoneManager.Inst.AttemptGrab(grabberId,
-comp.chainId, bone)` returns a `Grab`; set `grab.GlobalPosition` in the **same call** (it defaults to
+comp.chainId, bone)` returns a `Grab` — **`grabberId` must be `0`** (an arbitrary id returns null); set
+`grab.GlobalPosition` in the **same call** (it defaults to
 origin, else the chain snaps to 0,0,0). Move it across calls via `GetGrabs()` (match `chainId`) — the
 solver drags the chain and `_IsGrabbed` fires. `ReleaseGrab(chainId)` clears it;
 `ReleaseGrab(grab, true, grabberId)` on an `allowPosing` bone leaves it **held** (read the bone
 transform; no `_IsPosed` param). Discover grabbable bones by scanning chains for `allowGrabbing != 0`;
-offset the target off the bone endpoint or `SolveGrabIK` spams a benign `FromToRotation` assertion.
+offset the target off the bone endpoint or `SolveGrabIK` spams a benign `FromToRotation` assertion. Two
+control-experiment traps: an **`immobile=1.0` AllMotion chain won't drag** under a scripted-position grab
+(the solver pins it), and **runtime mutation of physbone settings never reaches the native solver** (they
+bake at chain init), so "change a setting, then grab" silently no-ops. A PB with **no `parameter` declared
+mints no `_IsGrabbed`/`_Stretch` params at all** — assert the bone transform/chain, not a param.
 
 **Verify mirror-detection.** The MirrorReflection clone runs its animator but skips the local avatar's
 init drivers, so driver-set params (a `MirrorDetection/IsMirror` flag, constant-1 params) stay

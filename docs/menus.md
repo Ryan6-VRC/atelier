@@ -93,8 +93,9 @@ toggles as installer-less children (the vendor and `AvatarMenu` shape); a lone r
 one GO with **`Menu Installer` + a Toggle `Menu Item`**. `MenuSource` governs only where a SubMenu
 gets its children and is inert on a leaf.
 
-A toggle node is a `Menu Item` (`automaticValue`, empty parameter — one auto-named synced bool, no
-controller, no `MA Parameters`; `nondestructive.md`) plus its `Object Toggle` / `Shape Changer`
+A toggle node is a `Menu Item` (`automaticValue`, empty parameter — one synced bool auto-named
+`__MA/AutoParam/<GO>$<hash>` (hashed, **not** the GameObject name — `nondestructive.md`), no controller,
+no `MA Parameters`) plus its `Object Toggle` / `Shape Changer`
 reactions, dependencies as extra list entries. **A default-visible object needs the inverted
 closure**: `Inverted=true` + entry `Active=false`, firing on param-off — the naive `Active=true`
 entry on an already-active object compiles to a silent no-op.

@@ -62,6 +62,7 @@ runtime behavior — live in `docs/`. Read the relevant file before operating in
 5. **Verify intent, not just output.** Tests, scene checks, import checks, and diagnostics should prove the reason the behavior matters. A check that still passes after breaking the business or asset logic is wrong.
 6. **Checkpoint after significant steps.** Summarize what changed, what was verified, and what remains. Do not continue from a state you cannot describe back.
 7. **Fail loud.** "Done" is wrong if anything was skipped silently. "Verified" is wrong if checks were skipped. Surface uncertainty, missing inputs, and named offenders.
+8. **Package source is the authority on package behavior.** Everything we build on ships its source on disk under `Packages/` — Modular Avatar, VRCFury, NDMF, the optimizers (d4rk / Limitex), the shaders (lilToon / Poiyomi). When you need precision about what one *does* — a mechanism, an edge case, an exact name — read that source and assert from it or a live measurement, never from a doc summary or your prior. Our docs orient you to where to look and the traps; they do not adjudicate your specific case.
 
 ## Writing for agents (docs, runbooks, skills, comments, handoffs)
 
