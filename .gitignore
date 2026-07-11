@@ -13,6 +13,9 @@
 # Brainstorming/design specs — local working artifacts, not workspace docs
 /docs/superpowers/
 
+# Fitting-session assay records (ledger + run reports) — machine-local, like the vendor library they index
+/docs/assay/
+
 # Reference clones are reproducible from references/README.md; track only the routing doc
 /references/*
 !/references/README.md
