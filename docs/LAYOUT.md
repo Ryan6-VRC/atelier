@@ -6,12 +6,14 @@ result lands and why.
 
 ## Untouched vs. our work
 
-- **`Assets/Vendor/`** — untouched vendor imports, never hand-edited (`Vendor/Avatars/<Name>/`,
-  `Vendor/Outfits/<Outfit>/`, and `Vendor/_Common/` for assets shared across a seller's packages).
+- **`Assets/Vendor/`** — vendor imports kept as-dropped, hand-edited only for the sanctioned
+  reconstructions under *Vendor mutation* below (`Vendor/Avatars/<Name>/`, `Vendor/Outfits/<Outfit>/`,
+  and `Vendor/_Common/` for assets shared across a seller's packages).
   **Gitignored**, reproducible by re-importing the source `.unitypackage` from the **asset library** —
   the external store of vendor packages; its location is machine-local (`CLAUDE.local.md`), never
   written into tracked files. Our work references vendor assets **by GUID, not path**, so tracked work survives
-  a bare re-import even though a package re-imports to its own native top folder.
+  a bare re-import even though a package re-imports to its own native top folder. A **patched** vendor
+  asset is the exception — it reproduces only with its patch replayed (*Vendor mutation* below).
 - **Everything else under `Assets/`** — our work (prefab variants, scenes, animators, materials).
   Tracked. No `Work/` wrapper.
 - **Git tracks diffable text, not large binaries.** It versions what diffs cleanly — YAML
@@ -58,6 +60,34 @@ result lands and why.
     PNG export** into the owned-materials bucket — the `.blend` → `.fbx` contract mirrored; an
     *owned* material referencing a `.psd` inside `Assets/` is a defect (a vendor material linking
     its own shipped PSD is vendor authoring, untouched until owned).
+
+## Vendor mutation: patch, copy-on-write, importer drift
+
+"Untouched `Vendor/`" is the default, not an invariant — content legitimately changes without
+being tampering, so the rule is **sanctioned mutation, marked**:
+
+- **A vendor's own patcher never patches the base in place.** Some DLCs ship a binary patcher
+  (`hpatchz` + `.hdiff`) that rewrites a base FBX so a variant prefab referencing it by GUID picks
+  up the new mesh. In-place is the vendor's design, not ours — it destroys the original, and a later
+  base re-import silently reverts it and breaks the variant with nothing recording a patch ran.
+  Extend the copy-on-write rule above to cover it: **reconstruct the parallel-patched layout a
+  careful vendor would ship** — patch a **copy** of the base FBX placed as a sibling in the package,
+  and repoint the DLC's own variant prefab(s) to that copy (a whole-GUID swap in the prefab YAML;
+  sub-asset fileIDs survive a copy, so mesh and avatar references move together). The base FBX and
+  the base package's own prefabs stay byte-identical; vanilla and variant coexist. A DLC that already
+  ships a parallel patched folder needs no reconstruction. The **three sanctioned edits** — patched
+  copy, provenance sidecar, repointed variant prefab — are the enumerated exception to "never nest
+  our own structural decisions deeper inside `Vendor/`" (below): sanctioned agent edits, not a claim of
+  non-interference. Procedure: the `import-vendor-asset` skill's *Patch a vendor-mutated asset*.
+- **Provenance travels with the patched copy.** A sidecar records the replay recipe — patcher,
+  `.hdiff`, source FBX (path + GUID), output, date. Like everything in `Vendor/` it is **gitignored**
+  (not in the audit trail; restored from external backup, not Git); its job is to catch a base
+  re-import that reverted the patch. A patched-variant package reproduces by re-running the import on
+  the base + DLC packages, or restoring `Vendor/` from backup — never by re-importing the base alone,
+  which restores vanilla only.
+- **Importer migration is in-place and benign.** lilToon rewrites a vendor `.mat` at import
+  (`_lilToonVersion` bump + new default props) with no agent acting. A vendor-integrity check must
+  whitelist importer migrations, never read them as tampering.
 
 ## Proportion profiles & state naming
 
