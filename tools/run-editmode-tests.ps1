@@ -26,14 +26,35 @@ function Get-SdkVersion($proj, $pkg) {
   return (Get-Content $pj -Raw | ConvertFrom-Json).version
 }
 
-# --- SDK parity guard --- (package set must match setup-test-editor.ps1 $sdk, else a drift in an
-# unchecked package silently runs stale)
+# --- SDK parity guard (hard block) --- SDK trio is VRChat-pinned; a drift is a real problem.
 foreach ($pkg in @("com.vrchat.base", "com.vrchat.avatars", "com.vrchat.core.bootstrap")) {
   $a = Get-SdkVersion $Avatar $pkg
   $t = Get-SdkVersion $Project $pkg
   if ($a -ne $t) {
     Write-Host "OUTCOME=SDK_DRIFT $pkg AvatarProject=$a TestEditor=$t — re-sync: tools/setup-test-editor.ps1 -Sync"
     exit 4
+  }
+}
+# --- Compose packages (auto-sync, don't block) --- MA/VRCFury/NDMF bump on ALCOM's cadence; a hard
+# block would train reflexive re-sync. Re-copy on mismatch so TestEditor always tests current.
+foreach ($pkg in @("nadena.dev.ndmf", "nadena.dev.modular-avatar", "com.vrcfury.vrcfury")) {
+  $a = Get-SdkVersion $Avatar $pkg
+  $t = Get-SdkVersion $Project $pkg
+  if ($null -eq $a) { Write-Host "OUTCOME=RUN_ERROR AvatarProject missing $pkg — run 'vrc-get resolve' there"; exit 5 }
+  if ($a -ne $t) {
+    Write-Host "[runner] auto-sync $pkg  AvatarProject=$a TestEditor=$t"
+    $src = Join-Path $Avatar "Packages/$pkg"; $dst = Join-Path $Project "Packages/$pkg"; $tmp = "$dst.tmp"
+    # Stage to a temp sibling then atomic-swap, so an interrupted or blocked copy can never leave a
+    # version-matching-but-partial $dst that the version check above would then skip repairing.
+    try {
+      if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp -ErrorAction Stop }
+      Copy-Item -Recurse $src $tmp -ErrorAction Stop
+      if (Test-Path $dst) { Remove-Item -Recurse -Force $dst -ErrorAction Stop }
+      Rename-Item $tmp (Split-Path $dst -Leaf) -ErrorAction Stop
+    } catch {
+      Write-Host "OUTCOME=RUN_ERROR auto-sync $pkg failed: $($_.Exception.Message)"; exit 5
+    }
+    if ((Get-SdkVersion $Project $pkg) -ne $a) { Write-Host "OUTCOME=RUN_ERROR $pkg post-sync version mismatch"; exit 5 }
   }
 }
 
