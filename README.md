@@ -123,6 +123,7 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | `ReportClip` | Binding digest of a clip, or of every `.anim` under a folder: one row per curve (`path \| type \| propertyName \| keys`). |
 | `CheckAnimator` | PASS/FAIL plus tiered offenders for mechanically-detectable controller rot; the binding-resolution root is auto-detected from a merge site or asserted explicitly. |
 | `CheckAvatar` | On a placed in-scene avatar root, names the MA scene refs and clip/controller bindings a base rename silently broke; PASS/CLASSIFY, inspection-only. Each clip-binding break carries its `clipAssetPath` so the caller can route between repathing inline and owning the asset. |
+| `CheckSeam` | On a base + placed mergeable, reflects the MA/VRCFury seam mapping and gates world-position coincidence of weighted humanoid bones: ≤1 → REFUSE (offset-tolerant proxy like hair/earring), ≥2 → PASS within ε (max 0.5mm or 0.2%·Hips→Head) else NOT-PASS with worst-first offenders; non-humanoid bones ride ungated, VRCFury scale/unresolvable-seam → REFUSE. Certifies the humanoid skeleton coincides, not accessory placement; inspection-only, the mechanical fit gate to run before any render. |
 | `ReportGimmick` | Topology digest of a gimmick subtree: contact/physbone/constraint tables, a constraint edge-list (TargetTransform indirection, weights, axes), VRCFury authoring inventory, and the mechanically-certain idioms (world anchor, feedback loop, indirection, hold, editor/runtime swap). |
 
 ### vrc-unity-tools · transplant kit (vendor → owned)
@@ -190,6 +191,7 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | `import-vendor-asset` | Bring a vendor avatar, outfit, hair, or accessory into the Unity project. |
 | `own-base` | Build our owned, uploadable copy of a vendor base body. |
 | `own-mergeable` | Build our owned copy of a mergeable's geometry (outfit, hair, accessory): extract, reproportion, seam, so it composes like a vendor one. |
+| `own-material` | Build our owned, editable copy of a vendor material or texture — recolor, repaint, emission mask, shader convert; materialize the owned copy before any write under `Vendor/`. |
 | `compose-mergeable` | Place a seam-authored outfit, hair, or accessory onto an avatar base: verify the seam, de-conflict meshes, check shape coherence. |
 | `map-outfit-shapes` | Map how a body's blendshapes couple to its clothing meshes across FX/MA/VRCFury idioms, then act on it: de-conflict overlapping clothing, release coupled shapes, feed toggle closures and morph-coherence reads. |
 | `author-menu` | Author expression-menu controls, params, and wiring on a composed avatar (MA-first); place or front a gimmick's menu. |

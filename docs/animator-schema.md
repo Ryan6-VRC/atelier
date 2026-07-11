@@ -262,6 +262,12 @@ clips:
 
 - `seconds:` (alias `length:`) declares the length. A `set`/`curves` clip with no `seconds` derives its
   length from the keys, flooring at one frame (1/60 s).
+- **Curve tangents.** A `curves:` value is normally the bare list `[[t,v],…]` — **flat** tangents, the
+  default: the segment eases between keys, so a two-key "ramp" bows instead of running straight. For a
+  straight proportional ramp (a frame-time `TimeRamp`, a linear sweep) give that curve the map form
+  `{ tangents: linear, keys: [[t,v],…] }`; `tangents:` takes `linear` or `flat`, per curve. Round-trip
+  keeps flat curves in the bare-list form (byte-identical to documents predating this option) and emits
+  the map form only where a curve is linear — see `vrc-patterns/blendtree-math` for a worked frame-time rig.
 - **Binding resolution.** A bare identifier naming a **declared parameter** binds as an animator-parameter
   curve — the AAP / param-write mechanism (`aap_min: { set: { Smoothed: 0.0 } }`). Anything else is a scene
   binding parsed as **`path/Component.property`**: split on the last `/`, then the **first** `.`. So
