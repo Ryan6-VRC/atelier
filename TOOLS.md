@@ -12,7 +12,7 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | Key | Purpose |
 | --- | --- |
 | `AgentInspector` | JSON snapshot of a scene object (by hierarchy path or selection) or the whole scene; a generic walk over any component. |
-| `RenderAvatar` | Isolated Scene-View render of one avatar subtree, NDMF-preview-resolved, framed from named world-axis angles to a contact-sheet PNG; the visual check for fit and clipping after a compose. Grab in a separate call from any edit, or the render shows the pre-edit state. |
+| `RenderAvatar` | Isolated Scene-View render of one avatar subtree, NDMF-preview-resolved (proxy-aware, so MA-reactive bodies render), framed from named world-axis angles to a contact-sheet PNG; operator-eye evidence for fit and clipping after a compose. Grab in a separate call from any edit; an unsettled preview fails the grab loud after kicking the editor to foreground — just re-grab. |
 | `CheckPackage` | Post-import health check: missing (vs. intentionally empty) material/mesh/script refs, plus stale FBX material remaps. |
 | `ReportPackage` | Vendor-package report: FBX/mesh inventory, the superset FBX, FX toggles, MA/VRCFury/NDMF presence. |
 | `CheckHumanoidRig` | Gate: does the humanoid bind still match the model geometry, or must `MatchHumanoidRig` re-run? |
