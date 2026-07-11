@@ -82,7 +82,9 @@ a late joiner, and by what you can verify without two clients):
 - **AAP exponential smoother.** Two clips write a param at ±range; a 1D tree on `SmoothAmount`
   blends "input" vs "output(feedback)" subtrees → `out += (1−λ)(in − out)` per frame. Gate the
   *input* inside the tree (weight by the enable param) so disabling decays smoothly instead of
-  snapping. λ is framerate-dependent — note it, or feed a frametime compensator.
+  snapping. λ is framerate-dependent — note it, or feed a frametime compensator. Worked + measured in
+  `vrc-patterns/blendtree-math` (which also shows why the *linear* smoother limit-cycles and this one
+  doesn't).
 - **Two-stage AAP compute/consume.** Stage 1 trees select an abstract value (write an AAP); stage 2
   trees map that value plus live signals (voice, tracking state) onto actual bones/shapes.
   Decouples "what pose" from "how it animates."
@@ -95,6 +97,13 @@ a late joiner, and by what you can verify without two clients):
   makes a float act as a switch.
 - **Proximity-as-motion-time.** Bind a proximity receiver's float to a pose clip's motion time:
   analog expression intensity by distance, no tree at all.
+- **DBT-math library.** The arithmetic idioms (add/subtract/multiply/divide, negate/remap, clamp,
+  composed min/max), the smoothing family, and an owned `tangents: linear` frametime rig — each a
+  worked, gated, per-primitive-measured example — live in `vrc-patterns/blendtree-math`. Reach here
+  when a gimmick needs arithmetic on animator floats without a scripted behaviour.
+- **Shader hue/color slider.** Drive a shader's own color property directly (lilToon vec4
+  `_MainTexHSVG`, Poiyomi scalar `_MainHueShift`) — the per-channel writes composed in one WD-ON Direct
+  tree so H/S/V coexist without the vec4 override/revert traps: `vrc-patterns/color-adjust`.
 
 ## Constraint patterns
 

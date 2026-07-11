@@ -96,6 +96,18 @@ animator **runs without the avatar's init drivers**, so drivers don't execute on
 the mirror with debug **off**, AAP outputs from the debug animator with debug **on**, never both in one
 session (exiting play resets the mode). Crossing them is why a working codec reads all-zero.
 
+**Pure controller math skips play mode entirely.** When a compiled controller's outputs are only
+AAPs / blend-tree math — a smoother, a math idiom, a frametime rig, with no drivers, contacts, or sync —
+host it on a bare `Animator` and tick `Animator.Update(dt)` in edit mode: `SetFloat` the inputs, tick N
+frames, `GetFloat` the outputs. Deterministic, exact `dt` (a frametime rig reads it exactly), one
+`execute_code` call, and the inputs need not be synced params. Faithful because AAP writes and blend-tree
+evaluation are stock Unity, identical to the FX playable. Two traps: **material** animation lands in the
+renderer's `MaterialPropertyBlock` — read `renderer.GetPropertyBlock(mpb); mpb.GetVector(prop)`, not
+`sharedMaterial` (which stays at the authored default and reads as a false negative; clone the material
+onto a temp renderer so no shared asset is touched); and cross-layer AAP writes propagate one frame late,
+so a multi-layer feedback loop (a fixed-step linear smoother) limit-cycles and a feed-forward chain
+settles only after ~depth frames — read feed-forward outputs at steady state.
+
 **Two-call assertion** (frames advance only between calls; persist across them in `EditorPrefs`,
 editor-local — delete the key after):
 
