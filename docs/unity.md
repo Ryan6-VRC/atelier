@@ -83,6 +83,21 @@ agent routes on: owned/writable ⇒ inline `UC2` clip-fix; `Assets/Vendor/`|`Pac
 and route to `own-mergeable`). Inspection-only — no scene dirty, no `.anim` write; the remedy lives in the
 skill, not the tool.
 
+`CheckSeam.Check(baseRoot, mergeableRoot)` is the mechanical **fit** companion to `CheckAvatar`'s
+reference check — the pre-render fit gate `verify.md` calls for (a model can't read a ~5cm misfit off a
+sheet). It **reflects the seam's own mapping** (MA `GetBonesMapping()` ∪ VRCFury
+`ArmatureLinkService.GetLinks()`, never reimplements name-matching) and counts the **weighted humanoid
+bones** (a mapped bone whose base side is humanoid and whose merge side a mergeable mesh skins). The count
+branches the verdict: **≤1 → `REFUSE`** (an offset-tolerant proxy — hair/earring/hat/tail — is
+operator-positioned, not bone-determined); **≥2 → gate** world-space coincidence at `ε = max(0.5mm,
+0.2%·Hips→Head span)` → `PASS`, or `NOT-PASS` with worst-first offenders. Non-humanoid bones never gate —
+they legitimately deviate up to ~75mm (physbone tuning). Coincidence is one signal across both seam types:
+MA keeps the offset (a delta ships as the misfit), VRCFury snaps at bake (a delta means the edit-time view
+isn't what ships). `REFUSE` (bare line, no trailer, like `CheckAvatar`'s bad-input `FAIL`) also fires on a
+seam that won't resolve onto this base, seams that disagree, a non-humanoid base, or a VRCFury bake-time
+scale — abstain-class (proxy, unresolvable) at warning, reflection drift at error. Inspection-only; the
+same world-space mm-drift primitive as `MatchHumanoidRig`'s `poseDriftMm`, position-only.
+
 `RenderAvatar.Capture(target, angles, hide, margin, showGizmos, resolution)` drives the
 operator's **Scene View** to render **one** avatar subtree in isolation to a temp contact-sheet PNG —
 the clipping/fit backstop `compose-mergeable` defers to the operator. Where the MCP
@@ -97,8 +112,8 @@ success carries a `png=` trailer to `Read`.
 
 The traps a model won't hit by just calling it: the fit is the editor *preview*, not the baked upload
 clone (`nondestructive.md`) — a play-mode build and the operator's eye stay the bar. **A model-read of the
-sheet is not an agent fit gate** — quantified checks decide fit/alignment; the render corroborates for the
-operator (`verify.md`). **Grab in a separate
+sheet is not an agent fit gate** — quantified checks decide fit/alignment (`CheckSeam` for the compose
+seam); the render corroborates for the operator (`verify.md`). **Grab in a separate
 call from any edit** — a same-call grab shows the pre-edit proxy; the summary's `note=` flags an in-flight
 rebuild but cannot catch the same-call case. Angles are **world** axes, so a rotated target shows the scene's front (the upside: it also
 works on a child or non-avatar object). Headlight shading is truthful for geometry/silhouette/clipping/

@@ -108,8 +108,12 @@ don't assert a mechanism from the summary alone.
   component carries cached avatar-relative state that a blind copy would mis-resolve.
 - **Don't lean on MA/VRCFury to move an armature into alignment.** The two apply it differently — MA as a
   one-shot edit-mode action, VRCFury at build — so the result isn't predictable across systems. Measure the
-  seam (world-space per-bone delta) and, where a genuine misalignment needs correcting, make the transform
-  edit **in code**; framework auto-align is an operator convenience, not an agent's alignment path.
+  seam mechanically instead: **`CheckSeam`** (`unity.md`) reflects the seam mapping and gates world-space
+  coincidence of the **weighted humanoid bones** — the bones with a knowable "must be zero" contract, since
+  a correct mergeable duplicates the base armature (correct fits land ≤~0.01mm, a real misfit tens of mm).
+  Non-humanoid bones — physbone/collider tips — legitimately deviate up to ~75mm on a correct fit and are
+  never a fit signal. Where a genuine misalignment needs correcting, make the transform edit **in code**;
+  framework auto-align is an operator convenience, not an agent's alignment path.
 - A faithful copy reproduces the vendor's authoring so an owned (e.g. reproportioned) FBX is
   **drop-in-equivalent** to the vendor. Re-authoring discretion — cleaning up a messy prefab, customizing
   menus — is deliberate human work; placement itself is the `compose-mergeable` skill, which flags the

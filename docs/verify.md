@@ -10,7 +10,8 @@ on (its §Sharp edges owns the compiler-backend, build-queues, and read-path rul
 **Static** — read the assets, run nothing. Animator lint (missing motion GUIDs,
 undeclared/orphaned params, entry-ladder shadowing, never-firing transitions, WD inconsistency per
 layer, cross-package GUID refs), a placement check on the in-scene avatar root (`CheckAvatar`: MA-scene-ref + clip-binding refs a
-base rename silently broke — `PASS`/`CLASSIFY`), and constraint-graph review.
+base rename silently broke — `PASS`/`CLASSIFY`), a compose-fit check (`CheckSeam`: weighted-humanoid-bone
+world-position coincidence — `PASS`/`NOT-PASS`/`REFUSE`), and constraint-graph review.
 Cheapest; catches the mechanical bug classes.
 
 **Bake** — enter play mode (the build runs on the transient play copy; gate below) and read what it
@@ -30,7 +31,7 @@ behavior, not a grade: name it and hand the human tester a targeted checklist ra
 
 **A render is not an agent verdict.** A model can't judge fit or alignment from a single contact sheet — a
 ~5 cm offset, even a missing body, reads as correct at every tier, and higher tiers only raise the
-confidence of the miss. Where a quantified signal (a seam delta, a param read, a `Check*`) and an image
+confidence of the miss. Where a quantified signal (a seam delta from `CheckSeam`, a param read, a `Check*`) and an image
 read disagree, the measurement is authoritative and the image is narrative. Renders serve the operator's
 eye and the audit trail. The one agent-readable use is **differential** — a before/after pair around a
 discrete change (a toggle, a blendshape) shows whether it took effect; a single-sheet absolute judgment
