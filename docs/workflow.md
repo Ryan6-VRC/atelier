@@ -14,7 +14,8 @@ Two ways a vendor asset enters an avatar; choose by whether you need to **own it
   **`compose-mergeable`**.
 - **Own.** When you need a durable change to the geometry, build your own copy — a new `.blend` +
   exported `.fbx`, reusing vendor **materials**/**textures**, owning deeper only where customization
-  needs it. Once the proportioning system is in play, **every piece that deforms with the body must be
+  needs it (a material/texture customization is the **`own-material`** skill — geometry and
+  materials own independently). Once the proportioning system is in play, **every piece that deforms with the body must be
   owned** to take the shared reshape (a rigid, already-seam-authored piece still just composes), so
   owning is common. → **`own-base`** (body) / **`own-mergeable`** (outfit / hair / accessory).
 

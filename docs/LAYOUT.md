@@ -32,6 +32,12 @@ result lands and why.
   controller may still reference a vendor clip — that clip stays read-only). This is a **policy** guard, not
   physical immutability — VPM-restored `Packages/` payloads are writable on disk, so the rule is a convention
   the tools enforce (with a `force` override that records the breach loudly), not an OS-level lock.
+- **`Assets/Materials/<Avatars|Outfits>/<Name>/`** — owned materials and their exported textures,
+  mirroring `Photoshop/` by name. Base-independent like the PSD art (texture work doesn't change with
+  proportions), so one bucket serves every base wearing the outfit — but when the geometry is *also*
+  owned, materials file with it (`Assets/Outfits/<Base>/<Outfit>/Materials/`) instead: one logical
+  asset, one home. Copy semantics (selective slot forking, shader handling) are the `own-material`
+  skill's.
 - **Non-Unity source files live outside `Assets/`** at the project root, so editing them never
   triggers an editor refresh:
   - **`Blender/Avatars/<Name>/`** — the `<Name>.blend` source, namespaced like `Assets/`; also holds
@@ -48,7 +54,10 @@ result lands and why.
     is geometry-only, so PSD art is base-independent and the outfit is the constant. A PSD is only
     worth bringing over if we intend to modify it (the package already ships the untouched PNG
     exports), so PSDs are *our* work, not vendor — no `Vendor/` namespace. Gitignored like all
-    binaries (above) and kept under external backup.
+    binaries (above) and kept under external backup. What enters Unity from a PSD is a **flattened
+    PNG export** into the owned-materials bucket — the `.blend` → `.fbx` contract mirrored; an
+    *owned* material referencing a `.psd` inside `Assets/` is a defect (a vendor material linking
+    its own shipped PSD is vendor authoring, untouched until owned).
 
 ## Proportion profiles & state naming
 
