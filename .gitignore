@@ -38,8 +38,9 @@ CLAUDE.local.md
 kickoffs.md
 fixups.md
 
-# Local, script-generated headless test project (tools/setup-test-editor.ps1) — never committed.
-/TestEditor/
+# Local, script-generated headless test projects (tools/setup-test-editor.ps1) — never committed.
+# The glob covers per-session suffixed editors (TestEditor-<name>) run from worktrees.
+/TestEditor*/
 # Runner artifacts (tools/run-editmode-tests.ps1).
 tools/results-*.xml
 tools/run-*.log
