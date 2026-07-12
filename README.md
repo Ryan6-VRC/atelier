@@ -18,25 +18,21 @@ upload. The agent is fluent in the workflows this implies; it can split an avata
 merge it back with Modular Avatar or VRCFury, physbone/constraint/contact topology intact,
 authoring FX controllers and menus as needed.
 
-VRChat avatar work is barely represented in LLM training data, but models handle it well once the
-conventions are written down and the tools are legible. Controller authoring is a domain far
-better suited to LLMs; state machines, transition graphs, and parameter logic are ordinary coding
-work. With the avatar substrate in place, my expectation is that LLMs will fluently author
-controllers and gimmicks that integrate OSC, Unity behavior, and VRChat dynamics in ways that
-match or exceed the complexity and correctness of some of the most impressive assets currently
-available.
-
 ## Controller authoring
 
-- **Graph and validate.** Read-only digests of animator, constraint, physbone, and contact
-  topology (`ReportController`, `ReportGimmick`, `CheckAnimator`), so the model reasons over
+The fluency above is the baseline "common sense" layer required to make full use of frontier
+model coding aptitude for controller and gimmick work.
+
+- **Decoded structure.** Animator, constraint, physbone, and contact topology arrive as read-only
+  digests (`ReportController`, `ReportGimmick`, `CheckAnimator`), so the model reasons over
   decoded structure instead of raw YAML.
-- **The round-trip.** `DecompileController → YAML → CompileController`: controllers become
-  reviewable, diffable text, which is exactly the representation a coding model is strongest in.
-  Study a vendor controller, modify it, or author a new system from a declarative document.
-- **Emulator fluency.** Drive parameters, frame-step, induce physbone grabs, fake another player's
-  contacts, spawn remote clones; behavioral claims are verified in play mode rather than asserted,
-  and what only a real two-client test can show is called out explicitly.
+- **Controllers as code.** `DecompileController` and `CompileController` round-trip a built
+  `.controller` to declarative YAML: reviewable, diffable text, the representation coding models
+  are strongest in. Study a vendor controller, modify it, or author a new system from scratch.
+- **A closed validation loop.** The emulator lets the agent drive parameters, frame-step, induce
+  physbone grabs, fake another player's contacts, and spawn remote clones, so it can self-test its
+  work in play mode and iterate instead of asserting. What only a real two-client test can show is
+  called out explicitly.
 
 ## Tools for AI
 
@@ -79,21 +75,6 @@ Unity · Blender · the MCP bridges, then verify), point a capable agent at
 **[`docs/bootstrap.md`](docs/bootstrap.md)**. Prereqs at a glance: Unity Hub + 2022.3.22f1,
 Blender 5.1+, `git`/`git-lfs`, `uv`, `vrc-get`/ALCOM, Python 3.10+, Claude Code.
 
-## Start a session
-
-```powershell
-start-vrc AvatarProject          # or:  start-vrc -Path ..\Projects\AnotherProject
-```
-
-Brings up Unity + Blender (with their MCP bridges live), then launches Claude; idempotent, so
-re-running doubles as a health check. Per-system operating details live in
-[`docs/unity.md`](docs/unity.md) / [`docs/blender.md`](docs/blender.md); the cross-system workflow
-in [`docs/workflow.md`](docs/workflow.md).
-
-The [`references/`](references/README.md) routing table maps the open-source VRChat tooling
-ecosystem this workspace studies — animator codegen, optimizers, emulators, sync systems — with
-explicit license discipline about what gets cloned and what stays study-only.
-
 ## Tools
 
 _The callable surface of this system. Generated from `TOOLS.md`._
@@ -107,6 +88,26 @@ skills themselves. The pre-commit hook `tools/sync_tool_inventory.py` verifies e
 code declaration site (Unity `[AgentTool]` classes, Blender operator names ∪ `cli/` stems, skill
 frontmatter names) and mirrors this file into `README.md`; it never writes a row itself. The agent
 landing a tool change updates its row by hand at merge (the hook skips worktrees).
+
+## vrc-skills
+
+The front door. Each skill is a complete arc of avatar work: say what you want done and the
+agent runs it end-to-end, driving the tool tables below. Together they are what this workshop
+can do, from a vendor `.unitypackage` to a dressed, menued, reshaped avatar live on VRChat.
+
+| Key | Purpose |
+| --- | --- |
+| `import-vendor-asset` | Bring any vendor asset (avatar, outfit, hair, accessory) into the project cleanly: handle nested zips and companion MaterialPacks, land it untouched under `Vendor/`, and machine-verify every reference before work begins. |
+| `own-base` | Turn a vendor avatar into *your* avatar: graph the messy vendor package, then build a clean, normalized, uploadable base body to our conventions. Every step gated, nothing eyeballed. |
+| `own-mergeable` | Extract an outfit, hair, or accessory into an owned mergeable, even out of a monolithic avatar: reshaped and carrying its own MA or VRCFury non-destructive seam, so it drops onto a base exactly like the vendor original. |
+| `own-material` | Change how anything looks: recolor a dress, add glitter, make eyes glow, prep a hue slider or a Poiyomi convert. Picks the right mechanism (property, repaint, clip-driven) and deep-copies only what actually changes. |
+| `compose-mergeable` | Dress the avatar: drop a ready-made outfit, hair, or accessory onto a base, prove the MA or VRCFury seam mechanically resolved, and de-conflict the meshes it covers. |
+| `map-outfit-shapes` | Untangle the hidden wiring between a body's blendshapes and its clothing: which garment drives which morph, to what values, and what several meshes must agree on. Then act on the map: hide, release, reconcile. |
+| `author-menu` | Give the avatar its in-game controls: expression-menu toggles, radials, and gimmick fronts, planned with the user, closed over their dependencies, and authored non-destructively. |
+| `reproportion` | Reshape proportions to taste (longer arms, a custom body, matching your real measurements so IK feels right) as validated, repeatable profiles, with the Unity side reconciled so nothing downstream breaks. |
+| `upload-avatar` | The last mile to VRChat: preflight the batch, confirm names and scope, and drive the operator-authorized upload, including re-uploading the ten avatars that inherit one changed base. |
+| `showcase-record` | Film a work session (ffmpeg screen capture) and cut it into a short showcase video. |
+| `fitting-session` | Wear-test the workshop itself: dispatch worker agents on real vendor-asset tasks, grade independently, distill the sharp edges into a cross-run ledger + fixup kickoffs. |
 
 ## vrc-unity-tools
 
@@ -191,21 +192,5 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | `apply_proportion_edge` | Apply one declarative proportion edge, validating first and stamping state; `--whatif` validates read-only against the live scene. |
 | `import_fbx` | Import an FBX via Blender's current importer (never the legacy one, which reorients bones); stamps new armatures state="unproportioned" and returns a sanity snapshot. `export_unity_fbx`'s counterpart. |
 | `export_unity_fbx` | Export with the Unity/VRChat FBX recipe; `--armature` scopes an owned re-export to one rig (selection-only, no texture embed). |
-
-## vrc-skills
-
-| Key | Purpose |
-| --- | --- |
-| `import-vendor-asset` | Bring a vendor avatar, outfit, hair, or accessory into the Unity project. |
-| `own-base` | Build our owned, uploadable copy of a vendor base body. |
-| `own-mergeable` | Build our owned copy of a mergeable's geometry (outfit, hair, accessory): extract, reproportion, seam, so it composes like a vendor one. |
-| `own-material` | Build our owned, editable copy of a vendor material or texture — recolor, repaint, emission mask, shader convert; materialize the owned copy before any write under `Vendor/`. |
-| `compose-mergeable` | Place a seam-authored outfit, hair, or accessory onto an avatar base: verify the seam, de-conflict meshes, check shape coherence. |
-| `map-outfit-shapes` | Map how a body's blendshapes couple to its clothing meshes across FX/MA/VRCFury idioms, then act on it: de-conflict overlapping clothing, release coupled shapes, feed toggle closures and morph-coherence reads. |
-| `author-menu` | Author expression-menu controls, params, and wiring on a composed avatar (MA-first); place or front a gimmick's menu. |
-| `reproportion` | Reshape proportions and reconcile the Unity side. |
-| `upload-avatar` | Drive an operator-gated VRChat upload (first-upload or re-upload), with an optional safe-optimizer pre-step. |
-| `showcase-record` | Film a work session (ffmpeg screen capture) and cut it into a short showcase video. |
-| `fitting-session` | Wear-test the workshop itself: dispatch worker agents on real vendor-asset tasks, grade independently, distill the sharp edges into a cross-run ledger + fixup kickoffs. |
 
 <!-- END tools -->
