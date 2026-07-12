@@ -1,11 +1,15 @@
 # tools/sync_tool_inventory.py
-"""Verify TOOLS.md keys against code declaration sites, and mirror it into README.md.
+"""Verify the documented tool/skill rosters against code declaration sites, and
+mirror TOOLS.md into README.md.
 
 Three surfaces (the avatar-authoring system); vrc-bridge is a separate runtime
 system and is out of scope:
   vrc-unity-tools   -> class names carrying the [AgentTool] identity attribute
   vrc-blender-tools -> operator short-names (bl_idname) UNION cli/ script stems
   vrc-skills        -> skill frontmatter `name:`
+
+Tool rows live in TOOLS.md; the skills roster lives in README.md's `## Skills`
+section (human-facing — agents get skill descriptions injected per-session).
 
 --check       : verify keys == code; exit non-zero on drift; write nothing.
 (default) sync: run the check; only if it passes, inject TOOLS.md into README.md
@@ -18,6 +22,10 @@ from pathlib import Path
 
 WORKSPACE = Path(__file__).resolve().parent.parent
 SURFACES = ("vrc-unity-tools", "vrc-blender-tools", "vrc-skills")
+TOOLS_MD_SURFACES = ("vrc-unity-tools", "vrc-blender-tools")
+SKILLS_HEADING = "Skills"
+DOC_SOURCE = {"vrc-unity-tools": "TOOLS.md", "vrc-blender-tools": "TOOLS.md",
+              "vrc-skills": f"README.md (## {SKILLS_HEADING})"}
 BEGIN = "<!-- BEGIN tools -->"
 END = "<!-- END tools -->"
 
@@ -113,11 +121,22 @@ def extract_code_keys() -> dict:
     }
 
 
+def _row_key(line: str, seen_delim: bool):
+    """Interpret one `|`-prefixed table line: (key_or_None, new_seen_delim).
+    The header row precedes the GFM delimiter row and yields no key."""
+    first = line.strip("|").split("|")[0].strip()
+    if re.fullmatch(r":?-{1,}:?", first.replace(" ", "")):
+        return None, True                  # GFM delimiter row
+    if not seen_delim:
+        return None, False                 # header row
+    return first.strip("`").strip() or None, True
+
+
 def parse_tools_md(path: Path) -> dict:
     text = _read(path)
     if BEGIN in text or END in text:
         raise InventoryError(f"{path}: must not contain the injection marker literals")
-    result = {sfc: set() for sfc in SURFACES}
+    result = {sfc: set() for sfc in TOOLS_MD_SURFACES}
     sections_seen = set()
     current = None
     seen_delim = False
@@ -125,29 +144,54 @@ def parse_tools_md(path: Path) -> dict:
         line = raw.strip()
         if line.startswith("#"):
             heading = line.lstrip("#").strip()
-            current = next((sfc for sfc in SURFACES if sfc in heading), None)
+            current = next((sfc for sfc in TOOLS_MD_SURFACES if sfc in heading), None)
             if current:
                 sections_seen.add(current)
             seen_delim = False
             continue
         if line.startswith("|"):
-            first = line.strip("|").split("|")[0].strip()
-            if re.fullmatch(r":?-{1,}:?", first.replace(" ", "")):
-                seen_delim = True          # GFM delimiter row
+            key, seen_delim = _row_key(line, seen_delim)
+            if key is None:
                 continue
-            if not seen_delim:
-                continue                   # header row (precedes delimiter)
             if current is None:
                 raise InventoryError(f"{path}: table row outside an attributable section: {raw}")
-            key = first.strip("`").strip()
-            if key:
-                result[current].add(key)
+            result[current].add(key)
         else:
             seen_delim = False             # table ended
-    missing_sections = [sfc for sfc in SURFACES if sfc not in sections_seen]
+    missing_sections = [sfc for sfc in TOOLS_MD_SURFACES if sfc not in sections_seen]
     if missing_sections:
         raise InventoryError(f"{path}: no section for surface(s): {missing_sections}")
     return result
+
+
+def parse_readme_skills(path: Path) -> set:
+    """Keys from README.md's hand-maintained `## {SKILLS_HEADING}` table; the
+    section ends at the next heading of any level."""
+    keys = set()
+    in_section = False
+    found = False
+    seen_delim = False
+    for raw in _read(path).splitlines():
+        line = raw.strip()
+        if line.startswith("#"):
+            if in_section:
+                break
+            in_section = line.lstrip("#").strip() == SKILLS_HEADING
+            found = found or in_section
+            continue
+        if not in_section:
+            continue
+        if line.startswith("|"):
+            key, seen_delim = _row_key(line, seen_delim)
+            if key:
+                keys.add(key)
+        else:
+            seen_delim = False
+    if not found:
+        raise InventoryError(f"{path}: no `## {SKILLS_HEADING}` section (the skills roster)")
+    if not keys:
+        raise InventoryError(f"{path}: `## {SKILLS_HEADING}` section has no table rows")
+    return keys
 
 
 def check(code_keys: dict, doc_keys: dict) -> list:
@@ -156,9 +200,9 @@ def check(code_keys: dict, doc_keys: dict) -> list:
         undocumented = sorted(code_keys[sfc] - doc_keys[sfc])
         phantom = sorted(doc_keys[sfc] - code_keys[sfc])
         if undocumented:
-            problems.append(f"[{sfc}] in code but not TOOLS.md (undocumented): {undocumented}")
+            problems.append(f"[{sfc}] in code but not {DOC_SOURCE[sfc]} (undocumented): {undocumented}")
         if phantom:
-            problems.append(f"[{sfc}] in TOOLS.md but not code (phantom/renamed): {phantom}")
+            problems.append(f"[{sfc}] in {DOC_SOURCE[sfc]} but not code (phantom/renamed): {phantom}")
     return problems
 
 
@@ -179,7 +223,7 @@ def inject(readme_path: Path, tools_md_path: Path) -> bool:
     block = render_block(tools_md)
     if nb == 0:
         new = (readme.rstrip() + "\n\n## Tools\n\n"
-               "_The callable surface of this system. Generated from `TOOLS.md`._\n\n"
+               "_The tool surface the skills above drive. Generated from `TOOLS.md`._\n\n"
                + block + "\n")
     else:
         start, end_i = readme.index(BEGIN), readme.index(END)
@@ -199,6 +243,7 @@ def main(argv=None) -> int:
     try:
         code_keys = extract_code_keys()
         doc_keys = parse_tools_md(WORKSPACE / "TOOLS.md")
+        doc_keys["vrc-skills"] = parse_readme_skills(WORKSPACE / "README.md")
     except InventoryError as e:
         print(f"tool-inventory: ERROR: {e}", file=sys.stderr)
         return 2
@@ -219,7 +264,7 @@ def main(argv=None) -> int:
             print("README-UPDATED")
         print("tool-inventory: OK — README tools block in sync", file=sys.stderr)
     else:
-        print("tool-inventory: OK — TOOLS.md matches code", file=sys.stderr)
+        print("tool-inventory: OK — TOOLS.md + README skills roster match code", file=sys.stderr)
     return 0
 
 

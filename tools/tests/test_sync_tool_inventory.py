@@ -116,18 +116,16 @@ class TestParseAndCheck(unittest.TestCase):
 
     CLEAN = (
         "# vrc-unity-tools\n\n| Key | Purpose |\n| --- | --- |\n| `CopyComponents` | x |\n\n"
-        "# vrc-blender-tools\n\n| Key | Purpose |\n| --- | --- |\n| apply_recipe | y |\n\n"
-        "# vrc-skills\n\n| Key | Purpose |\n| --- | --- |\n| own-base | z |\n"
+        "# vrc-blender-tools\n\n| Key | Purpose |\n| --- | --- |\n| apply_recipe | y |\n"
     )
 
     def test_skips_header_and_delimiter_rows(self):
         keys = s.parse_tools_md(self._tools_md(self.CLEAN))
         self.assertEqual(keys["vrc-unity-tools"], {"CopyComponents"})
         self.assertEqual(keys["vrc-blender-tools"], {"apply_recipe"})
-        self.assertEqual(keys["vrc-skills"], {"own-base"})
 
     def test_missing_section_raises(self):
-        body = self.CLEAN.replace("# vrc-skills\n\n| Key | Purpose |\n| --- | --- |\n| own-base | z |\n", "")
+        body = self.CLEAN.replace("# vrc-blender-tools\n\n| Key | Purpose |\n| --- | --- |\n| apply_recipe | y |\n", "")
         with self.assertRaises(s.InventoryError):
             s.parse_tools_md(self._tools_md(body))
 
@@ -143,6 +141,34 @@ class TestParseAndCheck(unittest.TestCase):
         problems = s.check(code, doc)
         self.assertTrue(any("CleanFX" in p and "undocumented" in p for p in problems))
         self.assertTrue(any("Ghost" in p and "phantom" in p for p in problems))
+
+
+class TestReadmeSkills(unittest.TestCase):
+    def _readme(self, body: str) -> Path:
+        p = Path(tempfile.mkdtemp()) / "README.md"
+        p.write_text(body, encoding="utf-8")
+        return p
+
+    def test_parses_only_the_skills_section(self):
+        body = ("# Repo\n\nintro\n\n## Skills\n\nprose\n\n"
+                "| Key | Purpose |\n| --- | --- |\n| `own-base` | z |\n| author-menu | m |\n\n"
+                "## Tools\n\n| Key | Purpose |\n| --- | --- |\n| `CopyComponents` | x |\n")
+        self.assertEqual(s.parse_readme_skills(self._readme(body)), {"own-base", "author-menu"})
+
+    def test_missing_section_raises(self):
+        with self.assertRaises(s.InventoryError):
+            s.parse_readme_skills(self._readme("# Repo\n\n## Tools\n\n| K |\n| - |\n| x |\n"))
+
+    def test_empty_section_raises(self):
+        with self.assertRaises(s.InventoryError):
+            s.parse_readme_skills(self._readme("# Repo\n\n## Skills\n\nprose only\n\n## Next\n"))
+
+    def test_live_readme_matches_frontmatter(self):
+        # The real README roster stays in lockstep with the plugin's skill names —
+        # the check the hook runs, asserted here so a test run alone catches drift.
+        readme = s.parse_readme_skills(WORKSPACE / "README.md")
+        code = s.extract_skills_keys(WORKSPACE / "vrc-skills")
+        self.assertEqual(readme, code)
 
 
 class TestInject(unittest.TestCase):
