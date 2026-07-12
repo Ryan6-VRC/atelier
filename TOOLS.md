@@ -34,6 +34,7 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | `FixViewpoint` | Recompute `ViewPosition` from a reference rig's viewpoint plus both rigs' Head/eyes. |
 | `MatchHumanoidRig` | Conform our humanoid rig to the vendor's bone mapping; `Preflight` previews. |
 | `ConformRenderers` | Copy materials by renderer name from a source hierarchy and normalize bounds/anchor. |
+| `OwnMaterial` | Bring a vendor material into ownership: materialize an owned deep-copy (or branch/augment an already-owned one), fork exactly the named texture slots into the material's own subfolder, unlock a locked-Poiyomi copy, and leave every other slot on its vendor GUID. Routing follows target identity (`outDir` given → own/branch a new `.mat`; omitted → augment the source in place). The skill holds *which* slots; the tool executes the copy and reports a per-slot provenance table (`slots[]`) as the caller's gate. `whatIf`-previewable, rollback-on-FAIL. |
 
 ### vrc-unity-tools · controllers & clips
 
