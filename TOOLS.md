@@ -7,9 +7,10 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 
 ## vrc-skills
 
-The front door. Each skill is a complete arc of avatar work: say what you want done and the
-agent runs it end-to-end, driving the tool tables below. Together they are what this workshop
-can do, from a vendor `.unitypackage` to a dressed, menued, reshaped avatar live on VRChat.
+These skills are how you use the workshop: invoke one by name, or just say what you want and the
+agent picks the right one. Each runs a complete arc of avatar work end-to-end, driving the tool
+tables below — most users never need anything past this section. Together they are what this
+workshop can do, from a vendor `.unitypackage` to a dressed, menued, reshaped avatar live on VRChat.
 
 | Key | Purpose |
 | --- | --- |
