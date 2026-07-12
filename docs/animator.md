@@ -97,6 +97,30 @@ controller, so it self-logs to the **Snapshot** dir (read-capture channel), not 
 Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) rides in the document's
 `_notes:` block, which re-compiles inert.
 
+`CompileClips(sourcePath, outDir, force=false, whatIf=false)` is the **second write door**: the sole *authoring* writer
+of external clips — it emits clip content from a clips-file YAML, where `OwnControllerClips` emits standalone
+`.anim`s only by *copying* existing clips. Its source is a clips file — the same schema surface (`schema:`, `basis:`, `clips:`,
+optional `parameters:`) but with **no `layers:`** — and it emits each clip to `<outDir>/<clip>.anim` as a
+standalone, *visible*, human-editable asset (contrast the controller's hidden inline sub-assets). **Which
+clips belong here:** hand-authored artifacts a human sees, tunes, or repaths as a unit (poses, expressions,
+toggle targets) — not generated plumbing, which stays inline even when it targets a material (AAP and
+blend-tree endpoints; `animator-schema.md` §external clips carries the decidable rule). The contract is in its
+doc-comment; the load-bearing decisions:
+
+- **Emit-only — never prunes.** A clip dropped from the file is left on disk, which is exactly what makes
+  *promotion* a no-op: delete a clip from the file to hand it to a human, and the controller's path `ref:`
+  keeps resolving to an `.anim` no compile touches again (`animator-schema.md` §external clips).
+- **Refuses to clobber a hand-edit.** It stamps each `.anim` with a content hash and, on recompile, writes
+  nothing if the on-disk clip diverged from that stamp — so *promote to keep edits*, don't `force` over them.
+  `force` overrides both this divergence refusal and the read-only-outDir (`Vendor/`/`Packages/`) guard.
+- **Writer/reader split → two-door order.** `CompileClips` writes; `CompileController` only reads (a path
+  `ref:` resolves like any motion, a miss fails loud). Compile the clips file **before** the controller: a
+  controller has no back-reference to its clips file, so an unresolved `ref:` into a clips `outDir` usually
+  just means the clips file is uncompiled — read the failure that way before hunting a missing asset.
+
+External clips decompile as a path `ref:`, never re-inlined; the embedded/inline path is unchanged and the
+vrc-patterns gate stays green.
+
 **The round-trip reframes the owning tools above.** `Decompile→edit→Compile` emits a controller that is a
 pure function of the document — **graph node layout included, so a hand-arranged controller round-trips its
 positions** (`animator-schema.md` §layout). For any controller you are willing to **own** (decompile), orphan
