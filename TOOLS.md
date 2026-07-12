@@ -101,5 +101,6 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | `map-outfit-shapes` | Map how a body's blendshapes couple to its clothing meshes across FX/MA/VRCFury idioms, then act on it: de-conflict overlapping clothing, release coupled shapes, feed toggle closures and morph-coherence reads. |
 | `author-menu` | Author expression-menu controls, params, and wiring on a composed avatar (MA-first); place or front a gimmick's menu. |
 | `reproportion` | Reshape proportions and reconcile the Unity side. |
+| `upload-avatar` | Take a composed avatar live on VRChat (first-upload or re-upload): read blueprint state, optionally bring it to the safe optimizer stack, then drive the operator-authorized upload. Never uploads without an explicit "upload now". |
 | `showcase-record` | Film a work session (ffmpeg screen capture) and cut it into a short showcase video. |
 | `fitting-session` | Wear-test the workshop itself: dispatch worker agents on real vendor-asset tasks, grade independently, distill the sharp edges into a cross-run ledger + fixup kickoffs. |

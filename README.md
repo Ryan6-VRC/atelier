@@ -115,7 +115,7 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | Key | Purpose |
 | --- | --- |
 | `AgentInspector` | JSON snapshot of a scene object (by hierarchy path or selection) or the whole scene; a generic walk over any component. |
-| `RenderAvatar` | Isolated Scene-View render of one avatar subtree, NDMF-preview-resolved (proxy-aware, so MA-reactive bodies render), framed from named world-axis angles to a contact-sheet PNG; operator-eye evidence for fit and clipping after a compose. Grab in a separate call from any edit; an unsettled preview fails the grab loud after kicking the editor to foreground — just re-grab. |
+| `RenderAvatar` | Isolated Scene-View render of one avatar subtree, NDMF-preview-resolved (proxy-aware, so MA-reactive bodies render), framed from named world-axis angles to a contact-sheet PNG — operator-eye evidence for fit and clipping after a compose. Grab in a call separate from any edit; an unsettled preview fails the grab loud, so just re-grab. |
 | `CheckPackage` | Post-import health check: missing (vs. intentionally empty) material/mesh/script refs, plus stale FBX material remaps. |
 | `ReportPackage` | Vendor-package report: FBX/mesh inventory, the superset FBX, FX toggles, MA/VRCFury/NDMF presence. |
 | `CheckHumanoidRig` | Gate: does the humanoid bind still match the model geometry, or must `MatchHumanoidRig` re-run? |
@@ -143,7 +143,7 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 
 | Key | Purpose |
 | --- | --- |
-| `CleanController` | Reset an owned avatar's FX to a blank slate: keep named layers (plus base layer 0), empty params/menu, wire the descriptor. Blank-slate only; for anything richer, decompile, edit, and recompile instead. |
+| `CleanController` | Reset an owned avatar's FX to a blank slate: keep named layers (plus base layer 0), empty params/menu, wire the descriptor. For anything richer, decompile, edit, and recompile instead. |
 | `RepathClips` | Segment-safe repath of a controller's owned clip bindings; the caller supplies the moves. |
 | `OwnControllerClips` | Fork vendor-linked clips to owned copies and retarget the controller's motion slots. |
 | `CompileController` | The animator **write substrate**: compiles a declarative YAML document into a persisted `.controller`, plus inline clips, embedded blend trees, and a `VRCExpressionParameters` asset. Atomic, idempotent (stable GUID), `whatIf`-previewable; every build passes the shared graph lint. Schema: [`docs/animator-schema.md`](docs/animator-schema.md). |
@@ -204,6 +204,7 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | `map-outfit-shapes` | Map how a body's blendshapes couple to its clothing meshes across FX/MA/VRCFury idioms, then act on it: de-conflict overlapping clothing, release coupled shapes, feed toggle closures and morph-coherence reads. |
 | `author-menu` | Author expression-menu controls, params, and wiring on a composed avatar (MA-first); place or front a gimmick's menu. |
 | `reproportion` | Reshape proportions and reconcile the Unity side. |
+| `upload-avatar` | Take a composed avatar live on VRChat (first-upload or re-upload): read blueprint state, optionally bring it to the safe optimizer stack, then drive the operator-authorized upload. Never uploads without an explicit "upload now". |
 | `showcase-record` | Film a work session (ffmpeg screen capture) and cut it into a short showcase video. |
 | `fitting-session` | Wear-test the workshop itself: dispatch worker agents on real vendor-asset tasks, grade independently, distill the sharp edges into a cross-run ledger + fixup kickoffs. |
 
