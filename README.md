@@ -158,6 +158,12 @@ landing a tool change updates its row by hand at merge (the hook skips worktrees
 | `RemapMaterials` | Swap materials by asset path across a hierarchy. |
 | `ConstrainedDuplicate` | Clone a hierarchy and wire VRC constraints between original and duplicate bones. |
 
+### vrc-unity-tools · publish
+
+| Key | Purpose |
+| --- | --- |
+| `UploadAvatar` | Take a batch of composed avatars live on VRChat, driving Continuous Avatar Uploader by reflection (optional dependency; absent → REFUSE with the fix). **Operator-gated** — an explicit "upload now" is the only trigger, never autonomous. `whatIf` previews readiness + per-avatar first-upload/update classification without uploading; the execute path is async (poll `Status()`). Fail-loud, no auto-work-around: stops on first failure, never auto-retries a rate-limit, and redacts every blueprint ID from output. |
+
 ## vrc-blender-tools
 
 ### vrc-blender-tools · inspect & verify (read-only)
