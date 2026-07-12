@@ -1,11 +1,9 @@
 Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row each. Rows are
-routing, not contracts; behavior lives in `docs/unity.md` / `docs/blender.md`. The `vrc-skills`
-roster lives in `README.md` (`## Skills`) — skill descriptions are injected into every session, so
-its rows are a human-facing front, not agent routing. The pre-commit hook
+routing, not contracts; behavior lives in `docs/unity.md` / `docs/blender.md`. The pre-commit hook
 `tools/sync_tool_inventory.py` verifies each key against its code declaration site (Unity
-`[AgentTool]` classes, Blender operator names ∪ `cli/` stems; skill frontmatter names against the
-README roster) and mirrors this file into `README.md`; it never writes a row itself. The agent
-landing a tool change updates its row by hand at merge (the hook skips worktrees).
+`[AgentTool]` classes, Blender operator names ∪ `cli/` stems) and mirrors this file into
+`README.md`; it never writes a row itself. The agent landing a tool change updates its row by hand
+at merge (the hook skips worktrees).
 
 ## vrc-unity-tools
 
