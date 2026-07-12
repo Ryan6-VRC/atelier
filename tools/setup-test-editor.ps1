@@ -1,6 +1,7 @@
 <#
   Generate (or -Sync refresh) a local, gitignored TestEditor carrying the VRChat SDK plus the
-  compose packages CheckSeam reflects (Modular Avatar / VRCFury / NDMF).
+  community packages the EditMode tests build as real types (Modular Avatar / VRCFury / NDMF,
+  Av3Emulator, Gesture Manager).
   TestEditor is the headless runner's never-opened target. Its SDK payload + manifest are copied
   from AvatarProject so the SDK version tracks AvatarProject automatically (ALCOM updates it there).
   Not a repo — a local artifact. See docs/bootstrap.md.
@@ -19,10 +20,12 @@ param(
 )
 $ErrorActionPreference = "Stop"
 # Packages copied verbatim from AvatarProject as embedded folders (Unity auto-loads any Packages/<f>
-# with a package.json; no manifest entry needed). SDK trio is VRChat-pinned; the compose trio is what
-# CheckSeam reflects and is auto-synced by run-editmode-tests.ps1 (not manifest-pinned here).
+# with a package.json; no manifest entry needed). SDK trio is VRChat-pinned; the community packages
+# (compose trio CheckSeam reflects + emulator/GestureManager PlayGateCoreTests builds as real types)
+# are auto-synced by run-editmode-tests.ps1 (not manifest-pinned here).
 $sdk = @("com.vrchat.base", "com.vrchat.avatars", "com.vrchat.core.bootstrap",
-         "nadena.dev.ndmf", "nadena.dev.modular-avatar", "com.vrcfury.vrcfury")
+         "nadena.dev.ndmf", "nadena.dev.modular-avatar", "com.vrcfury.vrcfury",
+         "lyuma.av3emulator", "vrchat.blackstartx.gesture-manager")
 
 if ((Test-Path $Dest) -and -not $Sync) {
   Write-Host "TestEditor already exists at $Dest. Use -Sync to refresh its SDK + manifest."

@@ -35,9 +35,11 @@ foreach ($pkg in @("com.vrchat.base", "com.vrchat.avatars", "com.vrchat.core.boo
     exit 4
   }
 }
-# --- Compose packages (auto-sync, don't block) --- MA/VRCFury/NDMF bump on ALCOM's cadence; a hard
-# block would train reflexive re-sync. Re-copy on mismatch so TestEditor always tests current.
-foreach ($pkg in @("nadena.dev.ndmf", "nadena.dev.modular-avatar", "com.vrcfury.vrcfury")) {
+# --- Community packages (auto-sync, don't block) --- these bump on ALCOM's cadence; a hard block
+# would train reflexive re-sync. Re-copy on mismatch so TestEditor always tests current. The compose
+# trio is what CheckSeam reflects; emulator/GestureManager are the real types PlayGateCoreTests builds.
+foreach ($pkg in @("nadena.dev.ndmf", "nadena.dev.modular-avatar", "com.vrcfury.vrcfury",
+                   "lyuma.av3emulator", "vrchat.blackstartx.gesture-manager")) {
   $a = Get-SdkVersion $Avatar $pkg
   $t = Get-SdkVersion $Project $pkg
   if ($null -eq $a) { Write-Host "OUTCOME=RUN_ERROR AvatarProject missing $pkg — run 'vrc-get resolve' there"; exit 5 }

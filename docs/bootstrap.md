@@ -94,8 +94,9 @@ ships with the clone — no setup, just don't remove it. (Hooks load at launch, 
 next session, not mid-session.)
 
 **Running the EditMode suite headless.** Run `tools/setup-test-editor.ps1` once per machine — it needs
-AvatarProject's VRChat SDK and the compose packages (Modular Avatar, VRCFury, NDMF) already resolved
-(via ALCOM / `vrc-get resolve`) — to generate the local, gitignored `TestEditor`; then
+AvatarProject's VRChat SDK and the community packages the tests build as real types (Modular Avatar,
+VRCFury, NDMF, Av3Emulator, Gesture Manager) already resolved (via ALCOM / `vrc-get resolve`) — to
+generate the local, gitignored `TestEditor`; then
 `tools/run-editmode-tests.ps1` runs the suite against it. See `docs/verify.md` for why this split
 exists (the venue rule and the root cause it's built on).
 
