@@ -22,7 +22,7 @@ authoring FX controllers and menus as needed.
 
 These skills are how you use the workshop: invoke one by name, or just say what you want and the
 agent picks the right one. Each runs a complete arc of avatar work end-to-end, driving the tools
-catalogued at the bottom of this page — most users never need anything past this section. Together
+catalogued at the bottom of this page; most users never need anything past this section. Together
 they are what this workshop can do, from a vendor `.unitypackage` to a dressed, menued, reshaped
 avatar live on VRChat.
 
