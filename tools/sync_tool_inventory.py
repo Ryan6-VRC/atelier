@@ -83,7 +83,7 @@ def extract_blender_keys(repo: Path) -> set:
         for m in re.finditer(r"""bl_idname\s*=\s*['"]avatarprep\.([A-Za-z_]\w*)['"]""", _read(src)):
             keys.add(m.group(1))
     for py in sorted(_require_dir(repo / "cli").glob("*.py")):  # non-recursive: skips __pycache__
-        if py.stem != "__init__":
+        if not py.stem.startswith("_"):  # _-prefixed = private plumbing (_common, __init__), not a tool door
             keys.add(py.stem)
     return keys
 
