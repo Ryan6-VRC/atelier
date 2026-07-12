@@ -53,6 +53,15 @@ expansion is bounded by asset-hop depth and a walk-wide budget, and every cut is
 (`assetDepthCapped`/`budgetSkipped`/`alreadyDumped`) plus a top-level `assetsTruncated` count — it
 dumps raw values; decoding them stays yours.
 
+`ReportGimmick` sits opposite `AgentInspector` on that axis: where `AgentInspector` dumps one object's
+raw fields and leaves decoding to you, `ReportGimmick` interprets a whole gimmick subtree into a
+compact digest — constraint edge-lists, physbone/contact tables, and mechanically-certain idioms — and
+is complete by construction: a generic tier-2 census names every component no table interpreted
+(Modular Avatar, custom scripts, broken scripts) with a one-struct-level scalar peek, so `other=0`
+genuinely means empty. Reach for it to reason about a gimmick's topology; drop to
+`AgentInspector.Snapshot(<host path>)` only for what's past that shallow peek — a component's nested
+structs, arrays, or followed assets.
+
 `CheckPackage.VerifyFolder(path)` / `VerifySelection()` is the deterministic import
 health check — reports **missing** (not merely empty) material slots, meshes, and scripts, plus
 **stale FBX material remaps** (a model whose external-material remap resolves yet imports empty). Its
