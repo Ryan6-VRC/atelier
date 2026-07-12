@@ -20,19 +20,19 @@ authoring FX controllers and menus as needed.
 
 ## Controller authoring
 
-The fluency above is the baseline "common sense" layer required to make full use of frontier
-model coding aptitude for controller and gimmick work.
+The fluency above forms the baseline "common sense" layer required to do useful VRChat work, but
+is not the ultimate objective of the project. A full set of tools is included to enable full use
+of frontier model coding aptitude for controller and gimmick work.
 
 - **Decoded structure.** Animator, constraint, physbone, and contact topology arrive as read-only
-  digests (`ReportController`, `ReportGimmick`, `CheckAnimator`), so the model reasons over
-  decoded structure instead of raw YAML.
+  graph digests (`ReportController`, `ReportGimmick`, `CheckAnimator`), so the model reasons over
+  decoded structure instead of raw unity files.
 - **Controllers as code.** `DecompileController` and `CompileController` round-trip a built
   `.controller` to declarative YAML: reviewable, diffable text, the representation coding models
   are strongest in. Study a vendor controller, modify it, or author a new system from scratch.
 - **A closed validation loop.** The emulator lets the agent drive parameters, frame-step, induce
-  physbone grabs, fake another player's contacts, and spawn remote clones, so it can self-test its
-  work in play mode and iterate instead of asserting. What only a real two-client test can show is
-  called out explicitly.
+  physbone grabs, fake another player's contacts, and spawn remote clones; so it can self-test its
+  work in play mode and iterate instead of asserting.
 
 ## Tools for AI
 
