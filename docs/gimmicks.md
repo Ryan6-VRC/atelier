@@ -74,6 +74,10 @@ a late joiner, and by what you can verify without two clients):
 
 ## Blend tree patterns
 
+The **vrc-patterns** library is the catalog of worked, gated examples for these idioms — browse its
+*Find by pattern* table. A couple of foundational entries are named below as illustrative anchors; the
+library, not this section, is the per-entry index.
+
 - **DBT configuration states.** A state's motion is a Direct blend tree stacking single-purpose
   clips (constraint weights, GO actives, damping levels) all weighted by a constant-1 param: one
   state = one complete rig configuration, WD-ON safe, clips reusable across states — *and* fewer
