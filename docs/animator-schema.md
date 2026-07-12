@@ -176,8 +176,9 @@ transitions:
 
 Transition fields: `to` (a target address — below — or `Exit`), `when` (condition list, empty = unconditional),
 `exitTime`, `duration`, `fixedDuration` (default **true**), `interruption`, `ordered` (default **true**),
-`mute` / `solo` (bool, default-elided when false). `canTransitionToSelf` is an `any:`-ladder-only field.
-Unset `duration`/`exitTime`/`interruption` inherit `defaults`.
+`mute` / `solo` (bool, default-elided when false), `name` (a plain label; valid on a state or `any:` ladder
+transition only — an `entry:` rung refuses it, since its emit path can't carry it). `canTransitionToSelf` is
+an `any:`-ladder-only field. Unset `duration`/`exitTime`/`interruption` inherit `defaults`.
 
 **Conditions are strings: `<param> <op> <value>`, exactly three tokens.** `value` is `true`/`false` or a
 number. The operator must match the parameter's declared type (validated):
@@ -233,7 +234,11 @@ motion:                                               # a blend tree
 Tree `kind` (case-sensitive): `1d`, `simpleDirectional2d`, `freeformDirectional2d`, `freeformCartesian2d`,
 `direct`. A tree carries `param` (blend X) and `paramY` (2D only); `direct` uses per-child `directWeight`
 instead, and may set `normalized: <bool>` (the Direct "Normalized Blend Values" toggle — sum-to-1 vs raw
-additive; omitted ⇒ Unity's default). Each child is a motion **plus** its placement:
+additive; omitted ⇒ Unity's default). An optional `name:` labels the tree asset — an unconstrained scalar
+(only a line break is refused, since it can't survive the line-based YAML). Omitted, the compiler
+auto-generates one (`<State>_BlendTree` for a root tree, `<parent>_<childIndex>` for a nested one); Decompile
+emits `name:` only when the actual name differs from that formula — a name that happens to match it is
+dropped, since it round-trips identically. Each child is a motion **plus** its placement:
 
 - **1D**: `threshold: <n>`
 - **2D**: `x`/`posX` and `y`/`posY`
@@ -419,7 +424,9 @@ condition mode — and, as a backstop, **any** non-default top-level field the d
 state, transition, blend tree, or VRC behaviour: a completeness sweep refuses whatever it doesn't explicitly
 consume, so a field the schema lacks (a state's constant `cycleOffset`, foot IK `iKOnFeet`, or `tag`; a
 transition `offset`; a future SDK addition) fails loud instead of silently dropping. (The sweep covers those
-four object families' scalar fields; array-element structs and the layer / state-machine families stay
+four object families' scalar fields — including `m_Name`, now guarded per type rather than blanket-ignored,
+so a blend-tree's or a state/AnyState-transition's name round-trips as `name:` while an entry-transition's or
+an SMB's stays cosmetic and ignored; array-element structs and the layer / state-machine families stay
 guarded by the hand decoders.) *Not expressible in the canonical form:*
 sibling states or sub-machines with identical names (→ duplicate keys), a direct state and sub-machine
 sharing a name (→ an unaddressable sub-machine — a bare name resolves states first), or two sibling
@@ -428,7 +435,8 @@ addressed bare (collides
 with the exit keyword); driver operations that interleave change-types or repeat a `(type, name)` (the
 name-keyed set/add/copy/random buckets would reorder or collapse them); two **distinct** embedded clips
 sharing a name (the name-keyed `clips:` map would collapse them); a condition parameter carrying whitespace
-or a flow delimiter (it can't survive the `<param> <op> <value>` grammar).
+or a flow delimiter (it can't survive the `<param> <op> <value>` grammar); a blend-tree or transition `name`
+containing a line break (same reason — the line-based YAML can't carry it).
 
 **The fixpoint.** A controller you **own** (decompile) round-trips exactly — Decompile→Compile→Decompile
 reaches a fixpoint. The single acknowledged lossy step is a genuinely-broken vendor motion ref
