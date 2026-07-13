@@ -95,7 +95,9 @@ YAML at `outPath`. PASS/FAIL like the compile door — a clean run returns `[Dec
 layers=… states=… orphans=… unresolved=… => OK | log=<path>`, writing the `.yaml` plus a Snapshot RunLog;
 `whatIf` runs the whole walk but writes no `.yaml`; `stripLayout` (default off) drops all graph-layout
 capture — the own-a-vendor path, where the vendor's node arrangement is noise; a refusal (an out-of-vocabulary or malformed construct)
-is a bare `[DecompileController] FAIL:` naming each, writing nothing. A **READ** tool — it never mutates the
+is `[DecompileController] <leaf>: … => FAIL | log=<path>` naming each — a Snapshot artifact records the
+failure, and no `.yaml` is written (the compile door's refusals carry the same grammar on the RunLog
+channel). A **READ** tool — it never mutates the
 controller, so it self-logs to the **Snapshot** dir (read-capture channel), not the verdict RunLog dir.
 Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) rides in the document's
 `_notes:` block, which re-compiles inert.
