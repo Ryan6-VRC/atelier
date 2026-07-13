@@ -82,7 +82,10 @@ parameters:
   excluded from the emitted `VRCExpressionParameters` legibility asset.
 - **`vrc:`** drives that asset. `synced`/`saved` set the flags; `type` overrides the listed value-type when
   it differs from the animator type (a bool read as a float DBT weight). `osc: true` records "this name must
-  survive the build" as intent — pair 1 stores it but takes no action on it.
+  survive the build" as intent — the flag itself takes no compile action beyond storing that intent.
+  Independent of the flag: VRChat's OSC interface replaces spaces in a parameter name with underscores (a
+  resulting collision can crash the client), and `# * , ? [ ] { }` are OSC pattern metacharacters — compile
+  surfaces any declared non-scratch parameter whose name hits either hazard as a RunLog advisory.
 
 **The params asset.** The compiler emits a `<controller>_Parameters.asset` listing every declared param
 **except** VRC built-ins and `scratch:` ones — *even unsynced ones* (`networkSynced=false`, zero sync-bit
@@ -180,8 +183,12 @@ Transition fields: `to` (a target address — below — or `Exit`), `when` (cond
 on an `entry:` rung whose emit path can't carry it). `canTransitionToSelf` is
 an `any:`-ladder-only field. Unset `duration`/`exitTime`/`interruption` inherit `defaults`.
 
-**Conditions are strings: `<param> <op> <value>`, exactly three tokens.** `value` is `true`/`false` or a
-number. The operator must match the parameter's declared type (validated):
+**Conditions are strings, right-anchored: the last two space-separated tokens are the op and the value;
+everything before is the parameter, verbatim** — interior spaces survive unquoted (`when: [ Hair ribbon is
+true ]`); separators are strict single spaces. A parameter carrying a flow delimiter (`,` `]` `}`) or other
+quote-triggering character emits as one quoted scalar. An op-lookalike parameter (one literally named
+`X is true`) is ambiguous read left-to-right — right-anchoring is the reader's only disambiguator. `value`
+is `true`/`false` or a number. The operator must match the parameter's declared type (validated):
 
 | Param type | Valid ops | Notes |
 |---|---|---|
@@ -432,9 +439,10 @@ sharing a name (→ an unaddressable sub-machine — a bare name resolves states
 addressed bare (collides
 with the exit keyword); driver operations that interleave change-types or repeat a `(type, name)` (the
 name-keyed set/add/copy/random buckets would reorder or collapse them); two **distinct** embedded clips
-sharing a name (the name-keyed `clips:` map would collapse them); a condition parameter carrying whitespace
-or a flow delimiter (it can't survive the `<param> <op> <value>` grammar); a blend-tree or transition `name`
-containing a line break (the line-based YAML can't carry it).
+sharing a name (the name-keyed `clips:` map would collapse them); a condition parameter whose whitespace
+cannot survive the single-space condition grammar (e.g. a trailing space) — refused by a decompile
+self-check that renders and re-splits the condition; any emitted string — a name, a path, a behaviour
+field — containing a line break (guarded at the serializer funnel, surfaced as the door's FAIL).
 
 **The fixpoint.** A controller you **own** (decompile) round-trips exactly — Decompile→Compile→Decompile
 reaches a fixpoint. The single acknowledged lossy step is a genuinely-broken vendor motion ref

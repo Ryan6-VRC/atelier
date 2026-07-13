@@ -80,8 +80,9 @@ graph lint → atomic persist. Atomic + PASS/FAIL: nothing reaches `outDir` unle
 `whatIf` preview leaves nothing on disk, and a recompile of the same source to the same `outDir` is
 idempotent (reset-in-place, stable GUID). The RunLog body carries never-failing advisories — per-layer
 frame latency (the longest firing-transition chain — conditional or exit-time; a conditional hop is ~1
-frame, an exit-time hop costs its state's clip length) and driver↔AAP isolation conflicts (a driver cannot
-durably set a clip-written param — `runtime.md`). The schema — every key, accepted values, and traps — is
+frame, an exit-time hop costs its state's clip length), driver↔AAP isolation conflicts (a driver cannot
+durably set a clip-written param — `runtime.md`), and OSC-unsafe parameter names (space / OSC pattern
+metacharacters — the hazard is in `animator-schema.md` §parameters). The schema — every key, accepted values, and traps — is
 `animator-schema.md`; the three worked fixtures (`vrc-unity-tools/fixtures/animator-substrate/{debounce,
 smoother,codec}.yaml` — a dwell timer, an AAP exponential smoother, a float→bool codec) are its runnable
 companions, each compiling clean, linting PASS, and emulator-verified.
