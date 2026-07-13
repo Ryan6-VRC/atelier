@@ -29,6 +29,10 @@ result lands and why.
   **GUID-referencing the vendor original** for everything it didn't — an owned base can still point
   at vendor animator layers or materials it never customized. Provenance is a property of each
   *reference*, not of a folder.
+- **A top-level avatar folder holds full prefabs, not loose parts.** `Assets/Avatars/<Name>/` (like
+  `Assets/Outfits/<Base>/<Outfit>/`) is essentially only complete prefabs; owned controllers, clips, and
+  params live in **subfolders**. This is the on-disk half of *owned = wired* (`animator.md`): a
+  properly-owned set is both wired to its load path and filed out of the top level. Convention, not a tool.
 - **`Assets/Vendor/` and `Packages/` are read-only to our tooling.** A tool that would mutate an asset
   there must **materialize an owned copy first**; writability is judged **per-asset, by path** (an owned
   controller may still reference a vendor clip — that clip stays read-only). This is a **policy** guard on

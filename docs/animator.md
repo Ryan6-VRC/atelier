@@ -31,7 +31,9 @@ deterministic digests:
   `pathMode` / VRCFury prop-root preference — `nondestructive.md`), refusing on zero/multiple/mismatched
   components and rendering the choice (`basis=auto→mount(<path>) [MA MergeAnimator]`); `basis=explicit`
   asserts `avatarRoot`/`mountRoot`. Under `auto`, broken-binding demotes to advisory (the build rewrites
-  paths, so an authored-scene resolve would false-FAIL).
+  paths, so an authored-scene resolve would false-FAIL). A **descriptor-borne** controller (played from the
+  avatar's own FX slot, no merge component to read a frame from) is the `basis=explicit` case with **null
+  roots** — its bindings are already authored against the avatar root, so no remap is asserted.
 
 `CheckAnimator`'s binding-walk is the same one `CheckAvatar` (`unity.md`) reuses for scene-placement
 ref-breaks — one walk, so the two doors can't disagree on how a binding resolves.
@@ -139,6 +141,36 @@ separate**: two representations, not two copies of one check. They share the one
 `ControllerRules.Run` (both `CheckAnimator` and `CompileController` call it); each pass catches what only its
 representation can express, and the lone overlap — parameter declaration — is partitioned by an explicit
 deferral, so there is no duplicated rule to merge.
+
+## Owned = wired to its load path
+
+An owned controller (or params/menu) is not *owned* until something the build loads actually references it —
+the asset on disk is only half. `CleanController` wires the avatar descriptor as part of its job; the
+round-trip, `OwnControllerClips`, and `CompileClips` **only emit assets** — nothing repoints the descriptor,
+so a decompile→edit→compile that stops at a clean `.controller` leaves the avatar still playing the vendor FX
+— every asset-level check green while the owned set was never live. The load path is one of two
+— the same split `CheckAnimator`'s basis names: the **avatar descriptor's FX/params/menu slots**
+(descriptor-borne → `basis=explicit`) or an **MA Merge Animator / VRCFury Full Controller** component (merged
+→ `basis=auto`). Owning ends when the controller is reachable through one of them, and — per `LAYOUT.md` —
+filed in a subfolder, not loose in the top-level avatar folder. Wired *and* filed.
+
+## Adding behavior: edit the owned FX, or merge a separate controller
+
+Additive behavior (a new toggle, slider, or gimmick layer) can go two ways: **edit it into the owned FX
+inline**, or **author a separate owned controller and merge it in** (MA Merge Animator — works on any avatar,
+NDMF-free included; `nondestructive.md`). No clean rule; weigh:
+
+- **Is the FX already decompiled/editable?** If yes, inline is simplest — you're already in the substrate. If
+  not, a merged controller avoids force-decompiling the whole vendor FX to bolt on a layer (and sidesteps a
+  decompile that would refuse — spaced params, out-of-vocabulary constructs). This is why inline was right
+  *after* a round-trip.
+- **Is the behavior modular — something to take in and out?** A merged controller is a clean removable unit
+  (delete the component, it's gone); inline entangles it with the rest of the FX.
+- **Whose is it?** Behavior keyed to an outfit/accessory with no base dependency belongs *on that mergeable* —
+  a Merge Animator on the outfit prefab (relative `pathMode`, `nondestructive.md`) — so it composes and
+  decomposes with the outfit, not the base's FX.
+- **Does it modify existing FX logic?** Then inline is forced — merge is additive (appends layers, can't
+  rewrite one).
 
 ## Trap — the playable-layer enum
 
