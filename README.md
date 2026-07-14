@@ -35,6 +35,8 @@ avatar live on VRChat.
 | `compose-mergeable` | Dress the avatar: drop a ready-made outfit, hair, or accessory onto a base, prove the MA or VRCFury seam mechanically resolved, and de-conflict the meshes it covers. |
 | `map-outfit-shapes` | Reconcile the links between a body's blendshapes and its clothing: which garment drives which morph, to what values, and what several meshes must agree on. Evaluates FX controllers, non-destructive components, blendshape/mesh names, and vision. |
 | `author-menu` | Give the avatar its in-game controls: expression-menu toggles, radials, and gimmick fronts, planned with the user, closed over their dependencies, and authored non-destructively. |
+| `author-gimmick` | Build a new gimmick from intent — a touch reaction, a held or droppable prop, synced interactive state: transport and bit design first, authored as recompilable controller text, packaged as one self-contained module, verified up the ladder. |
+| `own-gimmick` | Take surgical ownership of an existing gimmick module: extract the one subsystem you want, trim a vendor system, or fork a variant — with the checklist that keeps cut modules from silently resurrecting meshes, drifting params, or driving ghosts. |
 | `reproportion` | Reshape proportions to taste (longer arms, a custom body, matching your real measurements so IK feels right) as validated, repeatable profiles, with the Unity side reconciled so nothing downstream breaks. |
 | `upload-avatar` | The last mile to VRChat: preflight the batch, confirm names and scope, and drive the operator-authorized upload, including re-uploading the ten avatars that inherit one changed base. |
 | `showcase-record` | Film a work session (ffmpeg screen capture) and cut it into a short showcase video. |

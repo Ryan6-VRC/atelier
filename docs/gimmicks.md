@@ -157,15 +157,32 @@ library, not this section, is the per-entry index.
 - **Anchor handoff protocol.** Constant self-receivers on a prop detect *which* body anchor sender
   it overlaps; gesture + contact conditions move it between anchors (fist = take, open palm =
   place), with guard conditions arbitrating two hands.
+- **Cross-base placement verifies in world space.** Bases differ in armature detail down to bone
+  rolls, so contact/physbone placement copied between bases can't trust local bone-space offsets —
+  verify against a canonical pose in world space (hand contacts sit just below the palms in T-pose
+  regardless of how the arm/hand rolls are authored), and expect to re-tweak.
 
 ## Packaging and interface
 
 - Ship a gimmick as one self-contained module attaching through explicit seams —
-  `nondestructive.md` owns the module model and the MA-vs-VRCFury choice rules. The menu front
+  `nondestructive.md` owns the module model and the MA-vs-VRCFury choice rules. Within those, the
+  gimmick ruling is a **mixed seam**: MA `BoneProxy` for anchors whose placement must be visible
+  while authoring (VRCFury never modifies the avatar in-editor — `ArmatureLink` alignment snaps
+  only at build, so constraint offsets are blind against it), VRCFury for behavior
+  (`FullController`/`Toggle`/`ApplyDuringUpload`). The menu front
   travels **inside** the module (it's part of the gimmick's function — the opposite of clothing,
   whose menus are avatar-level: `menus.md`).
 - Keep OSC-facing param names in `globalParams`; let everything else take instance prefixes.
-- In-game UX: prefer physical affordances (grab, touch, gesture-near-contact) over menu depth.
+- **Variants by prefab composition + config params, never a controller fork** (a forked
+  controller drifts from its mainline silently). A behavioral knob that isn't a menu control
+  becomes a **non-synced param whose default lives in the params asset and which no menu drives**
+  — envvar-style: one controller mainline reads it, each variant/install sets its default.
+- In-game UX: prefer physical affordances (grab, touch, gesture-near-contact) over menu depth —
+  but an affordance is the *primary* interface, never the **only** path: every affordance-reachable
+  intent is also menu-reachable (deep in the menu is fine). It drives the same intent param, so it
+  costs no extra synced bits, and it buys a rescue hatch for a mistuned affordance, a drive surface
+  the emulator can reach without simulating contacts, and desktop parity (contact/PB affordances
+  are VR-gated).
   The menu front splits three ways:
   - **Enable** — one synced **unsaved** bool wired as the state machine's master gate, so
     *off is the reset* (drops holds, stops tracking) and the gimmick never resurrects "on" at

@@ -9,7 +9,8 @@ How menu controls are authored on avatars composed non-destructively — the mod
 **Three origins — survey the first two before authoring the third.** A vendor base's
 **`VRCAvatarDescriptor`** (`expressionsMenu` / `expressionParameters` / FX playable layer) is already a
 complete menu with **zero MA/VRCFury components** — the default vendor state (`outfits.md`); a **Full
-Controller** (VRCFury `FullController`, or a raw menu/params/controller trio) merges one in at build;
+Controller** (VRCFury `FullController`, or a raw menu/params/controller trio) merges **one or more**
+menu and params files in at build (its menu/params fields are lists, each at an install prefix);
 **MA/VRCFury components** author new controls on top. *Absent components never means absent menu* —
 read the descriptor first (`author-menu` §1).
 
@@ -105,9 +106,11 @@ a slider driving material properties, a global/OSC param (`useGlobalParam` — o
 many outfits' merged controllers), transitions, `holdButton`, or an `ApplyDuringUpload` baseline
 (bake the off-state material value so the avatar renders right before FX loads). Escalate a
 **module** wholly when most of its controls escalated, it's animator-heavy, or it may be
-instanced more than once (`nondestructive.md`'s rules). Raw menu/params assets are for reading
-vendor avatars and for a portable asset-trio behind a FullController — not for authoring on
-composed avatars here.
+instanced more than once (`nondestructive.md`'s rules). **VRC-native assets are the third
+substrate**, real but narrow: raw menu/params assets are for reading vendor avatars and for a
+portable asset-trio (or several menu/params files — FullController merges lists) behind a
+FullController — pick MA or VRCFury to match the avatar/prefab's main system, and author native
+assets only as FullController payload, never loose on composed avatars here.
 
 ## Reading what exists
 
