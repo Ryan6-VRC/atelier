@@ -96,8 +96,13 @@ for the agent to route, not a tool failure: `Debug.LogWarning`), distinct from `
 bad-input bare `FAIL` (`Debug.LogError`, no trailer). It computes **no** heuristic — it names each offender
 and its class, and a `clip-binding` offender carries a distinct `clipAssetPath` (the field the compose
 agent routes on: owned/writable ⇒ inline `UC2` clip-fix; `Assets/Vendor/`|`Packages/` ⇒ abort the compose
-and route to `own-mergeable`). Inspection-only — no scene dirty, no `.anim` write; the remedy lives in the
-skill, not the tool.
+and route to `own-mergeable`). It also names a **`merge-conflict`** class (also `CLASSIFY`): ≥2 dynamics
+components (physbone / collider / VRC-constraint, grouped within a category) that resolve to the **same
+post-merge transform** through `CheckSeam`'s reused MA/VRCFury merge map, with ≥1 mergeable-sourced (the
+raw target being a map key is what excludes a pure base↔base duplicate — no baseline needed). Each emit
+notes that MA build-prunes exact-duplicate physbones, so a flagged MA pair may already resolve — the
+residue (VRCFury physbones, all colliders/constraints, non-exact MA pairs) is where it earns its keep.
+Inspection-only — no scene dirty, no `.anim` write; the remedy lives in the skill, not the tool.
 
 `CheckSeam.Check(baseRoot, mergeableRoot)` is the mechanical **fit** companion to `CheckAvatar`'s
 reference check — the pre-render fit gate `verify.md` calls for (a model can't read a ~5cm misfit off a
