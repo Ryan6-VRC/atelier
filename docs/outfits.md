@@ -31,6 +31,21 @@ legs, disabled without releasing that shape, leaves no legs.
 The coupling is **not derivable from the mesh alone** and naming is only a hint — resolve it from the
 FX graph.
 
+**Shrink and hide travel together; over shared vertices they are almost never both on.** Two rules, each
+sufficient: hiding a base mesh flips its paired `Shrink_*` off (mesh and shrink are one unit); and a
+composed outfit that needed a base shape would drive it from its *own* `ShapeChanger`, so its absence
+there means the base shape isn't wanted. Leave a base `Shrink_*` worn while a kept outfit `ShapeChanger`
+shrinks the **same vertices** and the two subtractions stack into an **inverted mesh** — invisible to the
+render sheet (the outfit covers it in T-pose) and to `CheckSeam`/`CheckAvatar` (neither reads coupling).
+The shape map catches it by reasoning; `ReportShapeOverlap` measures the shared-vertex overlap that
+confirms the stack once you have named the co-active shapes (the base worn `Shrink_*` and the outfit
+`ShapeChanger`'s targets) — a `Report`, not a verdict: it locates the collision, you rule wanted-vs-defect.
+
+**Anti-clip has a second idiom: geometry deletion.** Beside the shrink-shape model this doc centers, an
+outfit's MA `ShapeChanger` in **Delete** mode removes the overlapped base vertices outright — a live
+idiom on real assets. Read the mode, not just the target (`ShapeChangeType` Delete=0/Set=1 —
+`map-outfit-shapes`).
+
 ## The FX controller is the authoritative map
 
 The base's **FX layers and their animation clips** encode the coupling: the state that *hides* a

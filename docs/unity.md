@@ -39,6 +39,13 @@ non-transplant emitter routes through: it owns the dir + timestamped filename an
 `| log=<path>` trailer, or returns a bare-FAIL with no trailer when the write fails. `RunLogDir`
 (`Assets/Agent/RunLogs/`, verdict records) and `SnapshotDir` (`Assets/Agent/Snapshots/`, read-only
 captures) are the single declarations of the two output dirs.
+
+**Invocation.** Every door here (and the avatar-tools kit below) is a `public static` method called via
+`execute_code` with **string** handles — GameObject hierarchy paths, asset paths, never object refs.
+Namespaces: agent-tools under **`Ryan6Vrc.AgentTools.Editor`**, avatar-tools under
+**`Ryan6Vrc.AvatarTools.Editor`** — but the **assembly** capitalizes the acronym (`Ryan6VRC.…Editor`),
+so an assembly-qualified reflection lookup uses `Ryan6VRC` while the type namespace is `Ryan6Vrc`.
+
 `AgentInspector` walks selected/scene objects (incl. VRChat components,
 generically via `SerializedObject`) to JSON under `AvatarProject/Assets/Agent/Snapshots/`; the
 written path is emitted in-band on the console line (`… => OK | log=<path>`). Agent door:
@@ -106,6 +113,15 @@ isn't what ships). `REFUSE` (bare line, no trailer, like `CheckAvatar`'s bad-inp
 seam that won't resolve onto this base, seams that disagree, a non-humanoid base, or a VRCFury bake-time
 scale — abstain-class (proxy, unresolvable) at warning, reflection drift at error. Inspection-only; the
 same world-space mm-drift primitive as `MatchHumanoidRig`'s `poseDriftMm`, position-only.
+
+`ReportShapeOverlap.Report(meshObject, shapeNames)` fills the coupling blind spot `CheckSeam`/`CheckAvatar`
+leave — neither reads blendshapes. Given a candidate **co-active** shape set the agent names from the
+FX/`ShapeChanger` graph, it reports each shape's touched-vertex footprint and pairwise **containment**
+(`|A∩B| / min(|A|,|B|)`) on **one** mesh: the double-subtraction `outfits.md` warns of — a base `Shrink_*`
+left worn while an outfit `ShapeChanger` shrinks the **same vertices**, stacking into an inverted limb the
+render sheet and the fit gates never show. A **`Report`, not a verdict** — it flags pairs past a
+conservative, deliberately un-asset-tuned containment floor as places to look; whether an overlap is a
+defect or a wanted coupling stays the agent's read of the graph. Same-mesh only; `map-outfit-shapes` drives it.
 
 `RenderAvatar.Capture(target, angles, hide, margin, showGizmos, resolution)` drives the
 operator's **Scene View** to render **one** avatar subtree in isolation to a temp contact-sheet PNG —
@@ -315,8 +331,15 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
   error"); clear the console + `refresh_unity` (mode=force, scope=all).
 - **`execute_code` wraps your snippet as a method body**, so no top-level `using` directives — the
   wrapper pre-imports `System`, `System.Collections.Generic`, `System.Linq`, `System.Reflection`,
-  `UnityEngine`, `UnityEditor`; fully-qualify anything else. Scene creation is `NewSceneMode`, not
-  `NewSceneSetupMode`.
+  `UnityEngine`, `UnityEditor`; fully-qualify anything else. A bare `Object.DestroyImmediate` /
+  `Object.FindObjectOfType` is ambiguous (`UnityEngine.Object` vs `System.Object`) — write
+  `UnityEngine.Object`. Scene creation is `NewSceneMode`, not `NewSceneSetupMode`.
+- **`AssetDatabase.MoveAsset` leaves the drained wrapper folder inconsistently** — self-cleaned in some
+  cases, lingering until a later `STRUCTURE.md` regen / refresh in others. Re-list the destination after
+  every relocate rather than assuming either.
+- **Vendor GameObject names carry trailing spaces** (`"Menu "`, `"Ears "`) that silently break exact-path
+  lookups (`transform.Find` / `GameObject.Find`) — copy the name from an inspector dump, or match by
+  trim/`StartsWith`, rather than retyping it.
 - **VRCFury's first build of an avatar lacking a "Fix Write Defaults" component pops a blocking
   dialog** that stalls the build waiting for a click. Hard-check before any build; if absent, add
   the VRCFury Fix Write Defaults component with mode **Disabled** (suppresses the prompt, changes
