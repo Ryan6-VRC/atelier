@@ -38,7 +38,7 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 runtime behavior — live in `docs/`. Read the relevant file before operating in that domain:
 
 - **`docs/nondestructive.md`** — **read first.** How NDMF / Modular Avatar / VRCFury compose avatars non-destructively (build-on-a-clone), and the reference-hardening facts all avatar tooling depends on.
-- **`docs/unity.md`** — Unity operating knowledge: MCP usage, inspection/reporting + avatar-tools contracts, geometry-change reconcile, sharp edges. (Controller tooling lives in `animator.md`.)
+- **`docs/unity.md`** — Unity operating knowledge: MCP usage, inspection/reporting + avatar-tools contracts, geometry-change reconcile, sharp edges. (Controller tooling lives in `animator.md`.) Standing gotcha, since it bites nearly every Unity session: `execute_code` wraps your snippet as a **method body** — a top-level `using` fails with a misleading compile cascade; fully-qualify beyond the pre-imported common namespaces (`docs/unity.md` §Sharp edges lists them).
 - **`docs/animator.md`** + **`docs/animator-schema.md`** — animator-controller work: the tool doors (report/lint, clean/sweep/repath/own, compile/decompile + the round-trip) and the `CompileController` YAML authoring language. Read for any controller build, inspection, or round-trip.
 - **`docs/blender.md`** — Blender operating knowledge: headless batch + Blender MCP usage, the `avatarprep` extension.
 - **`docs/workflow.md`** — cross-system orchestration above any one tool: goals, sequencing, Unity↔Blender handoffs.

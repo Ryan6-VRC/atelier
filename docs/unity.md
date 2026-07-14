@@ -104,9 +104,11 @@ reference check — the pre-render fit gate `verify.md` calls for (a model can't
 sheet). It **reflects the seam's own mapping** (MA `GetBonesMapping()` ∪ VRCFury
 `ArmatureLinkService.GetLinks()`, never reimplements name-matching) and counts the **weighted humanoid
 bones** (a mapped bone whose base side is humanoid and whose merge side a mergeable mesh skins). The count
-branches the verdict: **≤1 → `REFUSE`** (an offset-tolerant proxy — hair/earring/hat/tail — is
-operator-positioned, not bone-determined); **≥2 → gate** world-space coincidence at `ε = max(0.5mm,
-0.2%·Hips→Head span)` → `PASS`, or `NOT-PASS` with worst-first offenders. Non-humanoid bones never gate —
+branches the verdict: **≤1 → `REFUSE`**, naming which zero-bone case it is — a **BoneProxy**
+(offset-tolerant seam, operator-positioned — hair/earring/hat/tail; verify the bake) vs a **bare prop**
+(no seam; route to `own-mergeable`), which the skill routes oppositely on; **≥2 → gate** world-space
+coincidence at `ε = max(0.5mm, 0.2%·Hips→Head span)` → `PASS`, or `NOT-PASS` with worst-first offenders
+and `maxOffset=Nmm` (sub-mm noise vs wrong-base reads at a glance). Non-humanoid bones never gate —
 they legitimately deviate up to ~75mm (physbone tuning). Coincidence is one signal across both seam types:
 MA keeps the offset (a delta ships as the misfit), VRCFury snaps at bake (a delta means the edit-time view
 isn't what ships). `REFUSE` (bare line, no trailer, like `CheckAvatar`'s bad-input `FAIL`) also fires on a
@@ -140,7 +142,8 @@ clone (`nondestructive.md`) — a play-mode build and the operator's eye stay th
 sheet is not an agent fit gate** — quantified checks decide fit/alignment (`CheckSeam` for the compose
 seam); the render corroborates for the operator (`verify.md`). **Grab in a separate
 call from any edit** — a same-call grab shows the pre-edit proxy; the summary's `note=` flags an in-flight
-rebuild but cannot catch the same-call case. Angles are **world** axes, so a rotated target shows the scene's front (the upside: it also
+rebuild but cannot catch the same-call case. A **transient settle miss logs as a `Warning`, not an
+`Error`** — it won't fail a console-clean gate, so just re-grab; a genuine failure stays `Error`. Angles are **world** axes, so a rotated target shows the scene's front (the upside: it also
 works on a child or non-avatar object). Headlight shading is truthful for geometry/silhouette/clipping/
 fit, not matcap/rim/fresnel. INSPECTION-class: it restores the view transform, display toggles,
 selection, and root-level visibility, leaving the scene un-dirtied, and writes to
@@ -189,7 +192,10 @@ reference-hardening model that governs what these path-based tools can rebind an
   bind rotation that legitimately differs even on a healthy rig.
 - `ConformRenderers` — assigns vendor materials by renderer name from any source hierarchy (by reference,
   no `.mat` copies; an optional override map covers meshes renamed during normalization) and applies the
-  renderer-normalization standard below. `whatIf` previews the full match/verdict and mutates nothing.
+  renderer-normalization standard below. `whatIf` previews the full match/verdict and mutates nothing. A
+  **mergeable** (no humanoid rig / no `Hips`) **PASSes with a note** on the missing anchor rather than
+  FAILing — that missing `Hips` is exactly the input `own-mergeable` prescribes it for; an avatar base
+  still resolves its anchor via `Hips`.
 - `CopyDescriptor` — gates on scale + face-blendshape parity, transplants the VRCAvatarDescriptor with
   refs remapped, and installs a **fresh PipelineManager** (never the vendor blueprint ID). Post-copy it
   recomputes `ViewPosition` via `FixViewpoint` (non-fatal — a viewpoint miss never flips the transplant
@@ -347,6 +353,10 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 - **Red `Exception` VRCFury build lines (`Progress (n%): …`, `Importing …`) are plain `Debug.Log` info
   — ignore them.** `read_console` mis-tags them: it substring-matches `Exception` in the stack trace,
   which always routes through `VF.Exceptions`. A real failure aborts the build (dialog), not a log line.
+- **`[MACS] Failed to apply patch` (Error) and `Exception: Parameter "" not found in …
+  DestroyBlendTreeRecursive` are benign editor-load noise** from the unused third-party
+  `com.mcardellje.macs` DLL's Harmony patches — loaded in some Editors, not AvatarProject; the patch
+  fails/partially applies and never touches build output. Ignore; don't re-triage.
 - **FBX external-material remap (`materialLocation: External`) applies only at import time.** A model
   imported before its `.mat` targets exist (costume package before a separate MaterialPack) caches
   empty slots that no later import re-triggers — force-reimport the FBX. `CheckPackage` flags it; the

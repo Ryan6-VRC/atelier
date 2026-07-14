@@ -13,10 +13,12 @@ Three read-only introspection tools (`agent-tools`) turn raw `.controller`/`.ani
 deterministic digests:
 
 - `ReportController.Report(controller)` — a ~50:1 markdown digest that *decodes* animator semantics rather
-  than echoing YAML: parameters, layers (+ per-layer Write-Defaults), states and their motions (clips named
-  by **asset-path + GUID**, an empty-vs-broken split that surfaces a dangling motion GUID), the first-match
-  transition ladder, and VRC state-machine behaviours decoded **typed**. To `Snapshots/`; `… layers=…
-  states=… params=… => OK | log=<path>`.
+  than echoing YAML: parameters, layers (+ per-layer Write-Defaults and `states=N`), states and their motions
+  (clips named by **asset-path + GUID**, an empty-vs-broken split that surfaces a dangling motion GUID —
+  broken further split **live-reachable vs orphan-only** (`brokenMotions=Nlive/Morphan`), a GUID a live state
+  plays vs YAML residue no state reaches, so a scary broken count that is all orphan is benign), the
+  first-match transition ladder, and VRC state-machine behaviours decoded **typed**. To `Snapshots/`; `…
+  layers=… states=… params=… => OK | log=<path>`.
 - `ReportClip.Report(clip)` / `ReportFolder(folder)` — bindings as a `path | type | propertyName | keys`
   table (one row per curve), paths as-authored (a `""` root shown as `(root)`, never judged). To
   `Snapshots/`. Folder mode mirrors `CheckPackage.VerifyFolder` (`unity.md`), down to the empty-but-valid

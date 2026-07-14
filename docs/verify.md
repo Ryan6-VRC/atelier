@@ -63,8 +63,9 @@ It does **not** check that an emulator control object is *enabled* — absence i
 check, so the gate stays silent, but driving the emulator without it spawns no runtimes and the harness reads empty:
 
 - **Emulator control object enabled** — the emulator does not auto-spawn; the scene needs an enabled
-  `Avatars 3.0 Emulator Control` object with the `Av3Emulator` component (**Tools → Avatars 3.0
-  Emulator → Enable** creates it; the Sandbox scene has it).
+  `Avatars 3.0 Emulator Control` object (the `LyumaAv3Emulator` component). **Tools → Avatars 3.0
+  Emulator → Enable** creates it, per-scene — no scene ships it pre-enabled, so run the recipe yourself
+  (play then spawns the three runtimes).
 
 And capture every observation — runtime reads, `RenderAvatar` shots — **before exiting play**:
 exit reverts the scene to authoring state, so anything captured after proves nothing about
@@ -81,14 +82,19 @@ Lyuma.Av3Emulator.Runtime.LyumaAv3Runtime local=null;
 foreach (var rt in rts) if (rt.IsLocal) local = rt;
 ```
 
-**Drive / observe.** Write `.value` on the local runtime's **input** params (menu/expression inputs —
-a driver-written output reverts each frame); it lands next tick. Read outputs from the runtime lists,
-scene transforms/blendshapes, or `ContactReceiver.paramValue` — matching the observable to the output
-channel (material / transform / blendshape / GO-active), or a naive scene-diff misses it.
+**Drive / observe.** For menu/expression inputs write **`.expressionValue`** on the local runtime's param,
+**not `.value`** — the runtime rewrites `.value` from `.expressionValue` each frame on **synced** params, so
+a `.value` write silently reverts (it holds on unsynced params, which hides the trap until a synced one);
+`.expressionValue` drives both. (A driver-written *output* also reverts each frame, by design.) It lands next
+tick. Read outputs from the runtime lists, scene transforms/blendshapes, or `ContactReceiver.paramValue` —
+matching the observable to the output channel (material / transform / blendshape / GO-active), or a naive
+scene-diff misses it. **A driven material property lands in the renderer's `MaterialPropertyBlock` in play
+too** — not just the edit-mode tick below — so read it with `GetPropertyBlock`, never `.material`/
+`.sharedMaterial` (which return the authored asset value → false negative).
 
 **Observation channels — don't cross them.** Three output kinds live in three places. **Driver** outputs
 (`VRC_AvatarParameterDriver` Set/Add/Copy — a debounce flag, codec bits) land in the runtime's
-`Bools/Floats` mirror: write an input `.value`, read the output there. **Blend-tree / AAP** outputs (a
+`Bools/Floats` mirror: write the input (per §Drive/observe), read the output there. **Blend-tree / AAP** outputs (a
 Direct-tree smoother's feedback float) are **not** in the mirror — read them off the live animator by setting
 `local.DebugDuplicateAnimator = VRCAvatarDescriptor.AnimLayerType.FX`, then
 `avatar.GetComponent<Animator>().GetFloat("<VF##_>name")` (VRCFury prefixes the param). But the debug
