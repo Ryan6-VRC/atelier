@@ -292,8 +292,19 @@ clips:
   `Prop/Renderer.enabled` → path `Prop`, `Renderer`, `enabled`. The split takes the first dot because a
   component type never contains one but a property can, so `Body/SkinnedMeshRenderer.blendShape.Smile` and
   `Hat/MeshRenderer.material._Color.r` resolve — blendshapes and material sub-properties are authorable
-  inline. `Component` resolves in the **`UnityEngine` namespace only** (Renderer, SkinnedMeshRenderer,
-  Light, Transform, …); UI (`UnityEngine.UI`) and VRC-SDK components are out of scope and refused fail-loud.
+  inline. `Component` resolves by simple name in a fixed **namespace allowlist** — `UnityEngine`,
+  `UnityEngine.Animations`, `VRC.SDK3.Dynamics.{Constraint,Contact,PhysBone}.Components` — and must be a
+  `Component` (`GameObject` is special-cased). So VRC constraints (`Cage/VRCPositionConstraint.GlobalWeight`,
+  `….Sources.source0.Weight`), contacts (`Recv/VRCContactReceiver.allowOthers`), and native constraints
+  (`Node/PositionConstraint.m_Weight`) bind inline. Anything else — UI, TMP, arbitrary scripts, a
+  non-Component like `Time` — is refused fail-loud, as is a simple name matching in more than one allowlisted
+  namespace. Decompile enforces the same vocabulary through the emit resolver (a binding whose `type.Name`
+  doesn't resolve back to the same type is a named refusal), so the two directions can't drift.
+- **PhysBone bindings compile but barely animate.** VRChat captures PhysBone simulation properties
+  (Spring/Pull/Stiffness, …) at avatar initialization: animating them has no live effect, and the
+  animate-then-toggle-`m_Enabled` workaround is explicitly unsupported and may break without notice
+  (creators.vrchat.com/common-components/physbones §Changing PhysBone Properties). The dependable animated
+  surface is `m_Enabled` itself.
 - **Carrier.** A `seconds`-only clip (no `set`/`curves`) emits a flat curve on a reserved scratch Animator
   parameter (`_CompilerNull` — declared on the controller on first use, kept out of the emitted
   VRCExpressionParameters) purely to give the clip an honest length: it animates nothing and resolves against
@@ -423,7 +434,9 @@ at the default grid/constants emits none, so decompiling a never-touched control
 **Named refusals.** A construct the schema's shape can't round-trip makes Decompile return a bare `FAIL:`
 naming each and write **no** yaml — it refuses to approximate; iterate on the message. Two kinds. *Out of
 vocabulary:* anything the decoder doesn't model (synced layers, a `Trigger` param, an IK-pass layer, an
-unsupported SMB or motion type, an unknown driver `ChangeType`…), enforced not by a blocklist but by a
+unsupported SMB or motion type, a clip binding on a component type outside the §clips allowlist, an embedded
+clip's object-reference (PPtr) curve — a material swap has no schema form (a standalone `.anim` swap stays an
+untouched `ref:`), an unknown driver `ChangeType`…), enforced not by a blocklist but by a
 **completeness sweep** — it refuses **any** non-default field it doesn't explicitly consume on a state,
 transition, blend tree, or VRC behaviour, so an unmodeled field (a state's `cycleOffset`/`iKOnFeet`/`tag`, a
 transition `offset`, a future SDK addition) fails loud instead of silently dropping. *Not expressible in the
