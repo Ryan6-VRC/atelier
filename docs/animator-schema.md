@@ -298,7 +298,9 @@ clips:
   `….Sources.source0.Weight`), contacts (`Recv/VRCContactReceiver.allowOthers`), and native constraints
   (`Node/PositionConstraint.m_Weight`) bind inline. Anything else — UI, TMP, arbitrary scripts, a
   non-Component like `Time` — is refused fail-loud, as is a simple name matching in more than one allowlisted
-  namespace. Decompile enforces the same vocabulary through the emit resolver (a binding whose `type.Name`
+  namespace. A refusal here is a fork, not a dead end: author the clip by hand as a human-owned `.anim`
+  (§external clips), and see `animator.md` for when a recurring refusal should widen this allowlist instead.
+  Decompile enforces the same vocabulary through the emit resolver (a binding whose `type.Name`
   doesn't resolve back to the same type is a named refusal), so the two directions can't drift.
 - **PhysBone bindings compile but barely animate.** VRChat captures PhysBone simulation properties
   (Spring/Pull/Stiffness, …) at avatar initialization: animating them has no live effect, and the

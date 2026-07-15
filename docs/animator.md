@@ -153,6 +153,18 @@ separate**: two representations, not two copies of one check. They share the one
 representation can express, and the lone overlap — parameter declaration — is partitioned by an explicit
 deferral, so there is no duplicated rule to merge.
 
+## The compiler's boundary is a fork, not a failure
+
+`CompileController`/`CompileClips` refuse fail-loud at a deliberate edge — a clip binding outside the §clips
+namespace allowlist, or a construct the schema can't express. The compiler's worth is legibility and
+round-trip fidelity, not universality, so that refusal is expected: author the clip **by hand** as a
+human-owned `.anim` — referenced by `ref:`, in no clips file, so no compile writes it (`animator-schema.md`
+§"external clips and ownership"). First-class, not a retreat.
+
+A default, not a wall: a one-off binding hand-owns the clip, but a *recurring class* of refusal is the
+signal to widen the compiler's vocabulary — as the §clips allowlist itself grew to cover VRC constraint and
+contact bindings.
+
 ## Owned = wired to its load path
 
 An owned controller (or params/menu) is not *owned* until something the build loads actually references it —
