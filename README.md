@@ -111,7 +111,8 @@ _The tool surface the skills above drive. Generated from `TOOLS.md`._
 <!-- generated from TOOLS.md — edit TOOLS.md, not here -->
 
 Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row each. Rows are
-routing, not contracts; behavior lives in `docs/unity-tools.md` / `docs/blender.md`. The pre-commit hook
+routing, not contracts; behavior lives in `docs/unity-tools.md` / `docs/animator.md` (controllers & clips) /
+`docs/blender.md`. The pre-commit hook
 `tools/sync_tool_inventory.py` verifies each key against its code declaration site (Unity
 `[AgentTool]` classes, Blender operator names ∪ `cli/` stems) and mirrors this file into
 `README.md`; it never writes a row itself. The agent landing a tool change updates its row by hand
@@ -135,6 +136,12 @@ at merge (the hook skips worktrees).
 | `CheckSeam` | On a base + placed mergeable, reflects the MA/VRCFury seam mapping and gates world-position coincidence of weighted humanoid bones within tolerance, naming worst-first offenders. Certifies the humanoid skeleton coincides, not accessory placement; inspection-only, the mechanical fit gate to run before any render. |
 | `ReportShapeOverlap` | Same-mesh blendshape overlap for a candidate co-active shape set: each shape's touched-vertex footprint and pairwise containment (intersection over the smaller footprint). Locates the double-subtraction a base worn `Shrink_*` and an outfit `ShapeChanger` make when they deform the same vertices — which the render sheet and fit gates never show. A report, not a verdict: the agent names the set and rules wanted-vs-defect. |
 | `ReportGimmick` | Topology digest of a gimmick subtree: contact/physbone/constraint tables, a constraint edge-list spanning both VRC and Unity constraint families (driven/sources, weights, axes), VRCFury authoring inventory, and the mechanically-certain idioms (world anchor, feedback loop, indirection, hold, editor/runtime swap). Complete by construction — a tier-2 census names every component no table interpreted, so `other=0` means empty. |
+
+### vrc-unity-tools · vendor import
+
+| Key | Purpose |
+| --- | --- |
+| `ImportPackage` | The heavy-import door, two-phase so the result survives a transport timeout: `Import(path)` kicks off the async `.unitypackage` import and returns `PENDING` at a stable RunLog path (`whatIf` validates only); `Verify(path, expectedRoot?)` re-reads that log and walks the on-disk root for a PASS/PENDING/FAIL verdict authoritative over the callback status, routing deep health to `CheckPackage`. |
 
 ### vrc-unity-tools · transplant kit (vendor → owned)
 
