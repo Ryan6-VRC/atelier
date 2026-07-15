@@ -140,6 +140,18 @@ $version  = Get-ProjectEditorVersion $projPath
 Write-Host ""
 Work "Project: $projName  (Unity $version)"
 
+# ------------------------------------ UnityMCP transport prerequisites ----
+# Claude reaches UnityMCP through the owned `vrc-mcp-proxy` sibling (.mcp.json runs
+# `uv run --project vrc-mcp-proxy …`). That sibling is a gitignored repo, so a checkout that pulled
+# this workspace without cloning it — or a machine without uv — gets ZERO UnityMCP. Fail loud here,
+# like a missing Editor: a standing operator won't re-read bootstrap.md on their own.
+if (-not (Test-Path (Join-Path $WorkspaceRoot 'vrc-mcp-proxy\pyproject.toml'))) {
+    Fail "vrc-mcp-proxy sibling missing — UnityMCP will not start. Clone github.com/Ryan6-VRC/vrc-mcp-proxy as a sibling of this workspace (bootstrap.md §1)."; exit 1
+}
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    Fail "uv not found — the UnityMCP proxy (uv run --project vrc-mcp-proxy) cannot launch. Install uv (bootstrap.md §2)."; exit 1
+}
+
 # ------------------------------------------------- 2/3. ensure Unity + MCP ----
 # Transport is stdio: each Editor hosts its own bridge and the client pins route by Name@hash identity,
 # so projects coexist (no shared :8200 — that single-port conflict was an http-only limitation). Ports

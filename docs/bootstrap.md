@@ -10,7 +10,7 @@ The install steps name *what* must exist, not an OS-specific recipe — resolve 
 ## 1. Assemble the repos
 
 Atelier is a container of independent git repos. Cloning the meta-repo alone gets you the docs + launcher,
-**not** the tools — the six sub-repos are gitignored siblings you clone into place:
+**not** the tools — the sub-repos are gitignored siblings you clone into place:
 
 ```
 Atelier/
@@ -19,6 +19,7 @@ Atelier/
 ├─ vrc-blender-tools/   github.com/Ryan6-VRC/vrc-blender-tools
 ├─ vrc-bridge/          github.com/Ryan6-VRC/vrc-bridge
 ├─ vrc-patterns/        github.com/Ryan6-VRC/vrc-patterns
+├─ vrc-mcp-proxy/       github.com/Ryan6-VRC/vrc-mcp-proxy
 └─ vrc-skills/          github.com/Ryan6-VRC/vrc-skills
 ```
 
@@ -64,20 +65,22 @@ vrc-get upgrade  -p .\AvatarProject <id> # bump one
 `vrc-get` resolves/upgrades but **cannot create** a project — `AvatarProject` already ships the skeleton, so
 the clone is enough.
 
-**Unity MCP** (per Editor, once). Package: CoplayDev/unity-mcp (MIT), git URL
-`https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main`. In Unity, *Window → MCP for Unity →
-Configure All Detected Clients* registers the client. The workspace keeps **one `UnityMCP` entry in
-`.mcp.json`, deliberately without `--default-instance`** — no pin is trustworthy: the server does not
-error on multi-Editor ambiguity, and unpinned calls silently land on an arbitrary Editor, so the only
-reliable routing is `set_active_instance` as every session's first Unity call (live `Name@hash` values
-in the `mcpforunity://instances` resource; the hash is path-derived and changes when a project moves
-or renames). If registration writes a pin or a new per-project server, collapse it back to the single
-entry (`new-project.md` step 6 has the policy). Ports default from
-6400 — keep each Editor's distinct. Transport is **stdio**
-(Claude launches `uvx mcp-for-unity`, which brokers to the Editor's bridge across domain reloads); don't
-switch to the http transport (`unity.md` says why). The git package is frozen to a commit in
-`packages-lock.json` (`#main` doesn't auto-track) — update via Package Manager → *MCP for Unity* → **Update**,
-or delete its lock entry to re-resolve.
+**Unity MCP.** Claude Code connects through the owned **`vrc-mcp-proxy`** (the shipped `.mcp.json` runs
+`uv run --project vrc-mcp-proxy …` over **stdio**), which spawns the **pinned** upstream MCP-for-Unity
+server itself and relays JSON-RPC — allowlisting tools and applying per-tool transforms. The **upstream
+server pin and its bump runbook live in the proxy repo** (`docs/bump-runbook.md` there); that runbook owns
+every version bump — don't chase one from here.
+
+Per Editor, once: install the in-Editor package (CoplayDev/unity-mcp, MIT) — *Window → MCP for Unity →
+Configure All Detected Clients* registers the client. Pin the Unity-side git URL to the **tag matching the
+proxy's server pin** (currently `#v10.1.0`), not `#main`:
+`https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#v10.1.0`. The package-update flow is unchanged
+— Package Manager → *MCP for Unity* → **Update**, or delete the `packages-lock.json` entry to re-resolve.
+
+The workspace keeps **one `UnityMCP` entry** in `.mcp.json`; route with `set_active_instance` as every
+session's first Unity call (`unity.md` has the multi-Editor behavior). If registration writes a new
+per-project server, collapse it back to the single entry (`new-project.md` step 6 has the policy). Ports
+default from 6400 — keep each Editor's distinct. Don't switch to the http transport (`unity.md` says why).
 
 **Roslyn for `execute_code`** (per Editor, once). `execute_code` compiles with modern C# only when the
 Roslyn assemblies are present; without them it silently falls back to a C# 6 compiler. Install once per
@@ -87,11 +90,10 @@ Platform": select each DLL under `Assets/Plugins/Roslyn/`, set platform to Edito
 is gitignored — **restore per Editor, don't commit it**. Verify: any `execute_code` response's `compiler`
 field reads `roslyn` (not `codedom`).
 
-**`run_tests` is blocked — leave it that way.** MCP `run_tests` runs NUnit in the live Editor, the wrong
-venue; a tracked `PreToolUse` hook in `.claude/settings.json` denies it and redirects to the headless
-runner. Its `mcp__UnityMCP.*__run_tests` matcher covers every UnityMCP Editor, current and future. It
-ships with the clone — no setup, just don't remove it. (Hooks load at launch, so it's live from the
-next session, not mid-session.)
+**`run_tests` is unavailable — by design.** MCP `run_tests` runs NUnit in the live Editor, the wrong
+venue. The proxy's allowlist **hides `run_tests` and `get_test_job` entirely** (they never reach Claude,
+and a call is refused with the venue redirect), so there is nothing to configure. Run the EditMode suite
+headless via the runner below; `docs/verify.md` owns the venue rule.
 
 **Running the EditMode suite headless.** Run `tools/setup-test-editor.ps1` once per machine — it needs
 AvatarProject's VRChat SDK and the community packages the tests build as real types (Modular Avatar,

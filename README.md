@@ -87,6 +87,10 @@ own independent git repo, gitignored here as a sibling you clone into place.
 - **[`vrc-bridge/`](https://github.com/Ryan6-VRC/vrc-bridge)** — a Python runtime bridge between
   SteamVR controller input and VRChat OSC: zero-config discovery (OSCQuery/mDNS), hot-swappable
   control mappings, camera-system routing.
+- **[`vrc-mcp-proxy/`](https://github.com/Ryan6-VRC/vrc-mcp-proxy)** — an owned stdio MCP interception
+  proxy wrapping the pinned MCP-for-Unity server: validates the upstream tool schemas against a
+  committed baseline, allowlists the tools the agent uses, and applies per-tool request/response
+  transforms so a class of upstream sharp edges is corrected at the moment of failure.
 - **[`AvatarProject/`](https://github.com/Ryan6-VRC/AvatarProject)** — a **sandbox** Unity project
   (2022.3.22f1, VRChat Avatars SDK via VPM/ALCOM) where the loop runs against real avatar setups.
   One instance of the workspace's conventions, not the only one; stand up more projects alongside
@@ -107,7 +111,7 @@ _The tool surface the skills above drive. Generated from `TOOLS.md`._
 <!-- generated from TOOLS.md — edit TOOLS.md, not here -->
 
 Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row each. Rows are
-routing, not contracts; behavior lives in `docs/unity.md` / `docs/blender.md`. The pre-commit hook
+routing, not contracts; behavior lives in `docs/unity-tools.md` / `docs/blender.md`. The pre-commit hook
 `tools/sync_tool_inventory.py` verifies each key against its code declaration site (Unity
 `[AgentTool]` classes, Blender operator names ∪ `cli/` stems) and mirrors this file into
 `README.md`; it never writes a row itself. The agent landing a tool change updates its row by hand

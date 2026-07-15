@@ -2,10 +2,10 @@
 
 The contract for every animator/controller tool: what each door does, its verdict grammar, and when to
 reach for it. The YAML **authoring language** the compile/decompile doors speak is `animator-schema.md`;
-the one-line index of the whole callable surface is `TOOLS.md`. Shared plumbing lives in `unity.md`: the
-`agent-tools`/`avatar-tools` package split, the `RunLogFormat` reporting conventions (`… => RESULT |
-log=<path>`; `RunLogs/` verdicts vs `Snapshots/` read-captures), and the `whatIf`/`preflight` preview
-grammar every mutating tool obeys.
+the one-line index of the whole callable surface is `TOOLS.md`. Shared plumbing lives in `unity-tools.md`:
+the `agent-tools`/`avatar-tools` package split and the `RunLogFormat` reporting conventions (`… => RESULT |
+log=<path>`; `RunLogs/` verdicts vs `Snapshots/` read-captures); the `whatIf`/`preflight` preview grammar
+every mutating tool obeys is in `unity.md`.
 
 ## Reading a controller
 
@@ -21,7 +21,7 @@ deterministic digests:
   layers=… states=… params=… => OK | log=<path>`.
 - `ReportClip.Report(clip)` / `ReportFolder(folder)` — bindings as a `path | type | propertyName | keys`
   table (one row per curve), paths as-authored (a `""` root shown as `(root)`, never judged). To
-  `Snapshots/`. Folder mode mirrors `CheckPackage.VerifyFolder` (`unity.md`), down to the empty-but-valid
+  `Snapshots/`. Folder mode mirrors `CheckPackage.VerifyFolder` (`unity-tools.md`), down to the empty-but-valid
   `0 clips => OK`.
 - `CheckAnimator.Lint(controller, basis, mergeSite, avatarRoot, mountRoot)` — binary **PASS/FAIL** (FAIL iff
   an `error`-tier rule fires) + per-kind counts + a two-tier offender body, to `RunLogs/`. Only five `error`
@@ -37,13 +37,13 @@ deterministic digests:
   avatar's own FX slot, no merge component to read a frame from) is the `basis=explicit` case with **null
   roots** — its bindings are already authored against the avatar root, so no remap is asserted.
 
-`CheckAnimator`'s binding-walk is the same one `CheckAvatar` (`unity.md`) reuses for scene-placement
+`CheckAnimator`'s binding-walk is the same one `CheckAvatar` (`unity-tools.md`) reuses for scene-placement
 ref-breaks — one walk, so the two doors can't disagree on how a binding resolves.
 
 ## Owning & consolidating a controller
 
 These mutate on-disk assets. All are `avatar-tools` static methods, `whatIf`-previewable and idempotent
-(conventions in `unity.md`).
+(conventions in `unity-tools.md`; the `whatIf`/`preflight` grammar in `unity.md`).
 
 - `CleanController(sourceFx, ownedRoot, outDir, keepLayerNames, whatIf=false)` — **resets an owned avatar's
   FX to a blank slate at the start of a build**: discards the vendor's elaborate FX down to a minimal
@@ -55,7 +55,7 @@ These mutate on-disk assets. All are `avatar-tools` static methods, `whatIf`-pre
   create/reuse, trim, and wire — touching no asset.
 
 The **clip-repathing pair** rewrites *clip binding paths* / motion refs in on-disk `.anim` assets — a
-different domain from `RemapReferencesByPath` (scene-object refs, `unity.md`). Both obey the
+different domain from `RemapReferencesByPath` (scene-object refs, `unity-tools.md`). Both obey the
 **read-only-asset rule** (`LAYOUT.md`: `Assets/Vendor/` + `Packages/` read-only) and are single-controller,
 **frame-blind** rewriters — the **caller owns frame-correctness** (descriptor / MA MergeAnimator / VRCFury
 FullController frames differ, VRCFury may mix absolute + relative in one controller; no whole-avatar sweep)

@@ -31,8 +31,8 @@ reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not 
    `UnityMCP` server reaches every local Editor; sessions route explicitly (`set_active_instance`, full
    `Name@hash` — `unity.md`). A per-project server name is a false promise — any server can connect to
    any instance — and each extra server duplicates the whole tool surface and its deny list. A separate
-   server is earned only by a different trust posture, not a different project. The tracked `run_tests`
-   deny-hook already covers every Editor via its wildcard matcher — no action; just don't remove it
+   server is earned only by a different trust posture, not a different project. `run_tests` needs no
+   per-project action — the `vrc-mcp-proxy` allowlist hides it for every Editor the one server reaches
    (run the EditMode suite headless — see docs/verify.md).
 7. **Seed a known-noise ledger.** Some projects emit benign console lines on every domain reload (a
    package firing a harmless `[MACS]` / Mecanim exception, say). Record each — line + source package +

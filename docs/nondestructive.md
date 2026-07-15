@@ -108,7 +108,7 @@ don't assert a mechanism from the summary alone.
   component carries cached avatar-relative state that a blind copy would mis-resolve.
 - **Don't lean on MA/VRCFury to move an armature into alignment.** The two apply it differently — MA as a
   one-shot edit-mode action, VRCFury at build — so the result isn't predictable across systems. Measure the
-  seam mechanically instead: **`CheckSeam`** (`unity.md`) reflects the seam mapping and gates world-space
+  seam mechanically instead: **`CheckSeam`** (`unity-tools.md`) reflects the seam mapping and gates world-space
   coincidence of the **weighted humanoid bones** — the bones with a knowable "must be zero" contract, since
   a correct mergeable duplicates the base armature (correct fits land ≤~0.01mm, a real misfit tens of mm).
   Non-humanoid bones — physbone/collider tips — legitimately deviate up to ~75mm on a correct fit and are
@@ -127,4 +127,5 @@ don't assert a mechanism from the summary alone.
   (`RepathClips` / `OwnControllerClips`, directed by a caller that knows the moves), while the **Modular
   Avatar scene-ref** renamed-segment seam (above) stays in-scene placement/skill work.
 
-See `unity.md` for the owning tool contracts and `workflow.md` for when to own vs. compose.
+See `unity-tools.md` for the transplant/owning tool contracts (controllers: `animator.md`) and
+`workflow.md` for when to own vs. compose.

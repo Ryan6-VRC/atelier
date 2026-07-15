@@ -29,7 +29,7 @@ Each skill carries its own gates, sequencing, and tool doors; this is only the g
   is a follow-on once that base exists, not part of owning: a proportion profile applies equally to a
   base and the mergeables sharing it, so both must carry the same profile to stay compatible — it keeps
   a compatible set coherent through a shape change. `CheckSeam` enforces that compatibility at compose: an
-  `edges`-scaled outfit dropped on an unscaled base `NOT-PASS`es (`unity.md`).
+  `edges`-scaled outfit dropped on an unscaled base `NOT-PASS`es (`unity-tools.md`).
 - **compose aborts-to own-mergeable.** `compose-mergeable`'s seam check routes a broken **clip-binding**
   whose `.anim` is **unowned vendor** geometry (`clipAssetPath` under `Assets/Vendor/`|`Packages/`) out
   to `own-mergeable` — that fix is a geometry round-trip compose can't do. An owned/writable clip, or an

@@ -19,6 +19,7 @@ Atelier/                        (this folder = session cwd; workspace docs + lau
 ├─ vrc-skills/                  Claude Code skills (plugin)
 ├─ vrc-blender-tools/           Blender extension (FBX import/prune + shape-key-safe rest-pose bake + Unity FBX export)
 ├─ vrc-patterns/                reusable pattern/gimmick example library (YAML-sourced VPM package; own repo)
+├─ vrc-mcp-proxy/               owned stdio MCP proxy wrapping the pinned MCP-for-Unity server (allowlist + per-tool transforms)
 ├─ references/                  open-source projects we study/replicate; routing in references/README.md
 └─ start-vrc.ps1                one-command session launcher
 ```
@@ -38,7 +39,8 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 runtime behavior — live in `docs/`. Read the relevant file before operating in that domain:
 
 - **`docs/nondestructive.md`** — **read first.** How NDMF / Modular Avatar / VRCFury compose avatars non-destructively (build-on-a-clone), and the reference-hardening facts all avatar tooling depends on.
-- **`docs/unity.md`** — Unity operating knowledge: MCP usage, inspection/reporting + avatar-tools contracts, geometry-change reconcile, sharp edges. (Controller tooling lives in `animator.md`.) Standing gotcha, since it bites nearly every Unity session: `execute_code` wraps your snippet as a **method body** — a top-level `using` fails with a misleading compile cascade; fully-qualify beyond the pre-imported common namespaces (`docs/unity.md` §Sharp edges lists them).
+- **`docs/unity.md`** — Unity operating knowledge (always-read): MCP usage, the tool invocation/preview grammar, geometry-change reconcile, sharp edges. (Controller tooling lives in `animator.md`.)
+- **`docs/unity-tools.md`** — per-tool contracts for the agent inspection harness (`agent-tools`) and the vendor→owned avatar kit (`avatar-tools`); read when driving one of those tools, alongside `unity.md`'s conventions.
 - **`docs/animator.md`** + **`docs/animator-schema.md`** — animator-controller work: the tool doors (report/lint, clean/sweep/repath/own, compile/decompile + the round-trip) and the `CompileController` YAML authoring language. Read for any controller build, inspection, or round-trip.
 - **`docs/blender.md`** — Blender operating knowledge: headless batch + Blender MCP usage, the `avatarprep` extension.
 - **`docs/workflow.md`** — cross-system orchestration above any one tool: goals, sequencing, Unity↔Blender handoffs.
