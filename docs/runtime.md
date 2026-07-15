@@ -221,6 +221,11 @@ Read-only params: `ScaleFactor`/`ScaleFactorInverse` (ratio to upload height, fo
 
 - **VRCHeadChop**: exempts chosen head-descendant bones from first-person head shrink (scaleFactor
   1 = visible in first person) — required for self-interactable face gimmicks.
+- **VRCRaycast** — the one avatar component that senses **world geometry**: a bone-origin ray with a
+  set `distance`; the hit lands in a `resultTransform` (usable as a constraint source) and an
+  animator param. Enables aim/attach-at-a-distance (throw a prop onto a wall = raycast hit +
+  sample-and-hold). Recent SDK addition: **(~)** remote-side evaluation, culling behavior, and
+  emulator reproduction are all unpinned — probe before depending on any of them.
 - **VRCAnimatorLocomotionControl** `disableLocomotion`: freezes movement *and stops the player
   capsule from colliding* — a movement-locked player can be pushed through geometry ("reverse"
   collision). VRCAnimatorTrackingControl, VRCPlayableLayerControl: standard layer/tracking tools.

@@ -6,6 +6,8 @@ these named patterns freely, but the first instinct should be the *parsimonious*
 goal, not to stack every pattern that fits. To author an FX layer as a reviewed, recompilable artifact
 instead of by hand in the Animator window, see `CompileController` (`animator.md`) — a YAML→controller write
 substrate whose worked examples (`fixtures/animator-substrate/`) encode several of the patterns below.
+Author **WD ON** throughout: VRCFury converts a WD-ON system to WD-OFF safely, so WD-ON is the safer
+source form — WD-OFF's occasional authoring elegance stopped paying once controllers became compiled text.
 Generalized, installable versions of these patterns live in the `vrc-patterns/` sibling repo (its
 routing index is keyed on the pattern names in this doc).
 
@@ -39,6 +41,9 @@ routing index is keyed on the pattern names in this doc).
 | Object world position, late-sync, exact | bit-multiplexed absolute sync (Custom-Object-Sync pattern, `references/`) | ~30 bits + seconds of latency |
 | Object world position, approximate | physbone drop (grab is the sync) | 0 bits; per-client drift; **no late-sync** |
 | Local-only input (hardware, apps) | OSC → unsynced params (+ encode if remotes need it) | 0 bits local |
+| World-geometry point (aim, attach-at-distance) | `VRCRaycast`: bone-origin ray → hit lands in a result transform (usable as constraint source) + a param | 0 bits; local; **(~)** recent SDK — emulator/culling semantics unpinned |
+| Inter-avatar contact without receivers | DPS/SPS shader-space (light *range* encodes channel; SPS ships in VRCFury) | 0 bits; both ends need the shader |
+| Perpetual decorative motion (spinning gears) | plain `Animator` on a child GO — no FX layer, no params | 0 bits; **(~)** optimizer interaction unpinned |
 
 **PhysBone drop/carry — what actually crosses the wire** (pick by whether the drop must persist for
 a late joiner, and by what you can verify without two clients):
@@ -71,6 +76,25 @@ a late joiner, and by what you can verify without two clients):
 - **Force-release / override broadcast.** A `localOnly=0` driver or a synced bool imposes a state
   on all clients — the escape hatch for "recall my prop no matter who holds it." For physbones it
   takes both halves (`runtime.md`): disable the bone's GO *and* drive `_IsGrabbed` false.
+- **Driver-copy edge detector.** `Copy Current←Target; Set Changed=1` in a watcher state turns any
+  parameter change into a one-frame pulse downstream layers can consume; the consumer clears it.
+- **Physical-input debounce family.** Three graduated anti-misfire idioms for gesture/contact
+  inputs: **gesture-release commit** (arm on gesture+contact, fire on the gesture *releasing* —
+  rejects accidents with zero timers), **timed-dwell gesture** (hold the gesture through a timer
+  clip's exitTime before the action fires — for drop/discard), and **gesture-chord latch**
+  (a multi-step two-hand handshake with short windows — for rare, destructive toggles).
+- **Physbone threshold trigger.** `_Stretch`/`_Angle` crossing a razor pair (enter/exit hysteresis,
+  e.g. 0.95/0.94) as a discrete *event* — pull-to-detach, flick-to-fire — on the same free analog
+  channel the transport table lists as continuous.
+- **Chance mechanics.** A **Random** parameter driver rolls the odds (a menu control can pin the
+  roll for the party trick); one `VRCAnimatorPlayAudio` with PlaybackOrder=Parameter indexes the
+  outcome clip — no per-variant states. Remotes can't re-derive a local roll: sync the outcome
+  (see zone touch, below).
+- **Action-layer takeover.** For full-body overlays (AFK poses, emote furniture):
+  `PlayableLayerControl` raises the Action playable's weight, `TrackingControl` seizes limbs to
+  Animation, exitTime-choreographed intro/loop/outro restores both. Author the overlay **once** and
+  mount the clip in two playables — Action consumes its humanoid-muscle curves, FX its
+  GO-active/blendshape curves (non-FX playables can't drive those).
 
 ## Blend tree patterns
 
@@ -97,7 +121,10 @@ library, not this section, is the per-entry index.
 - **AAP exponential smoother.** Two clips write a param at ±range; a 1D tree on `SmoothAmount`
   blends "input" vs "output(feedback)" subtrees → `out += (1−λ)(in − out)` per frame. Gate the
   *input* inside the tree (weight by the enable param) so disabling decays smoothly instead of
-  snapping. λ is framerate-dependent — note it, or feed a frametime compensator. Worked + measured in
+  snapping. λ is framerate-dependent — note it, or feed a frametime compensator. **Split λ by
+  IsLocal** (a 1D-on-IsLocal tree over two constant params): remote viewers get heavier smoothing
+  to mask network jitter on grab-synced inputs, and holding each λ in a param *default* makes it
+  install-time tunable without editing trees. Worked + measured in
   `vrc-patterns/blendtree-math` (which also shows why the *linear* smoother limit-cycles and this one
   doesn't).
 - **Two-stage AAP compute/consume.** Stage 1 trees select an abstract value (write an AAP); stage 2
@@ -107,6 +134,15 @@ library, not this section, is the per-entry index.
   binary-walk of states (Add −2^−(b+1) per accepted bit) fills bool params — n frames for n bits.
   Decode: mirrored Adds, or a cascade of nested 1D trees keyed on the bit bools. Used for OSC
   floats and absolute-position sync; budget the frame count (`runtime.md`: one transition/frame).
+  **Static variant for mode ints**: when the value is stamped by known states (not measured), skip
+  the walk — each state's driver writes all n sync bools at once, a decode ladder reads them back
+  into a local int on every client. Mode-int ergonomics at 2–3 bits instead of a synced int's 8.
+- **Motion-time × 1D tree = two-axis analog pose in one state.** One float scrubs the state's
+  motion time, a second selects the tree child (single-frame poses at 0/.25/.5/.75/1) — a 2D
+  lookup cheaper than a freeform tree, and radial-friendly for grip/orientation adjusters.
+- **2D freeform tree as a two-input logic surface.** Beyond 1D nesting (priority/soft-OR), a
+  freeform-cartesian tree on two AAPs places clips at corners to compute soft-AND ("full only when
+  both high") and other two-input response shapes.
 - **Priority gating via nested 1D trees.** Override chains (touched > gesture > idle) as nesting:
   each level's param fades the entire lower tree out. A razor threshold pair (e.g. 0.20/0.21)
   makes a float act as a switch.
@@ -124,8 +160,14 @@ library, not this section, is the per-entry index.
 
 - **Anchor multiplexer.** One position + one rotation constraint with N candidate sources at
   weight 0; states select exactly one. All "where is this attached" logic collapses into clip data.
+  (The tempting shortcut — a full duplicate prop per anchor, swapped by GO-actives — doubles mesh
+  memory and teleports between anchors; the multiplexer costs the same at author time.)
 - **World anchors.** Per-client drop = FreezeToWorld enabled at upload; cross-client absolute frame
   = never-instantiated-prefab source (see `runtime.md` for the guarantees and the culling caveat).
+  FreezeToWorld can also be **animated at runtime** as a drop primitive with no physbone at all
+  (a gestured "place it here"): each client freezes at its own view of the moment, so divergence
+  exceeds the `_IsGrabbed`-anchored sample-and-hold — fine for casual props, not shared reference
+  frames.
 - **Trilateration cage** (static): 6 proximity receivers at ±axis offsets around a point; the six
   floats drive per-axis nudge clips as DBT weights → the cage centers on the latched sender.
   **Crawler servo** (dynamic): the constraint's sources are its own ± offset children, weights from
@@ -141,6 +183,17 @@ library, not this section, is the per-entry index.
   drop reproduces per-client with no synced param (FreezeToWorld anchors give a shared world frame).
   To others it stays a plain physbone — max compatibility. (A hand-authored GrabProp is this end-to-end
   when its `allowPosing=0`, so the persistence is the constraint hold, not a physbone pose.)
+- **Physbone-spring follower.** A companion that trails the avatar needs no animator: root a
+  grabbable physbone chain on a rigidly-constrained anchor (ultra-low `pull`, `immobile` World) and
+  constrain the visible object to the chain *tip* — the chain is a mechanical low-pass filter, and
+  a second chain reading the first smooths orientation. Zero bits, natively grab-syncable (anyone
+  can drag the companion). The mechanical sibling of the AAP smoother.
+- **Staged-shape wave with lockstep re-parenting.** Continuous large deformation through N
+  sculpted keyposes: cumulative blendshapes (`Up_1..Up_N`, each stage adding one) as single-frame
+  clips on an evenly-spaced 1D tree, so only adjacent shapes ever co-blend; the same clips step
+  constraint source weights up a bone chain so skinning follows the morph. Driven by a
+  **rotation-clamped stretch-slider physbone** (maxAngle ≈ 1°, pull 0, maxStretch as gain): a grab
+  bone that can only stretch is a pure analog slider, and grab is the sync — 0 bits end to end.
 - **Editor/runtime swap.** Alignment helpers and world-locks that would fight editing live on GOs
   toggled by build-time actions (VRCFury `ApplyDuringUpload` or equivalent): editor state for
   authoring, runtime state for the build. Name them for what they are.
@@ -153,7 +206,19 @@ library, not this section, is the per-entry index.
 - **Zone touch.** Binary zones: Constant receivers + debounce layer. Graded zones: Proximity +
   threshold hysteresis (enter high, exit low). Self-touch as an animated `allowSelf` opt-in.
   Remote visibility: default localOnly + synced bool; latency-sensitive reactions keep
-  remote-firing receivers as the fast path with a synced bool backstopping missed triggers.
+  remote-firing receivers as the fast path with a synced bool backstopping missed triggers. The
+  strongest form **syncs only the divergent outcome**: remote-firing receivers reproduce the
+  common reaction per-client at 0 bits and 0 latency (accept cosmetic divergence, e.g. which
+  variant clip plays), and the synced bit carries only what remotes *cannot* re-derive — a local
+  random roll's branch. Re-arm remotes on that bool's **falling edge** (the sender's dwell state
+  is the single clock — level-handshake, no remote timers to skew, late-join-safe when unsaved).
+- **Tag addressing and interop.** Custom collision tags are addresses: one sender broadcasting N
+  tags with per-tag receivers is a contact *bus* (per-item pickup, multi-zone props). Adopting
+  ambient community tag conventions (`sword`/`shield`/`stick` melee; standard `Hand`/`Head` used
+  receiver-only so no sender is needed) buys stranger-compatible interaction — first principle 1
+  in tag form. `allowSelf`-only receivers double as *authorization* (only your own hand can draw
+  your weapon); ship a courtesy toggle that disables your receiver GOs for players who don't want
+  to be interactable.
 - **Anchor handoff protocol.** Constant self-receivers on a prop detect *which* body anchor sender
   it overlaps; gesture + contact conditions move it between anchors (fist = take, open palm =
   place), with guard conditions arbitrating two hands.
@@ -177,12 +242,19 @@ library, not this section, is the per-entry index.
   controller drifts from its mainline silently). A behavioral knob that isn't a menu control
   becomes a **non-synced param whose default lives in the params asset and which no menu drives**
   — envvar-style: one controller mainline reads it, each variant/install sets its default.
+- Two cross-boundary seams worth knowing: a **cross-product param contract** (independent modules
+  compose by agreeing on a synced param name, merged at build; design the consumer to no-op when
+  the partner is absent), and **PC/Quest parameter-parity stubs** (the Quest variant carries
+  param-declaration components mirroring every PC-synced param — sync slots must match across
+  platforms even when the visuals don't ship; audit the stub against the PC list, partial stubs
+  silently drop state cross-platform).
 - In-game UX: prefer physical affordances (grab, touch, gesture-near-contact) over menu depth —
   but an affordance is the *primary* interface, never the **only** path: every affordance-reachable
   intent is also menu-reachable (deep in the menu is fine). It drives the same intent param, so it
   costs no extra synced bits, and it buys a rescue hatch for a mistuned affordance, a drive surface
   the emulator can reach without simulating contacts, and desktop parity (contact/PB affordances
-  are VR-gated).
+  are VR-gated). A control-surface widget (a grab handle, a target ball) can be **wearer-only**:
+  enable its renderer in the `IsLocal` branch alone — remotes get the behavior without the UI clutter.
   The menu front splits three ways:
   - **Enable** — one synced **unsaved** bool wired as the state machine's master gate, so
     *off is the reset* (drops holds, stops tracking) and the gimmick never resurrects "on" at
