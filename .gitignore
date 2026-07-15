@@ -20,6 +20,9 @@
 /references/*
 !/references/README.md
 
+# Curated showcase runs (showcase-record keepers) — local media only, like docs/assay/
+/showcases/
+
 # Python bytecode (from tools/)
 __pycache__/
 *.pyc
