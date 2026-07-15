@@ -172,6 +172,21 @@ library, not this section, is the per-entry index.
   floats drive per-axis nudge clips as DBT weights → the cage centers on the latched sender.
   **Crawler servo** (dynamic): the constraint's sources are its own ± offset children, weights from
   proximity → walks toward a moving target indefinitely. Cage for "attach at", crawler for "chase".
+  A settle is a self-source "park brake" — hold the constraint on its own acquisition point at full
+  weight, then ramp that weight to 0 over a wall-clock clip so the crawler commits to chasing only
+  after the target is confirmed (an empirical dwell; label it).
+- **Attaching a prop to a body point: self and cross-player are different mechanisms.** You cannot
+  constrain to another avatar's transform (`runtime.md`: constraint order holds only within one
+  avatar root), so attaching to *another* player's point is necessarily position-derived-from-proximity
+  (a tracker cage) — per-client, no late-sync, precision bounded by the cage. Attaching to your *own*
+  bone is a direct constraint: precise, and it late-syncs off a synced mode value (remotes re-derive
+  from the known bone). The two can't share a sensor — a cage receiver is `allowOthers` and can't
+  sense you, and flipping it `allowSelf` makes it grab your own hand — so self-detection is a separate
+  `allowSelf` receiver on a **private tag** (a shared tag lets your own other-purpose senders trip the
+  self-anchor). On lost tracking, **freeze in place, don't snap to a home anchor**: observers unload
+  the tracked player at different times, so a snap-home diverges across clients while a freeze diverges
+  only benignly (each holds its last-seen position) — freeze is the fail-visible (P5) choice for a
+  position that is observer-local.
 - **Measurement chain.** Sensor transforms (physbone tip, tracked point) → per-axis
   single-`Affects` constraints → sender/receiver pairs = analog signed vector in any reference
   frame you can constrain a rig to.
@@ -182,7 +197,10 @@ library, not this section, is the per-entry index.
   re-grabbable in place. Every client runs the same release clip off the synced `_IsGrabbed`, so the
   drop reproduces per-client with no synced param (FreezeToWorld anchors give a shared world frame).
   To others it stays a plain physbone — max compatibility. (A hand-authored GrabProp is this end-to-end
-  when its `allowPosing=0`, so the persistence is the constraint hold, not a physbone pose.)
+  when its `allowPosing=0`, so the persistence is the constraint hold, not a physbone pose.) A dropped
+  prop carries no synced position, so a **late joiner** starts hidden (the hold-anchor's object/renderer
+  off) until it witnesses a grab — keep the grab physbone **outside** that hidden branch, or a re-grab
+  can't re-establish it.
 - **Physbone-spring follower.** A companion that trails the avatar needs no animator: root a
   grabbable physbone chain on a rigidly-constrained anchor (ultra-low `pull`, `immobile` World) and
   constrain the visible object to the chain *tip* — the chain is a mechanical low-pass filter, and
@@ -259,7 +277,11 @@ library, not this section, is the per-entry index.
   - **Enable** — one synced **unsaved** bool wired as the state machine's master gate, so
     *off is the reset* (drops holds, stops tracking) and the gimmick never resurrects "on" at
     avatar load. When states are exclusive, fuse enable+mode+recall into **one int** with banded
-    values (off=0, attach 1–9, world 11–19, transient 21+) instead of a bool plus a mode int.
+    values (off=0, attach 1–9, world 11–19, transient 21+) instead of a bool plus a mode int. For
+    only a *few* exclusive states, skip the int: a couple of synced **bools read directly** (the state
+    machine gates transitions on the pair, `both-false = off`) cost fewer bits and need no decode —
+    reserve the banded int for legibility when bands are many, and a decode-ladder codec for real
+    bit-pressure (COS-scale), which the Parameter Compressor makes rarely necessary otherwise.
   - **Options** — the tunable surface; `saved` per-param by preference-vs-transient.
   - **Failsafe** — an explicit control only when state persists beyond the avatar (world-placed
     props): a *recall* value distinct from *off*, so the user can summon without resetting.
