@@ -47,12 +47,11 @@ Namespaces: agent-tools under **`Ryan6Vrc.AgentTools.Editor`**, avatar-tools und
 so an assembly-qualified reflection lookup uses `Ryan6VRC` while the type namespace is `Ryan6Vrc`.
 
 **Preview grammar.** Every mutating tool takes a default-off preview: **`whatIf`** when the tool can run
-its full plan and mutate nothing (preview == execute — `CopyComponents`/`MoveComponents`/`GraftHierarchy`
-/`ConformRenderers`/`CopyDescriptor`/`FixViewpoint`, and the animator-doc owning tools), or **`preflight`** when the operation can't be
+its full plan and mutate nothing (preview == execute), or **`preflight`** when the operation can't be
 dry-run at all and only its preconditions are checkable (`MatchHumanoidRig`, whose reimport *is* the
 operation). The dividing line is *ran the plan and mutated nothing* vs *couldn't run the op at all* — not
 complete-vs-incomplete numbers (so `CopyDescriptor` stays `whatIf` even though its remap counts land only on
-execute).
+execute). Each tool names its own mode in `unity-tools.md`.
 
 ## Geometry-change reconcile (reproportion / re-export)
 
@@ -69,18 +68,18 @@ Changing avatar geometry leaves Unity-side state stale — it holds frozen refer
 - **Prefab-persisted SkinnedMeshRenderer blendshape weights unlink (reset to 0) when a mesh is renamed
   or re-exported** — re-verify driven weights, and keep them coherent across meshes (an outfit's
   matching morph is often name-variant, e.g. `Bra_Breasts_big` ↔ `Breasts_big`). A Blender shape-key
-  *value* crosses as the imported blendshape weight (see `blender.md`); body-shape morphs can be set in Blender or here, kept coherent across meshes — the one-value-per-morph coherence invariant is the `reproportion` skill's (*Realizing shapekeys*).
+  *value* crosses as the imported blendshape weight (see `blender.md`). Body-shape morphs can be set in
+  Blender or here; keep one value per morph across meshes — the coherence invariant the `reproportion`
+  skill (*Realizing shapekeys*) owns.
 
 ## Non-destructive avatar build
 
-Modern avatar tooling — Modular Avatar (on NDMF), VRCFury, the **d4rk Avatar Optimizer**, the
-**Limitex (LAC) texture compressor** — is **non-destructive**: the components do nothing to the editor
-scene and rebuild a throwaway copy at Play/upload. They **stack freely on an untouched vendor asset**,
-and none deep-copies meshes or textures — add them, don't bake them in. This is what makes a vendor
-prefab safe to drop optimizers onto, and what lets animator controllers be merged without editing them.
-(There's no Add-Component menu over MCP — discover a tool's exact component type with an `AppDomain`
-`MonoBehaviour` scan: e.g. `d4rkAvatarOptimizer`, `dev.limitex.avatar.compressor.TextureCompressor`,
-VRCFury features under `VF.Model.Feature.*` held by a `VF.Model.VRCFury` component.)
+Modular Avatar (on NDMF), VRCFury, the **d4rk Avatar Optimizer**, and the **Limitex (LAC) texture
+compressor** compose non-destructively — nothing touches the editor scene; a throwaway copy is rebuilt
+at Play/upload (`nondestructive.md` owns the model). The Unity-side consequence: there's no Add-Component
+menu over MCP, so discover a tool's exact component type with an `AppDomain` `MonoBehaviour` scan —
+`d4rkAvatarOptimizer`, `dev.limitex.avatar.compressor.TextureCompressor`, VRCFury features under
+`VF.Model.Feature.*` held by a `VF.Model.VRCFury` component.
 
 Validate the baked result without uploading: **enter play mode** — it runs the *whole* stack
 (VRCFury services + NDMF/MA + d4rk + LAC) on the transient play copy, removed on exit. One session
@@ -91,8 +90,9 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 
 - **Bridge "Connection closed" on the first call** after the Editor's been idle or just reloaded —
   retry once; it reconnects.
-- **`execute_code` is async-blind.** `AssetDatabase.ImportPackage(path, false)` returns before the
-  import finishes — verify the asset/folder exists in a separate call before chaining dependent ops.
+- **`execute_code` is async-blind.** An async Unity call (e.g. `AssetDatabase.ImportPackage`) returns
+  before the work finishes — verify the result in a separate call before chaining dependent ops. For heavy
+  `.unitypackage` imports use the transport-survivable `ImportPackage` door (`unity-tools.md`) instead.
 - **`execute_code` `safety_checks` blocks destructive patterns** (`AssetDatabase.DeleteAsset`,
   `File.Delete`, `Process.Start`, loops). Pass `safety_checks=false` for a narrowly-scoped,
   confirmed-intentional one.
@@ -108,10 +108,6 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 - **Vendor GameObject names carry trailing spaces** (`"Menu "`, `"Ears "`) that silently break exact-path
   lookups (`transform.Find` / `GameObject.Find`) — copy the name from an inspector dump, or match by
   trim/`StartsWith`, rather than retyping it.
-- **VRCFury's first build of an avatar lacking a "Fix Write Defaults" component pops a blocking
-  dialog** that stalls the build waiting for a click. Hard-check before any build; if absent, add
-  the VRCFury Fix Write Defaults component with mode **Disabled** (suppresses the prompt, changes
-  nothing).
 - **FBX external-material remap (`materialLocation: External`) applies only at import time.** A model
   imported before its `.mat` targets exist (costume package before a separate MaterialPack) caches
   empty slots that no later import re-triggers — force-reimport the FBX. `CheckPackage` flags it; the
@@ -119,15 +115,9 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 - **Reparenting a prefab instance's internal children silently no-ops.** `Transform.SetParent` on an
   object owned by a prefab instance reverts with no error — restructure before prefab conversion, or
   edit the asset via `PrefabUtility.LoadPrefabContents`. Verify by `childCount`, not `SetParent` calls.
-- **The play-entry gate is enforced in-Editor** — the `PlayGate` hook cancels a mis-set entry with a
-  console `[PlayGate] … => FAIL` (each offender + its fix) and a one-shot override; see `verify.md`.
-  Entering play **blocks the Editor main thread while the non-destructive build runs**
-  (NDMF/VRCFury/d4rk/LAC): `editor_state` freezes and reads can time out for ~minutes on a heavy
-  avatar. `execute_code` issued during it **queues and returns once the build frees the thread** — don't
-  read the delay/timeout as failure. Batch play-mode work; re-entering play re-runs the whole build.
+- **Entering play blocks the Editor main thread** while the non-destructive build runs
+  (NDMF/VRCFury/d4rk/LAC): `editor_state` freezes and reads time out for ~minutes on a heavy avatar; an
+  `execute_code` issued during it queues and returns once the build frees the thread. Batch play-mode
+  work; re-entering play re-runs the whole build. (The gate guarding entry is `verify.md`'s.)
 - **`Unity.exe` is GUI-subsystem and does not block under `& exe`** — use `Start-Process -Wait` for
   headless batchmode runs.
-- **Driving Av3Emulator in play mode: read params via the `LyumaAv3Runtime` `Floats/Ints/Bools` lists,
-  never `Animator.Get*`.** The emulator drives its own `PlayableGraph`, so the base `Animator`'s
-  parameter dictionary reads empty; observe outputs through those lists, scene transforms/blendshapes,
-  or `ContactReceiver.paramValue`/`IsColliding()`. Frames advance only *between* `execute_code` calls.

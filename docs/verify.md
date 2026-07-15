@@ -45,8 +45,8 @@ will later be destroyed: doing so corrupts Unity's global object registry (`ms_I
 erase → SIGSEGV) at the next allocation, and the crash is unfixable by teardown hygiene (proven — see
 the run-tests-test-venue spec). Verify mutation behavior by running the tool via `execute_code` on a
 real avatar (the operator's gate above). Run the NUnit suite headless with
-`tools/run-editmode-tests.ps1` against the generated `TestEditor` (bootstrap.md) — never MCP
-`run_tests`, which runs in the live editor.
+`tools/run-editmode-tests.ps1` against the generated `TestEditor` (bootstrap.md). MCP `run_tests` is the
+wrong venue (it runs in the live editor) — the proxy allowlist hides it and redirects a call here.
 
 ## The Av3Emulator harness
 

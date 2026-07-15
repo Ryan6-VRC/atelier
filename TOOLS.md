@@ -1,5 +1,6 @@
 Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row each. Rows are
-routing, not contracts; behavior lives in `docs/unity-tools.md` / `docs/blender.md`. The pre-commit hook
+routing, not contracts; behavior lives in `docs/unity-tools.md` / `docs/animator.md` (controllers & clips) /
+`docs/blender.md`. The pre-commit hook
 `tools/sync_tool_inventory.py` verifies each key against its code declaration site (Unity
 `[AgentTool]` classes, Blender operator names ∪ `cli/` stems) and mirrors this file into
 `README.md`; it never writes a row itself. The agent landing a tool change updates its row by hand

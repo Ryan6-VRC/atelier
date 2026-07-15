@@ -70,24 +70,19 @@ in-scene avatar (descriptor) root it names the two path-encoded reference breaks
 a placement — **MA scene refs** (the `referencePath`+`targetObject` `AvatarObjectReference` signature:
 reactive family / BlendshapeSync / Mesh Settings) and **clip/controller bindings** (descriptor playable
 layers + every MA MergeAnimator / VRCFury FullController). It resolves every ref against the **placed
-scene** — a to-be-merged bone is present pre-bake and resolves now, a base-rename break does not, so it
-predicts nothing about what the build will move and never leans on the `Armature.<Name>` convention —
-reusing `CheckAnimator`'s extracted binding-walk (MA at its one fixed frame; VRCFury by upward-strip against
-every ancestor to the avatar root, so a legit avatar-level ref at a non-mount frame is not a break) with
-the build-rewrite demotion off, and resolving MA refs through MA's own `.Get()` (which honours
-`targetObject` before `referencePath`) behind a guarded self-resolve fallback — every reflective hop
-guarded, never throws. Its verdict is a **new family token, `CLASSIFY`** (unresolved refs found — a finding
-for the agent to route, not a tool failure: `Debug.LogWarning`), distinct from `PASS` (`Debug.Log`) and a
-bad-input bare `FAIL` (`Debug.LogError`, no trailer). It computes **no** heuristic — it names each offender
-and its class, and a `clip-binding` offender carries a distinct `clipAssetPath` (the field the compose
-agent routes on: owned/writable ⇒ inline `UC2` clip-fix; `Assets/Vendor/`|`Packages/` ⇒ abort the compose
-and route to `own-mergeable`). It also names a **`merge-conflict`** class (also `CLASSIFY`): ≥2 dynamics
+scene** — a to-be-merged bone is present pre-bake and resolves now, a base-rename break does not — so it
+predicts nothing about what the build will move and never leans on the `Armature.<Name>` convention. Its
+verdict is **`CLASSIFY`** (unresolved refs found — a finding for the agent to route, not a tool failure),
+distinct from `PASS` and a bad-input bare `FAIL`. It computes **no** heuristic — it names each offender and
+its class, and a `clip-binding` offender carries a distinct `clipAssetPath` (the field the compose agent
+routes on: owned/writable ⇒ inline `UC2` clip-fix; `Assets/Vendor/`|`Packages/` ⇒ abort the compose and
+route to `own-mergeable`). It also names a **`merge-conflict`** class (also `CLASSIFY`): ≥2 dynamics
 components (physbone / collider / VRC-constraint, grouped within a category) that resolve to the **same
-post-merge transform** through `CheckSeam`'s reused MA/VRCFury merge map, with ≥1 mergeable-sourced (the
-raw target being a map key is what excludes a pure base↔base duplicate — no baseline needed). Each emit
-notes that MA build-prunes exact-duplicate physbones, so a flagged MA pair may already resolve — the
-residue (VRCFury physbones, all colliders/constraints, non-exact MA pairs) is where it earns its keep.
-Inspection-only — no scene dirty, no `.anim` write; the remedy lives in the skill, not the tool.
+post-merge transform** through `CheckSeam`'s reused merge map, ≥1 mergeable-sourced (the raw target being a
+map key excludes a pure base↔base duplicate — no baseline needed). MA build-prunes exact-duplicate
+physbones, so a flagged MA pair may already resolve; the residue (VRCFury physbones, all
+colliders/constraints, non-exact MA pairs) is where it earns its keep. Inspection-only — no scene dirty, no
+`.anim` write; the remedy lives in the skill, not the tool.
 
 `CheckSeam.Check(baseRoot, mergeableRoot)` is the mechanical **fit** companion to `CheckAvatar`'s
 reference check — the pre-render fit gate `verify.md` calls for (a model can't read a ~5cm misfit off a
@@ -128,9 +123,9 @@ operator hid). Angles are the six world axes `{front,back,left,right,top,bottom}
 success carries a `png=` trailer to `Read`.
 
 The traps a model won't hit by just calling it: the fit is the editor *preview*, not the baked upload
-clone (`nondestructive.md`) — a play-mode build and the operator's eye stay the bar. **A model-read of the
-sheet is not an agent fit gate** — quantified checks decide fit/alignment (`CheckSeam` for the compose
-seam); the render corroborates for the operator (`verify.md`). **Grab in a separate
+clone (`nondestructive.md`) — a play-mode build and the operator's eye stay the bar, and **a model-read of
+the sheet is not an agent fit gate** (`verify.md` owns why; quantified `CheckSeam` decides the compose
+seam). **Grab in a separate
 call from any edit** — a same-call grab shows the pre-edit proxy; the summary's `note=` flags an in-flight
 rebuild but cannot catch the same-call case. A **transient settle miss logs as a `Warning`, not an
 `Error`** — it won't fail a console-clean gate, so just re-grab; a genuine failure stays `Error`. Angles are **world** axes, so a rotated target shows the scene's front (the upside: it also
@@ -269,3 +264,24 @@ Anchor Override is set to **Hips** only when invalid (null or not a child of `ow
 internal anchor is preserved, and a null Root Bone is filled with Hips. Not copied from the vendor (creators get these wrong). On a *composed*
 avatar, Modular Avatar `Mesh Settings` can own bounds/anchor at build — there the tool's writes are
 authoring-only, so its PASS is not a runtime guarantee.
+
+`OwnMaterial(materialPath, outDir=null, forkTextureSlots=null, newName=null, force=false, whatIf=false)` brings a
+vendor material into ownership and forks the **named** texture slots into the owned copy's own namespace —
+every unforked slot keeps its source-GUID reference, and the `slots[]` provenance table it returns is the
+caller's gate. Routing is target-identity: `outDir` given ⇒ own a vendor source (or branch an owned one) into
+a NEW `.mat` (named `newName`, default the source's name); `outDir` omitted ⇒ augment the already-owned source
+in place (fork more slots). A locked-Poiyomi copy is unlocked via Thry's ShaderOptimizer — it **refuses**
+rather than risk Thry's blocking dialog when the original-shader tag can't resolve, and leaves the vendor
+source untouched. The `own-material` skill holds the judgment of which slots to fork; the tool executes it
+deterministically and returns a one-line PASS/FAIL + RunLog path.
+
+## Publish
+
+`UploadAvatar` batch-uploads composed avatars live to VRChat, driving Continuous Avatar Uploader (CAU) by
+reflection (CAU absent ⇒ **REFUSE** with the fix). **Operator-gated** — the `upload-avatar` skill's explicit
+"upload now" is the only trigger, never autonomous — and fail-loud: verdicts are **PASS / REFUSE / FAIL**,
+where REFUSE means the environment isn't ready (CAU absent, not logged in, panel closed, wrong build target)
+and FAIL is a genuine upload rejection. It runs async — `Run` fires and returns while the editor update loop
+pumps CAU's continuations, so poll `Status()` until it stops reporting "running". A per-handle attempt ceiling
+counts *consecutive* failures (cleared on each success) so account safety doesn't lean on skill prose, and
+**no blueprint id ever enters output** (public-repo safety). `whatIf` previews readiness without uploading.

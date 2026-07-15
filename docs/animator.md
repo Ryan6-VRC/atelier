@@ -73,6 +73,13 @@ FullController frames differ, VRCFury may mix absolute + relative in one control
   (`VendorOnly` default | `All`) to owned `.anim` copies under `outDir` (absent-only reuse) and **mutates
   the controller**, repointing every motion slot; disk-truthful residual post-condition. `UC2 =
   OwnControllerClips → RepathClips`.
+- `NormalizeExpressionClips(clipAssetPaths, limitToBlendshapeCurves=true, normalizeOnly=true, repairKeys=true,
+  nonZeroEpsilon=0.001, whatIf=false)` — makes a set of expression `.anim` clips share **one binding + key-time
+  set** (union the curves and key times across the clips), so a toggle's on/off pair drives the same bindings
+  and no blendshape is left un-driven in one state; `normalizeOnly=false` additionally prunes curves unused
+  across the set. Refuses non-editable clips (imported / FBX-embedded / read-only `.anim` — a write would
+  silently not persist, so it FAILs rather than report a false PASS). Reports `+curves/+keys/-curves` counts;
+  `whatIf` previews them.
 
 ## The compile/decompile substrate
 
@@ -178,7 +185,7 @@ NDMF-free included; `nondestructive.md`). No clean rule; weigh:
 
 ## Trap — the playable-layer enum
 
-Reading `VRCAvatarDescriptor.baseAnimationLayers` from YAML: the `type` field is the `AnimLayerType` enum —
-Base=0, Additive=2, Gesture=3, Action=4, FX=5 (the enum skips 1, `Deprecated0`; special layers: Sitting=6,
-TPose=7, IKPose=8). Array index ≠ enum value; an off-by-one read misattributes the FX slot as Sitting (a
-real past misread). These are the slots `animator-schema.md`'s `role:` names.
+Reading `VRCAvatarDescriptor.baseAnimationLayers` from YAML: the `type` field is the `AnimLayerType` enum
+*value*, and **array index ≠ enum value** — the enum skips `1` (`Deprecated0`), so FX is value 5 at a lower
+index. An off-by-one read that trusts position misattributes the FX slot as Sitting (a real past misread):
+read the `type`, not the array position. These slots are what `animator-schema.md`'s `role:` names.

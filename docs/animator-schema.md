@@ -398,10 +398,8 @@ Each is a flat field map; the enum fields use the tokens shown (fail-loud on an 
 
 **`layerControl` vs `playableLayer` asymmetry (the SDK's, not ours):** `playableLayer.layer` is an **enum
 token** (which playable), while `layerControl.layer` is an **int index** (which layer *within* the
-`playable:` playable). `playAudio` carries the full `VRCAnimatorPlayAudio` surface — `sourcePath`,
-`parameter`, `volume`/`pitch` ranges, the four `*Apply` settings, `clips`, `delaySeconds`, `loop`, and the
-four `playOnEnter`/`stopOnEnter`/`playOnExit`/`stopOnExit` flags — see `ControllerEmit.PopulatePlayAudio`
-for every field.
+`playable:` playable). `playAudio` carries the full `VRCAnimatorPlayAudio` surface — see
+`ControllerEmit.PopulatePlayAudio` for every field.
 
 ## Decompile output
 
@@ -423,26 +421,17 @@ at the default grid/constants emits none, so decompiling a never-touched control
   unbound motion time (no `motionTimeParam:`).
 
 **Named refusals.** A construct the schema's shape can't round-trip makes Decompile return a bare `FAIL:`
-naming each and write **no** yaml (it refuses to approximate). Two kinds. *Out of vocabulary:* synced
-layers, a `Trigger` param, an IK-pass layer, a mirror/cycleOffset **parameter** binding, a sub-machine's
-outgoing (on-Exit) transition, an unsupported SMB or motion type, an unknown driver `ChangeType` or
-condition mode — and, as a backstop, **any** non-default top-level field the decoder does not model on a
-state, transition, blend tree, or VRC behaviour: a completeness sweep refuses whatever it doesn't explicitly
-consume, so a field the schema lacks (a state's constant `cycleOffset`, foot IK `iKOnFeet`, or `tag`; a
-transition `offset`; a future SDK addition) fails loud instead of silently dropping. (The sweep covers those
-four object families' scalar fields — including `m_Name`, guarded per type: captured where a schema field
-models the name, cosmetic-and-ignored otherwise; array-element structs and the layer / state-machine families
-stay guarded by the hand decoders.) *Not expressible in the canonical form:*
-sibling states or sub-machines with identical names (→ duplicate keys), a direct state and sub-machine
-sharing a name (→ an unaddressable sub-machine — a bare name resolves states first), or two sibling
-**states** differing only in whitespace (a legibility hazard); a real state/sub-machine named `Exit`
-addressed bare (collides
-with the exit keyword); driver operations that interleave change-types or repeat a `(type, name)` (the
-name-keyed set/add/copy/random buckets would reorder or collapse them); two **distinct** embedded clips
-sharing a name (the name-keyed `clips:` map would collapse them); a condition parameter whose whitespace
-cannot survive the single-space condition grammar (e.g. a trailing space) — refused by a decompile
-self-check that renders and re-splits the condition; any emitted string — a name, a path, a behaviour
-field — containing a line break (guarded at the serializer funnel, surfaced as the door's FAIL).
+naming each and write **no** yaml — it refuses to approximate; iterate on the message. Two kinds. *Out of
+vocabulary:* anything the decoder doesn't model (synced layers, a `Trigger` param, an IK-pass layer, an
+unsupported SMB or motion type, an unknown driver `ChangeType`…), enforced not by a blocklist but by a
+**completeness sweep** — it refuses **any** non-default field it doesn't explicitly consume on a state,
+transition, blend tree, or VRC behaviour, so an unmodeled field (a state's `cycleOffset`/`iKOnFeet`/`tag`, a
+transition `offset`, a future SDK addition) fails loud instead of silently dropping. *Not expressible in the
+canonical form:* sibling states or sub-machines with identical names, a direct state and sub-machine sharing
+a name, or two siblings differing only in whitespace (the name-keyed maps collide or reorder); a real node
+named `Exit` addressed bare (collides with the exit keyword); driver operations that interleave change-types
+or repeat a `(type, name)`; two distinct embedded clips sharing a name; a condition parameter whose
+whitespace can't survive the single-space grammar; any emitted string containing a line break.
 
 **The fixpoint.** A controller you **own** (decompile) round-trips exactly — Decompile→Compile→Decompile
 reaches a fixpoint. The single acknowledged lossy step is a genuinely-broken vendor motion ref
