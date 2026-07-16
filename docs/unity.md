@@ -24,11 +24,18 @@ and package-update wiring: `bootstrap.md`.
   context at start (SessionStart hook → `tools/unity-instances-hook.sh`); also queryable via the
   `mcpforunity://instances` resource. Hashes are path-derived cache keys — read them live, never
   copy them into docs or config.
-- If `UnityMCP` tools are absent: the Editor isn't open on `AvatarProject`, or Claude Code needs a
-  restart (`start-vrc.ps1` is the bring-up doctor).
+- If `UnityMCP` tools are absent: the Editor isn't open on the target project; the `vrc-mcp-proxy`
+  sibling or `uv` is missing (a broken checkout gets **zero** UnityMCP — `bootstrap.md` steps 1-2); or
+  Claude Code needs a restart.
+- **Bring up an editor yourself** when none is live: match the project's
+  `ProjectSettings/ProjectVersion.txt`, then `Start-Process` that `Unity.exe` — resolve its path from the
+  Unity Hub registry (`%APPDATA%\UnityHub\editors-v2.json`, which covers custom install dirs) or the
+  default `C:\Program Files\Unity\Hub\Editor\<ver>\Editor\Unity.exe`. `vrc-get resolve -p <project>` first
+  if the VPM payload is stale. The bridge auto-starts on a cold open.
 - **Trust the heartbeat, not the MCP window.** The Editor's *MCP for Unity* window can show "No Session"
-  while the stdio bridge is up — a cosmetic desync; the `~/.unity-mcp/` heartbeat (what `start-vrc.ps1`
-  reads) is truth.
+  while the stdio bridge is up — a cosmetic desync; the `~/.unity-mcp/` heartbeat (what the SessionStart
+  hook reads) is truth. But a stale or `reloading` heartbeat is live, not ready — the instance table lists
+  liveness, so `read_console` is the real proof the bridge will serve.
 - **Never switch to the Editor-hosted http transport.** It drops on every domain reload, and its toggle
   (`MCPForUnity.UseHttpTransport`) is a **machine-global** EditorPref shared by every project on this
   Editor version — flipping it hits all of them on the next restart.

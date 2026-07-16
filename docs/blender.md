@@ -35,8 +35,7 @@ Preferred path: Blender open on a second screen with the MCP add-on enabled and 
   inspect the scene before changing it).
 - The `_for_cli` MCP variants are deny-hidden (they time out at the server's 120s limit on this
   setup) — headless work uses the `--background` invocation above.
-- If `BlenderMCP` tools are absent: Blender isn't open/connected, or Claude Code needs a restart
-  (`start-vrc.ps1` is the bring-up doctor).
+- If `BlenderMCP` tools are absent: Blender isn't open/connected, or Claude Code needs a restart.
 
 ## avatarprep — our Blender extension
 

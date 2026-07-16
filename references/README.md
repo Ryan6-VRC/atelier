@@ -6,8 +6,7 @@ to confirm. Read them directly.
 
 - **CLONE** — study to subsume/replace; present at `references/<name>/` (gitignored). Re-clone only if
   a folder is missing: `git clone <url> references/<name>`.
-- **POINT** — kept as imports; read in the active project's `Packages/<id>/` (the folder
-  `start-vrc <ProjectName>` opened; `vrc-get resolve` if absent).
+- **POINT** — kept as imports; read in the active project's `Packages/<id>/` (`vrc-get resolve` if absent).
 
 `Pri`: H first · M reference · L niche/overlapped.
 

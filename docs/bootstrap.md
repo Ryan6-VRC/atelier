@@ -2,8 +2,9 @@
 
 Point a capable agent here to stand up the whole Atelier workspace on a bare machine: clone the sub-repos,
 install and wire the tools, verify. One-time; everyday operating knowledge lives in `unity.md` / `blender.md`,
-and adding a *second* project to a working workspace is `new-project.md`. `start-vrc.ps1` is the living
-bring-up doctor — run it to check or re-check health, and debug by hand only if it fails.
+and adding a *second* project to a working workspace is `new-project.md`. Bring-up spans three places: an
+agent starts editors itself (`unity.md`), Blender runs headless (`blender.md`), and the SessionStart hook
+surfaces live editors and flags a broken transport — §4 is the verify procedure.
 
 The install steps name *what* must exist, not an OS-specific recipe — resolve the host specifics as you go.
 
@@ -23,9 +24,9 @@ Atelier/
 └─ vrc-skills/          github.com/Ryan6-VRC/vrc-skills
 ```
 
-The **folder names are load-bearing**: `start-vrc.ps1`, the VPM `file:` refs, and `AvatarProject`'s
-`../../vrc-unity-tools` package refs all resolve by these exact paths. Clone each as a sibling under
-`Atelier/`.
+The **folder names are load-bearing**: the VPM `file:` refs, `AvatarProject`'s `../../vrc-unity-tools`
+package refs, and the SessionStart hook's `vrc-mcp-proxy` preflight all resolve by these exact paths. Clone
+each as a sibling under `Atelier/`.
 
 ## 2. Prerequisites
 
@@ -35,8 +36,8 @@ Install per your host; all must exist before wiring:
   bootstrap DLLs via LFS; without lfs they clone as ~130-byte pointer files and the resolver breaks with a
   baffling error. git must also be on PATH — Unity fetches the MCP package over a git URL.
 - **Unity Hub + Unity 2022.3.22f1** — the VRChat-pinned version, never upgraded (breaks uploaded content).
-  Sign in and activate a (free personal) license, or first launch stalls on a licensing modal and the doctor
-  misreports it as "still loading".
+  Sign in and activate a (free personal) license, or first launch stalls on a licensing modal that looks
+  like the editor is "still loading" (the bridge heartbeat never goes fresh).
 - **Blender 5.1+ portable** under `~/Apps/blender-<ver>-windows-x64/` (the launcher auto-discovers the
   newest one there).
 - **`uv`/`uvx`** — runs the MCP servers.
@@ -111,10 +112,13 @@ the add-on when it changes.
 
 ## 4. Verify
 
-Run `start-vrc.ps1` — it launches Unity + Blender, waits for both MCP bridges, and reports health. It also warns (non-fatal) when a project lacks the Roslyn DLLs — `execute_code` would fall back to C# 6. Green
-bridges are **necessary but not sufficient**: the Unity bridge heartbeats even over a project full of compile
-errors. Confirm a clean build too — once the bridge is up, read the Unity console (`read_console`) and check
-for zero errors. *That* is "verified working".
+The **SessionStart hook** (`tools/unity-instances-hook.sh`) is the health readout: it lists live editors
+and, on a main checkout, fails loud if the `vrc-mcp-proxy` sibling or `uv` is missing (zero UnityMCP).
+Confirm a project actually works:
 
-MCP config written mid-session is not live in that session (servers load at launch), so verify through the
-doctor's ports/heartbeat — the MCP tools you just wired come online on the next launch, not now.
+- The hook shows your editor live (or a fresh heartbeat in `~/.unity-mcp/`).
+- Green bridges are **necessary but not sufficient**: the Unity bridge heartbeats even over a project full
+  of compile errors. Read the console (`read_console`) for zero errors. *That* is "verified working".
+- `execute_code`'s `compiler` field reads `roslyn`, not `codedom` (the C#-6 fallback — install Roslyn per §3).
+
+MCP config written mid-session isn't live until the next launch (servers load at launch).

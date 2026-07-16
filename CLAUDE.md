@@ -20,8 +20,7 @@ Atelier/                        (this folder = session cwd; workspace docs + lau
 ├─ vrc-blender-tools/           Blender extension (FBX import/prune + shape-key-safe rest-pose bake + Unity FBX export)
 ├─ vrc-patterns/                reusable pattern/gimmick example library (YAML-sourced VPM package; own repo)
 ├─ vrc-mcp-proxy/               owned stdio MCP proxy wrapping the pinned MCP-for-Unity server (allowlist + per-tool transforms)
-├─ references/                  open-source projects we study/replicate; routing in references/README.md
-└─ start-vrc.ps1                one-command session launcher
+└─ references/                  open-source projects we study/replicate; routing in references/README.md
 ```
 Each sub-folder is its own independent git repo (gitignored by this meta-repo).
 Folder structure is **intentionally grown interactively** — do not impose a rigid tree.
