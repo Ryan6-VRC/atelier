@@ -140,6 +140,30 @@ as the visual companion to `verify.md`. **Grab driven state while still in play*
 scene to authoring state, so a post-exit grab can verify only the static baseline — never a
 toggle/param-driven claim.
 
+`Capture`, `CaptureDiff`, and `CaptureOcclusion` are three doors over one capture core (the latter two
+are `verify.md`'s sanctioned differential forms). All share the `[RenderAvatar] <door> …` summary
+envelope, report counts/bboxes rather than a fit verdict, and restore every mutation in `finally`.
+Neither differential carries a tunable tolerance — diff compares exactly, occlusion matches exact magenta
+with MSAA off — so there is no threshold to creep against one avatar.
+
+**Freshness (in `Capture`).** A backgrounded editor renders the camera fresh but throttles
+`SkinnedMeshRenderer` deform re-baking to the editor tick, so a same-call blendshape/pose edit on a
+**non-proxied** mesh never appears and the grab is a false-`OK` stale (below NDMF; a non-reactive target
+skips the settle gate). `Capture` forces a synchronous re-bake in-call to close it — leaving the
+separate-call rule needed only for **reactive** targets, whose proxy refreshes on the settle-gated
+pipeline rebuild. Every grab writes a `<png>.cam.json` manifest (`cam=ok`) — `CaptureDiff`'s camera handle.
+
+**`CaptureDiff(target, against)`** — `against` is a prior grab's PNG. It pins that grab's exact framing
+from the sidecar so a silhouette-changing edit can't move the camera, then compares B to A exactly, per
+angle. FAILs loud on an absent/pruned/drifted manifest or a SceneView resize since A. Trap: `_Time`-driven
+shading (emission scroll, rim, dissolve) advances between grabs into a phantom diff — trust it only for
+time-static shading.
+
+**`CaptureOcclusion(target, renderer)`** — swaps one renderer to magenta and reports its visible pixels
+against an unoccluded `expected`: `expected=0` means it never drew, `expected>0, visible=0` means
+genuinely occluded. The swap lands on the **original**; NDMF propagates it to the drawn proxy (measured),
+so there is no proxy branch. FAILs loud on an unresolved/disabled/mesh-less/material-less renderer.
+
 ## Avatar tools
 
 `com.ryan6vrc.avatar-tools` (from `vrc-unity-tools`, local `file:` ref) is the agent-callable kit for

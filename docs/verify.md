@@ -35,7 +35,11 @@ confidence of the miss. Where a quantified signal (a seam delta from `CheckSeam`
 read disagree, the measurement is authoritative and the image is narrative. Renders serve the operator's
 eye and the audit trail. The one agent-readable use is **differential** — a before/after pair around a
 discrete change (a toggle, a blendshape) shows whether it took effect; a single-sheet absolute judgment
-does not.
+does not. Two forms are sanctioned, both report-the-matrix (`unity-tools.md`): **`CaptureDiff`** — an
+exact pixel compare of a before/after pair around a camera pinned from frame A, reporting
+`changed`/`bbox`/`identical=k/n`; and **`CaptureOcclusion`** — magenta-swaps one renderer and counts its
+visible pixels against an unoccluded `expected`, separating genuinely occluded (`visible=0,expected>0`)
+from never-drew (`expected=0`). Neither renders a verdict; the operator argues the call from the counts.
 
 ## Test venue — NUnit vs execute_code
 
