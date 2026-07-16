@@ -172,9 +172,12 @@ library, not this section, is the per-entry index.
   floats drive per-axis nudge clips as DBT weights → the cage centers on the latched sender.
   **Crawler servo** (dynamic): the constraint's sources are its own ± offset children, weights from
   proximity → walks toward a moving target indefinitely. Cage for "attach at", crawler for "chase".
-  A settle is a self-source "park brake" — hold the constraint on its own acquisition point at full
-  weight, then ramp that weight to 0 over a wall-clock clip so the crawler commits to chasing only
-  after the target is confirmed (an empirical dwell; label it).
+  The self-source "park brake" — hold the constraint on its own acquisition point at full weight,
+  then ramp that weight to 0 over a wall-clock clip — is a **damped acquisition window**, not just a
+  settle: an undamped crawler survives target steps only up to roughly its probe offset (it tracks
+  continuous motion exactly, leapfrogs and diverges past ~1.5× the offset), while a step landing
+  inside the ramp traverses smoothly. The ramp length is a network-feel constant the emulator can't
+  discriminate — wear-test-owned; label it.
 - **Attaching a prop to a body point: self and cross-player are different mechanisms.** You cannot
   constrain to another avatar's transform (`runtime.md`: constraint order holds only within one
   avatar root), so attaching to *another* player's point is necessarily position-derived-from-proximity
@@ -197,7 +200,12 @@ library, not this section, is the per-entry index.
   re-grabbable in place. Every client runs the same release clip off the synced `_IsGrabbed`, so the
   drop reproduces per-client with no synced param (FreezeToWorld anchors give a shared world frame).
   To others it stays a plain physbone — max compatibility. (A hand-authored GrabProp is this end-to-end
-  when its `allowPosing=0`, so the persistence is the constraint hold, not a physbone pose.) A dropped
+  when its `allowPosing=0`, so the persistence is the constraint hold, not a physbone pose.) The
+  pulse's width (~0.25 s freeze-to-sample, ~0.25 s sample window) is **low-FPS sample-delivery
+  insurance, not settle time** — at `pull 1, immobile 1` there is no post-release transient to wait
+  out, but an animator evaluates clip curves only at frame samples, so a few-frame sample window
+  falls between evaluations on a slow client and silently never fires; a [0.25, 0.5) window catches
+  at least one evaluation down to ~4 fps. A dropped
   prop carries no synced position, so a **late joiner** starts hidden (the hold-anchor's object/renderer
   off) until it witnesses a grab — keep the grab physbone **outside** that hidden branch, or a re-grab
   can't re-establish it.

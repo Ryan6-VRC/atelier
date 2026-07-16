@@ -103,6 +103,13 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 - **`execute_code` `safety_checks` blocks destructive patterns** (`AssetDatabase.DeleteAsset`,
   `File.Delete`, `Process.Start`, loops). Pass `safety_checks=false` for a narrowly-scoped,
   confirmed-intentional one.
+- **VRCFury components build cleanly from `execute_code` despite `VF.Model` being internal**:
+  `AddComponent(Type)` + `Activator.CreateInstance(type, true)` + reflection field-sets;
+  `GuidWrapper.objRef` is public (leave `id` empty — VRCFury syncs it); fresh model instances
+  auto-stamp `version` via serialization callbacks, so no manual versioning. Enum semantics must
+  come from VRCFury source (`ObjectToggleAction.Mode.TurnOn = 0`). Worked recipe covering
+  FullController/Toggle/ApplyDuringUpload/FixWriteDefaults:
+  `vrc-patterns/grabprop/dev~/build_grabprop_prefab.cs`.
 - **Editing asset/package files outside Unity** leaves the asset DB stale ("Build asset version
   error"); clear the console + `refresh_unity` (mode=force, scope=all).
 - **Scene creation over `execute_code` is `NewSceneMode`, not `NewSceneSetupMode`**; `manage_scene create`

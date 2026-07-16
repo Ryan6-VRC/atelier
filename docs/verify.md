@@ -47,6 +47,11 @@ the run-tests-test-venue spec). Verify mutation behavior by running the tool via
 real avatar (the operator's gate above). Run the NUnit suite headless with
 `tools/run-editmode-tests.ps1` against the generated `TestEditor` (bootstrap.md). MCP `run_tests` is the
 wrong venue (it runs in the live editor) — the proxy allowlist hides it and redirects a call here.
+The default `TestEditor` is a **shared serial singleton** whose package pointer drifts under
+concurrent sessions — a parallel slice provisions its own venue instead
+(`tools/setup-test-editor.ps1 -Dest <venue>/TestEditor`, then point the runner/gate at it, e.g.
+`vrc-patterns/tools/gate.ps1 -AtelierRoot <venue>`): first-try clean with zero contention, at the
+cost of one cold Library build.
 
 ## The Av3Emulator harness
 
@@ -56,7 +61,8 @@ fix in a `[PlayGate] … => FAIL` console line (plus a Scene-view overlay), with
 `Tools/Agent/Play Gate/Allow Next Entry` override. It covers the hard preconditions — one active
 avatar and a VRCFury Fix Write Defaults feature (**skipped on a VRCFury-free avatar** — `fury.Count == 0`),
 plus (when an enabled emulator is present) no active
-Gesture Manager and the emulator's `RunPreprocessAvatarHook`/`EnablePlayerContactPermissions` (a
+Gesture Manager and the emulator config polarity — `RunPreprocessAvatarHook` **on**,
+`EnablePlayerContactPermissions` **off** (a
 Gesture Manager only fights a *live* emulator). Read the verdict; don't hand-check them.
 
 It does **not** check that an emulator control object is *enabled* — absence is a legitimate bake-only
@@ -82,11 +88,12 @@ Lyuma.Av3Emulator.Runtime.LyumaAv3Runtime local=null;
 foreach (var rt in rts) if (rt.IsLocal) local = rt;
 ```
 
-**Drive / observe.** For menu/expression inputs write **`.expressionValue`** on the local runtime's param,
-**not `.value`** — the runtime rewrites `.value` from `.expressionValue` each frame on **synced** params, so
-a `.value` write silently reverts (it holds on unsynced params, which hides the trap until a synced one);
-`.expressionValue` drives both. (A driver-written *output* also reverts each frame, by design.) It lands next
-tick. Read outputs from the runtime lists, scene transforms/blendshapes, or `ContactReceiver.paramValue` —
+**Drive / observe.** For menu/expression **float** inputs write **`.expressionValue`** on the local
+runtime's param, **not `.value`** — the runtime rewrites `.value` from `.expressionValue` each frame on
+**synced** params, so a `.value` write silently reverts (it holds on unsynced params, which hides the
+trap until a synced one); `.expressionValue` drives both. **Bools have no `expressionValue`** — a
+`BoolParam` drives via `.value` (change-detected against `lastValue`). (A driver-written *output* also
+reverts each frame, by design.) It lands next tick. Read outputs from the runtime lists, scene transforms/blendshapes, or `ContactReceiver.paramValue` —
 matching the observable to the output channel (material / transform / blendshape / GO-active), or a naive
 scene-diff misses it. **A driven material property lands in the renderer's `MaterialPropertyBlock` in play
 too** — not just the edit-mode tick below — so read it with `GetPropertyBlock`, never `.material`/
@@ -127,10 +134,30 @@ float d = UnityEngine.Mathf.Abs(UnityEngine.Mathf.DeltaAngle(
 string verdict = d > 10f ? "PASS" : "FAIL";
 ```
 
+**Sub-second timing needs in-process capture — MCP round-trips can't hit it.** Two working shapes:
+register an `EditorApplication.update` lambda in one `execute_code` call that `Debug.Log`s a tagged
+line every N frames (read back via `read_console` with the tag as `filter_text`), putting any
+same-call choreography — detect a state flip, apply a stimulus M frames later — inside the callback;
+or `AddComponent` a scratch recorder MonoBehaviour that buffers per-frame rows for later dump. And
+**don't assume a frame rate**: a focused editor in play mode can run 200+ fps while unfocused it
+throttles to ~12 — if timing matters, measure it from your own log. `Application.targetFrameRate`
+is a deliberate probe in the other direction: throttling to ~5 fps exposes clip curves whose value
+windows are narrower than a frame (an animator evaluates curves only at frame samples, so a
+few-frame pulse can fall between evaluations and silently never fire).
+
 **Remote clone.** `local.CreateNonLocalClone = true` spawns a non-local copy. Diff local-vs-clone
 params to assert `IsLocal`-branch divergence (a bit-sync system runs its write side on local, read
 side on the clone). The emulator models 8-bit float quantization (~1/127 steps) and the ~0.1 s sync
-tick (`NonLocalSyncInterval`). **But the `synced` flag lies both ways** — the baked flag reads
+tick (`NonLocalSyncInterval`). Two clone caveats. **The clone's animator runs `CullCompletely`**
+(local runs AlwaysAnimate — emulator-faithful distance culling): with no camera, or no visible
+renderer under the clone (a descriptor-only test avatar, a module whose only mesh a hidden state
+disables), the clone's graph never ticks and reads as a stuck state machine — give the test avatar
+a camera and an always-visible body mesh. **Contacts are not simulated against clones at all**: a
+scripted sender verified overlapping a clone's receiver reads `paramValue = 0` — the clone's visual
+offset is render-only and its hierarchy transforms are true, so the overlap is real and the zero is
+the simulation's absence. Every contact assertion runs against the **local** avatar
+(`EnablePlayerContactPermissions=false` makes self count as other); remote-side contact behavior is
+in-game-only. **But the `synced` flag lies both ways** — the baked flag reads
 synced-false for compressed params that still replicate (VRCFury's Parameter Compressor), and the
 pre-build asset under-counts (build-time MA/VRCF/prefab merges add synced params) — so judge the
 synced-bit cost from the post-build `VRCFuryDebugInfo` bit totals (from the bake), never a raw param-asset
@@ -155,9 +182,14 @@ origin, else the chain snaps to 0,0,0). Move it across calls via `GetGrabs()` (m
 solver drags the chain and `_IsGrabbed` fires. `ReleaseGrab(chainId)` clears it;
 `ReleaseGrab(grab, true, grabberId)` on an `allowPosing` bone leaves it **held** (read the bone
 transform; no `_IsPosed` param). Discover grabbable bones by scanning chains for `allowGrabbing != 0`;
-offset the target off the bone endpoint or `SolveGrabIK` spams a benign `FromToRotation` assertion. Two
-control-experiment traps: an **`immobile=1.0` AllMotion chain won't drag** under a scripted-position grab
-(the solver pins it), and **runtime mutation of physbone settings never reaches the native solver** (they
+offset the target off the bone endpoint or `SolveGrabIK` spams a benign `FromToRotation` assertion.
+Releasing while iterating `GetGrabs()` mutates the collection and **silently skips grabs** — collect to a
+list first, then release (multiple concurrent grabs under one `grabberId` are fine). Two
+control-experiment traps: a chain that won't drag under a scripted grab is **geometry, not the API** —
+millimeter-scale bones with default stretch limits barely move (the zipper-tab class); `immobile=1.0`
+AllMotion itself does **not** pin a grab (it cancels root-induced motion only, `runtime.md` — a
+grab-prop chain at `immobile 1.0, pull 1` drags to the target exactly). And **runtime mutation of
+physbone settings never reaches the native solver** (they
 bake at chain init), so "change a setting, then grab" silently no-ops. A PB with **no `parameter` declared
 mints no `_IsGrabbed`/`_Stretch` params at all** — assert the bone transform/chain, not a param.
 
@@ -175,12 +207,18 @@ physbone grab/pose.
 **Not faithful — needs two clients in-game:** network-sync *correctness* (the compressor hides it), remote-side
 contacts/trackers, real IK smoothing / ~0.5 s body delay, a *networked* grab or **pose late-sync** (a
 locally-posed bone does not transport to the clone), distance-culling animator pause, and true feel /
-framerate-dependent constants (the editor throttles to ~12 fps unfocused). Don't spend a play session
+framerate-dependent constants (the editor's frame rate is not a client's — and it swings ~12 fps
+unfocused to 200+ focused; measure it, don't assume). Don't spend a play session
 chasing these.
 
 ## Cost
 
 Play-mode entry is the bottleneck — the whole non-destructive build runs on every entry (minutes on a
 heavy avatar) — so **batch every assertion into one play session**; re-enter only to test an
-asset/controller edit. Within a session compute is cheap, but MCP round-trips and the ~12 fps
+asset/controller edit. At module scale the heavy avatar itself is avoidable: an empty GO +
+descriptor + VRCFury FixWriteDefaults (mode Disabled) + the module under test builds in seconds —
+default to that rig (plus a camera and a body mesh if a remote clone is involved — §Remote clone),
+and batch variants as N module instances on the one avatar (satisfies the gate's one-avatar
+precondition; VRCFury prefixes each FullController's params independently). Within a session compute
+is cheap, but MCP round-trips and the ~12 fps
 unfocused throttle gate wall-clock, so time-based settles cost real seconds.

@@ -100,16 +100,26 @@ not a hunch.
 
 - Receiver modes: Constant (0/1 while overlapping), OnEnter (one-frame pulse; honors `minVelocity`,
   tested once at entry), Proximity (0..1; `minVelocity` inert). Proximity is **receiver-scoped**,
-  not sender-centered: the value rises as the sender's *nearest surface* reaches the receiver's own
-  center/axis, normalized by the receiver's radius or box half-extent — so enlarging the *receiver*
-  lengthens the falloff, and only the receiver's center reads 1. The strongest overlapping sender
-  wins (values are not additive); a box receiver can use center (max-axis) or face (linear along
-  local +Z) proximity.
+  not sender-centered — the value rises as the sender's *nearest surface* reaches the receiver, so
+  enlarging the *receiver* lengthens the falloff. The exact model (SDK-source-verified,
+  emulator-confirmed): `1 − clamp(dist / radius)` where `dist` runs from the sender's nearest point
+  to the nearest point on the receiver's **axis segment** — a capsule is a swept sphere (segment
+  length = height − 2·radius, world-scaled; **radius alone** sets the falloff length everywhere
+  along the axis; uniform scale preserves the shape, it never becomes a sphere unless
+  height ≤ 2·radius), a sphere is the same formula against the center, and capsule-vs-capsule
+  resolves segment-to-segment with the sender's surface offset by min(gap, sender radius). A box
+  receiver's center mode is **Chebyshev per-axis** — `max(|d| / halfExtent)` in box space, not
+  spherical — and face mode is a pure linear unlerp along local −Z from the +Z face plane, so box
+  falloff is axis-separable by construction (what a diameter-compensated multi-box cage wants).
+  The strongest overlapping sender wins (values are not additive).
 - **`allowSelf`/`allowOthers` filters are evaluated only at contact acquisition, never re-checked
   on latched contacts.** Animating filters shut after acquisition locks the receiver onto the
   sender(s) it already holds — the core of contact-tracker targeting. Corollaries: waiting-state
   receiver size controls how many senders latch at trigger (several in the zone = all latched);
-  filter *changes* affect only future acquisitions (an animated `allowSelf` opt-in works).
+  filter *changes* affect only future acquisitions (an animated `allowSelf` opt-in works); a latched
+  contact that fully breaks (sender exits range) **cannot re-latch while filters are shut** —
+  re-entry is a new acquisition, so a multi-receiver rig degrades to partial probe sets whose
+  skewed equilibria look like tracking error.
 - Contacts are simulated on **every** client from replicated bone positions, but IK delay and
   per-client discrepancy mean remote-side triggers misalign — do not treat contact outputs as
   synced. Default: sense with `localOnly` receivers and sync a bool. When trigger latency matters,
@@ -119,9 +129,9 @@ not a hunch.
   players' bodies are queryable without them wearing anything. Auto head/hand contact placement
   varies per avatar (height/offset) — acquisition shapes should be generous (tall capsules) and
   identically placed if multiple receivers must latch the same target.
-- Proximity is a hard `1 − clamp(dist,0,1)`, so a receiver reads **exactly 0 at and beyond its
-  range edge** (and when nothing overlaps) — the Custom-Object-Sync "contact bug" (`references/`) is
-  this floor, not a defect. Keep the working volume off the boundary or bias the zero point.
+- The clamp is a hard floor: a receiver reads **exactly 0 at and beyond its range edge** (and when
+  nothing overlaps) — the Custom-Object-Sync "contact bug" (`references/`) is this floor, not a
+  defect. Keep the working volume off the boundary or bias the zero point.
 - `localOnly=1` means the contact component **does not exist on remote clones**. Default to it:
   cheaper, and polite — because the bug below sums contacts *across* nearby players, local-only
   receivers stay off everyone else's solve. Per-shape limits (editor-enforced): size ≤ 6 units,
@@ -201,14 +211,22 @@ not a hunch.
   Weights are **normalized by their sum**, not clamped to [0,1] — only the ratios matter.
   Self-as-source at partial weight = rotational/positional lag ("feel"
   damping). Disabling a constraint freezes its object where it stands — often simpler than weight
-  juggling.
+  juggling. Normalization has **no magnitude floor** above the write-nothing cutoff: near-zero
+  residual weights (~1e-5) still command full-magnitude targets, so the frame a servo rig loses
+  tracking kicks up to one probe-offset in a stale direction before any state-machine response
+  lands — benign for a target that recedes continuously, pathological for one that teleports.
 - A constraint with no sources (or zero total weight) writes **nothing** — it doesn't drive to a
   stored rest, it stops touching the transform, which then keeps whatever pose animation or
-  authoring gives it (the "hold" idiom is this hands-off no-op). Per-axis `AffectsPosition/Rotation`
+  authoring gives it (the "hold" idiom is this hands-off no-op). **`GlobalWeight 0` is not this
+  no-op**: an active constraint at GlobalWeight 0 drives its transform to the captured `*AtRest`
+  pose every frame — only a zero source-weight sum is hands-off. Per-axis `AffectsPosition/Rotation`
   masks decompose a transform into single-axis measurement/actuation channels.
 - A constraint's sources may be **its own children** — feedback loops are legal and resolve
   consistently each frame (the basis of the crawler/cage tracking patterns in `gimmicks.md`).
-- `Locked` bakes offsets at edit time; constraint state re-initializes on activation.
+- `Locked` bakes offsets at edit time; constraint state re-initializes on activation. The capture is
+  the inspector's Lock/Activate **button routine** — script-setting `Locked = true` captures nothing,
+  leaving `*AtRest`/offsets at type defaults, so code building constraints must set them explicitly
+  or the constraint silently drives to the wrong rest.
 
 ## Scale
 

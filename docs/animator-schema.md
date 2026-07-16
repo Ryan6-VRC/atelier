@@ -25,6 +25,8 @@ compile still rejects.
 A bounded block/flow YAML: 2-space block mappings and `- ` sequences, flow `{k: v}` / `[a, b]`, `#`
 comments, single/double quotes. Scalars infer: `true`/`false`/`on`/`off` → bool, `~` or empty → null,
 integer → int, decimal → float, else string (quote a string that would otherwise infer, e.g. `"on"`).
+Inference applies to **names in value position** too — a state named `On`/`Off` makes `to: On` parse
+as a boolean; prefer names that aren't YAML literals (`Idle`/`Disabled`) over quoting every reference.
 **Refused by name+line:** anchors `&`, aliases `*`, tags `!`, block scalars `|`/`>`, multi-doc `---`, tab
 indentation. Duplicate keys in one mapping are refused (names are identity).
 
@@ -283,7 +285,9 @@ clips:
 - **Curve tangents.** A `curves:` value is normally the bare list `[[t,v],…]` — **flat** tangents, the
   default: the segment eases between keys, so a two-key "ramp" bows instead of running straight. For a
   straight proportional ramp (a frame-time `TimeRamp`, a linear sweep) give that curve the map form
-  `{ tangents: linear, keys: [[t,v],…] }`; `tangents:` takes `linear` or `flat`, per curve. Round-trip
+  `{ tangents: linear, keys: [[t,v],…] }`; `tangents:` takes `linear` or `flat`, per curve — there is
+  no `stepped`: emulate a step with a one-frame hold key (`[[0,0],[0.2333,0],[0.25,1]]` steps at 0.25),
+  identical at the 60 Hz sample rate. Round-trip
   keeps flat curves in the bare-list form (byte-identical to documents predating this option) and emits
   the map form only where a curve is linear — see `vrc-patterns/blendtree-math` for a worked frame-time rig.
 - **Binding resolution.** A bare identifier naming a **declared parameter** binds as an animator-parameter
