@@ -73,6 +73,14 @@ tags but not their fixes — recover the full offender detail with
 `PlayGateCore.Evaluate(SceneManager.GetActiveScene())`, never `default(Scene)`, which returns a
 bogus PASS.
 
+The Fix-Write-Defaults precondition is **modal-avoidance**, not correctness. VRCFury prompts mid-build
+when its WD analysis reads broken and the avatar carries neither `FixWriteDefaults` nor
+`MmdCompatibility`; either feature at **any mode** disarms it. The gate demands the feature on every
+VRCFury avatar rather than predicting the analysis — deliberately, so the WD decision is an authored,
+reviewable artifact instead of a click. It guards **play only**: direct `OnPreprocessAvatar`, test copy
+and upload reach the prompt unguarded (`unity.md` §Sharp edges). Never answer it with **"Skip and stop
+asking"** — that persists a component onto the avatar, and it is the middle button on screen.
+
 It does **not** check that an emulator control object is *enabled* — absence is a legitimate bake-only
 check, so the gate stays silent, but driving the emulator without it spawns no runtimes and the harness reads empty:
 

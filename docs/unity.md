@@ -131,7 +131,21 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
   edit the asset via `PrefabUtility.LoadPrefabContents`. Verify by `childCount`, not `SetParent` calls.
 - **Entering play blocks the Editor main thread** while the non-destructive build runs
   (NDMF/VRCFury/d4rk/LAC): `editor_state` freezes and reads time out for ~minutes on a heavy avatar; an
-  `execute_code` issued during it queues and returns once the build frees the thread. Batch play-mode
-  work; re-entering play re-runs the whole build. (The gate guarding entry is `verify.md`'s.)
+  `execute_code` issued during it queues and returns once the build frees the thread — unless the build
+  raises a modal (next bullet). Batch play-mode work; re-entering play re-runs the whole build. (The gate
+  guarding entry is `verify.md`'s.)
+- **Anything blocking the Editor main thread inside `execute_code` strands the caller** — the queue
+  drains on `EditorApplication.update`. A build call that times out means **list dialogs, don't retry**:
+  `Process.Responding` stays `True` under a modal, so it cannot tell you which case you are in.
+  - **A modal.** The build pipeline raises many, and none are suppressible — VRCFury has no
+    batch/pref/silent seam and the SDK's "Preprocess Callback Failed" is unconditional, so don't go
+    looking for a flag. Read and press them from outside with `tools/unity-dialog.ps1`.
+  - **`.Result`/`.Wait()` on an awaited Task** — Unity's SynchronizationContext posts the continuation
+    to the thread you are blocking. Unrecoverable; kill the editor.
+  The transport re-sends the identical payload up to 6× and Unity drains every copy on the first tick
+  after the block clears; the proxy guard collapses that to one execution plus N
+  `[proxy-duplicate-suppressed]`. One execution still happened — a partly-applied mutation stays applied.
+- **`-batchmode` auto-cancels dialogs**, logging `Cancelling DisplayDialog: <title>` — a headless build
+  fails loud on that line instead of wedging, and the cancel never mutates WD (VRCFury resolves to Skip).
 - **`Unity.exe` is GUI-subsystem and does not block under `& exe`** — use `Start-Process -Wait` for
   headless batchmode runs.
