@@ -157,22 +157,32 @@ few-frame pulse can fall between evaluations and silently never fire).
 params to assert `IsLocal`-branch divergence (a bit-sync system runs its write side on local, read
 side on the clone). The emulator models 8-bit float quantization (~1/127 steps) and the ~0.1 s sync
 tick (`NonLocalSyncInterval`). Two clone caveats. **The clone's animator runs `CullCompletely`**
-(local runs AlwaysAnimate — emulator-faithful distance culling): with no camera, or no visible
-renderer under the clone (a descriptor-only test avatar, a module whose only mesh a hidden state
-disables), the clone's graph never ticks and reads as a stuck state machine — give the test avatar
-a camera and an always-visible body mesh. **Contacts are not simulated against clones at all**: a
-scripted sender verified overlapping a clone's receiver reads `paramValue = 0` — the clone's visual
-offset is render-only and its hierarchy transforms are true, so the overlap is real and the zero is
-the simulation's absence. Every contact assertion runs against the **local** avatar
-(`EnablePlayerContactPermissions=false` makes self count as other); remote-side contact behavior is
-in-game-only. **But the `synced` flag lies both ways** — the baked flag reads
-synced-false for compressed params that still replicate (VRCFury's Parameter Compressor), and the
-pre-build asset under-counts (build-time MA/VRCF/prefab merges add synced params) — so judge the
-synced-bit cost from the post-build `VRCFuryDebugInfo` bit totals (from the bake), never a raw param-asset
-flag.
+(local runs AlwaysAnimate — emulator-faithful distance culling), and culling keys off whether the
+clone's renderers actually *render*: an **unfocused editor renders nothing** (`renderer.isVisible`
+stays false even with a scene camera aimed at a visible body mesh), so the clone's FX playable
+silently stops ticking and reads as a graph frozen mid-transition. For graph-logic reads, set the
+clone's Animator to `AlwaysAnimate` after spawn (a deliberate fidelity trade — you are testing
+routing, not culling) or keep the editor focused. **Contacts are never simulated against clones —
+clone contact values are spawn-time fossils, not zeros**: a clone receiver's `paramValue` (and its
+mirrored animator param) holds whatever the *local* avatar's receiver read at the moment the clone
+spawned, forever — a clone spawned mid-latch reads latched with no sender anywhere near (the
+clone's visual offset is render-only and its transforms are true, so a verified overlap changing
+nothing is the simulation's absence). Every contact assertion runs against the **local** avatar;
+remote-side contact behavior is in-game-only (or a two-avatar session — below). **But the
+`synced` flag lies both ways** — the baked flag reads synced-false for compressed params that
+still replicate (VRCFury's Parameter Compressor), and the pre-build asset under-counts
+(build-time MA/VRCF/prefab merges add synced params) — so judge the synced-bit cost from the
+post-build `VRCFuryDebugInfo` bit totals (from the bake), never a raw param-asset flag.
 
-**Fake another player's contact.** A scripted sender fires an `allowOthers`-only receiver solo (the
-single-avatar `EnablePlayerContactPermissions=false` default treats every contact as self+other):
+**Fake another player's contact.** A scripted sender fires an `allowOthers`-only receiver solo —
+but know the mechanism: contact self/other is `sender.playerId == receiver.playerId`, and the
+allow-flag filter applies **only when both sides are avatar dynamics** (`Usage == Avatar`). A
+runtime-scripted sender isn't, so it bypasses the filter entirely; an **avatar-mounted** sender
+(the descriptor-synthesized `Head`/`Hand` senders included) does not — with
+`EnablePlayerContactPermissions=false` all avatar contacts share one id, so the wearer's own
+senders **self-block** on `allowOthers`-only receivers and never fire them. "Drop the prop on your
+own head" therefore cannot stand in for another player; a scripted sender (or a second avatar —
+below) can:
 
 ```csharp
 var go = new UnityEngine.GameObject("Sender"); go.transform.position = head.position;
@@ -182,6 +192,20 @@ s.rootTransform = go.transform;
 s.collisionTags = new System.Collections.Generic.List<string>{ "Hand" };
 // next call: read the target receiver's .paramValue / .IsColliding()
 ```
+
+**Two-avatar contact sessions — the faithful self/other venue.** For a gimmick whose correctness
+*is* the allow-flag discrimination (self-anchor vs track-another-player arbitration), put a second
+avatar in the scene and flip `EnablePlayerContactPermissions` **on** (the PlayGate one-shot
+override covers both violated preconditions). Each avatar then runs as its own local player with a
+distinct `contactPlayerId` stamped on its contacts: cross-avatar contacts are genuinely "other"
+(avatar B's synthesized Head sender fires A's `allowOthers` cage), self-blocks enforce (A's own
+head sender reads 0 on A's cage while A's `allowSelf` receiver reads 1 — measured), both animators
+run un-culled, and scripting avatar B's root makes a moving-target chase test. One trap: head/hand
+sender synthesis runs twice per avatar and the duplicate carries a junk `playerId` that reads as a
+*different player*, silently defeating self-blocks — after play starts, destroy every sender whose
+`playerId` differs from its runtime's `contactPlayerId`. What the route cannot show: anything
+networked — two locals share no sync channel (remote param routing still needs the clone), and a
+grab does not transport between them.
 
 **Induce a physbone grab/pose.** `VRC.Dynamics.PhysBoneManager.Inst.AttemptGrab(grabberId,
 comp.chainId, bone)` returns a `Grab` — **`grabberId` must be `0`** (an arbitrary id returns null); set
