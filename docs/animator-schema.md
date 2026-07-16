@@ -284,12 +284,16 @@ clips:
   length from the keys, flooring at one frame (1/60 s).
 - **Curve tangents.** A `curves:` value is normally the bare list `[[t,v],…]` — **flat** tangents, the
   default: the segment eases between keys, so a two-key "ramp" bows instead of running straight. For a
-  straight proportional ramp (a frame-time `TimeRamp`, a linear sweep) give that curve the map form
-  `{ tangents: linear, keys: [[t,v],…] }`; `tangents:` takes `linear` or `flat`, per curve — there is
-  no `stepped`: emulate a step with a one-frame hold key (`[[0,0],[0.2333,0],[0.25,1]]` steps at 0.25),
-  identical at the 60 Hz sample rate. Round-trip
-  keeps flat curves in the bare-list form (byte-identical to documents predating this option) and emits
-  the map form only where a curve is linear — see `vrc-patterns/blendtree-math` for a worked frame-time rig.
+  straight proportional ramp give the map form `{ tangents: linear, keys: [[t,v],…] }`; for a hard
+  step (a `0→1→0` pulse) give `{ tangents: stepped, keys: [[t,v],…] }` — the value holds each key until
+  the next, then snaps. `tangents:` takes `flat`, `linear`, or `stepped`, per curve. Round-trip keeps
+  flat curves in the bare-list form (byte-identical to documents predating this option) and emits the
+  map form where a curve is linear or stepped — see `vrc-patterns/blendtree-math` for a worked
+  frame-time rig. `auto`/`free` can't be **authored** — the parser rejects any token but `flat`/`linear`/
+  `stepped` (Unity recomputes auto/clamped-auto; free carries explicit tangent values the `[t,v]` form
+  can't express). On **decompile**, an unweighted all-zero-tangent curve normalizes to flat (it
+  interpolates identically), while a curve with non-zero, mixed, or **weighted** tangents is refused as a
+  fork to a hand-owned `.anim`, not flattened.
 - **Binding resolution.** A bare identifier naming a **declared parameter** binds as an animator-parameter
   curve — the AAP / param-write mechanism (`aap_min: { set: { Smoothed: 0.0 } }`). Anything else is a scene
   binding parsed as **`path/Component.property`**: split on the last `/`, then the **first** `.`. So
