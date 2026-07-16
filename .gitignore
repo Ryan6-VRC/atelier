@@ -41,6 +41,7 @@ CLAUDE.local.md
 # Internal working scratch — not for the public repo (kept locally, untracked)
 kickoffs.md
 fixups.md
+*-staleness-repro.md
 
 # Local, script-generated headless test projects (tools/setup-test-editor.ps1) — never committed.
 # The glob covers per-session suffixed editors (TestEditor-<name>) run from worktrees.
