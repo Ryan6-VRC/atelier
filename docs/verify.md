@@ -63,7 +63,11 @@ avatar and a VRCFury Fix Write Defaults feature (**skipped on a VRCFury-free ava
 plus (when an enabled emulator is present) no active
 Gesture Manager and the emulator config polarity — `RunPreprocessAvatarHook` **on**,
 `EnablePlayerContactPermissions` **off** (a
-Gesture Manager only fights a *live* emulator). Read the verdict; don't hand-check them.
+Gesture Manager only fights a *live* emulator). Read the verdict; don't hand-check them. When
+`read_console` truncates the FAIL line past its header, the Scene-view overlay names the offending
+tags but not their fixes — recover the full offender detail with
+`PlayGateCore.Evaluate(SceneManager.GetActiveScene())`, never `default(Scene)`, which returns a
+bogus PASS.
 
 It does **not** check that an emulator control object is *enabled* — absence is a legitimate bake-only
 check, so the gate stays silent, but driving the emulator without it spawns no runtimes and the harness reads empty:
