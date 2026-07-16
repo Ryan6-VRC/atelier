@@ -41,6 +41,14 @@ The shape map catches it by reasoning; `ReportShapeOverlap` measures the shared-
 confirms the stack once you have named the co-active shapes (the base worn `Shrink_*` and the outfit
 `ShapeChanger`'s targets) — a `Report`, not a verdict: it locates the collision, you rule wanted-vs-defect.
 
+**A foot-pose shape (a heel arch — `Heel_Feet`-style) is coupled to the worn footwear, not to a
+garment mesh the graph names — resolve it declared-or-zero.** Ship the value the composed outfit's
+own authoring declares (its `ShapeChanger` setting the heel pose); absent a declaration, 0 — the
+fail-safe direction: an arched foot clips through a flat sole (visible from below), where a neutral
+one merely under-fills an undeclared heel. Never classify footwear from a render — model vision
+cannot tell a heel from a platform sole; an outfit that ships heels and declares no pose is residue
+to name, not a render to read.
+
 **Anti-clip has a second idiom: geometry deletion.** Beside the shrink-shape model this doc centers, an
 outfit's MA `ShapeChanger` in **Delete** mode removes the overlapped base vertices outright — a live
 idiom on real assets. Read the mode, not just the target (`ShapeChangeType` Delete=0/Set=1 —
@@ -51,8 +59,15 @@ idiom on real assets. Read the mode, not just the target (`ShapeChangeType` Dele
 The base's **FX layers and their animation clips** encode the coupling: the state that *hides* a
 garment is the same state that drives its coupled body blendshapes to their garment-off values. That
 graph — not a naming convention — is the source of truth for "what else moves when this mesh goes
-away." Read it (`ReportController` / `ReportClip`): find the garment's off state, and statically apply
-the body-blendshape values it sets when you disable the mesh.
+away." Read it (`ReportController` / `ReportClip`): find the garment's off state, and apply the values
+it sets when you disable the mesh — **in the substrate that owns them at runtime**. An always-on
+layer (weight 1, WD ON) gated on an expression parameter *re-applies* its param-selected state every
+frame, so the shipped costume is the **expression-parameter defaults**, not the scene's static mesh
+states: there the strip is a parameter-default flip, the same undress route the shipped menu drives.
+Statics hold only where no runtime layer drives the property; on a driven one a static edit moves the
+edit-time look and nothing else — how a double-dressed avatar passes every edit-time gate. A default
+flip changes the shipped menu defaults: an operator call, authored per `menus.md`, verifiable only in
+a play-mode read of the driven state.
 
 Authority, high to low:
 
