@@ -189,12 +189,18 @@ not a hunch.
   group's writes are visible to the next. So chains (A←B←C) are consistent per-frame and measurement
   through several hops is sound. Ordering is guaranteed only within one **avatar root**, not across
   avatars.
-- Constraints solve **once per rendered frame** (not on the physics tick), and each is auto-placed
-  before or after the PhysBone solve by dependency: one feeding a physbone runs pre-physbone, one
-  depending on IK/animation runs after local-avatar processing, else post-physbone. A constraint
-  measuring physbone output therefore sits downstream of it automatically. The full per-frame
-  dynamics order is one pipeline — pre-physbone constraints → PhysBones → post-physbone constraints →
-  Contacts → post-local-avatar constraints — so contact receivers sample **after** the physbone solve.
+- Constraints solve **once per rendered frame** (not on the physics tick). A constraint's slot
+  relative to the PhysBone solve is derived from the hierarchy relation between its **effective
+  target transform** (TargetTransform-aware — the transform it drives, not the component's
+  GameObject) and a physbone's **root** transform: target at or above the physbone root ⇒
+  **pre-physbone** (the constraint drives the chain); target or any source *inside* the chain ⇒
+  **post-physbone** (it reads the solved pose); dependence on IK/animation ⇒ post-local-avatar;
+  no relation ⇒ post-physbone. So to steer a physbone-controlled transform the driven target must
+  sit at or above that chain's root; to read one, source from inside it. **Trap:** a constraint
+  that both drives and reads a physbone resolves to post-physbone — the drive side silently loses,
+  so split steering and reading across two constraints. The full per-frame dynamics order is one
+  pipeline — pre-physbone constraints → PhysBones → post-physbone constraints → Contacts →
+  post-local-avatar constraints — so contact receivers sample **after** the physbone solve.
 - `TargetTransform` lets a constraint component live on GameObject X while driving transform Y —
   the "affect that other object" indirection (the target is frozen at play start; edit-mode only,
   not animatable). Combined with GO active toggling this hosts editor-only alignment helpers and
