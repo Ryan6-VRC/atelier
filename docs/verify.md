@@ -18,7 +18,9 @@ Cheapest; catches the mechanical bug classes.
 produced — VRCFury prefix rewrites, Parameter-Compressor membership, layer provenance, and the
 **true synced-param count** (the pre-build asset under-counts — MA/VRCF/prefab merges add synced
 params at build). The build is
-deterministic and fails loud, so **read the result, don't reconcile it against intent**: VRCFury
+deterministic and fails loud — judge build health from log **text**, not console severity (normal
+VRCFury progress surfaces at Exception type through `read_console`) — so **read the result, don't
+reconcile it against intent**: VRCFury
 reports its own reshaping in a `VRCFuryDebugInfo` "Parameter Compressor" component on the baked root
 (bit totals, sync delay, compressed-param membership — `runtime.md` §VRCFury build-time reshaping).
 
@@ -183,14 +185,17 @@ still replicate (VRCFury's Parameter Compressor), and the pre-build asset under-
 post-build `VRCFuryDebugInfo` bit totals (from the bake), never a raw param-asset flag.
 
 **Fake another player's contact.** A scripted sender fires an `allowOthers`-only receiver solo —
-but know the mechanism: contact self/other is `sender.playerId == receiver.playerId`, and the
-allow-flag filter applies **only when both sides are avatar dynamics** (`Usage == Avatar`). A
-runtime-scripted sender isn't, so it bypasses the filter entirely; an **avatar-mounted** sender
-(the descriptor-synthesized `Head`/`Hand` senders included) does not — with
-`EnablePlayerContactPermissions=false` all avatar contacts share one id, so the wearer's own
-senders **self-block** on `allowOthers`-only receivers and never fire them. "Drop the prop on your
-own head" therefore cannot stand in for another player; a scripted sender (or a second avatar —
-below) can:
+know the mechanism: contact self/other is `sender.playerId == receiver.playerId`, and in editor
+play **every** contact is avatar dynamics (`Usage` defaults to `Avatar` — scripted ones included),
+so the allow-flag filter always applies. The SDK stamps each avatar's contacts with a per-avatar
+id at init (`AvatarDynamicsSetup`: the descriptor's hash — junk-looking negative ids are normal),
+with `EnablePlayerContactPermissions` off too; a sender parented to no avatar keeps the default
+`-1` and reads as **another player** on the id compare, while the wearer's own senders share the
+avatar's id and **self-block** on `allowOthers`-only receivers. "Drop the prop on your own head"
+therefore cannot stand in for another player; a scripted sender (or a second avatar — below) can.
+And don't assume the descriptor-synthesized `Head`/`Hand` senders as test hardware: synthesis is
+the emulator control's `DescriptorColliders` setting reading the descriptor's collider slots —
+absent on a module-scale minimal rig (measured zero) — so count them before use:
 
 ```csharp
 var go = new UnityEngine.GameObject("Sender"); go.transform.position = head.position;
@@ -201,25 +206,42 @@ s.collisionTags = new System.Collections.Generic.List<string>{ "Hand" };
 // next call: read the target receiver's .paramValue / .IsColliding()
 ```
 
-**Two-avatar contact sessions — the faithful self/other venue.** For a gimmick whose correctness
-*is* the allow-flag discrimination (self-anchor vs track-another-player arbitration), put a second
-avatar in the scene and flip `EnablePlayerContactPermissions` **on** (the PlayGate one-shot
-override covers both violated preconditions). Each avatar then runs as its own local player with a
-distinct `contactPlayerId` stamped on its contacts: cross-avatar contacts are genuinely "other"
+**Receivers bridge to params only through the expression set.** The runtime's param mirror is
+built from the baked `VRCExpressionParameters` alone, and a receiver write to a name not in it is
+a **silent no-op** — the component's `paramValue` still moves, the mirror never does. MA `NotSynced`
+params are dropped from the baked asset (bridge dead); MA local-only stays in; receiver type is
+irrelevant (Constant and Proximity both bridge). And while the contact persists the receiver
+re-asserts its param, so a manual mirror write silently loses (sibling of the driver-reversion
+trap) — stimulate the sender, don't puppet the param.
+
+**Two-avatar contact sessions — the faithful self/other venue.** The scripted-sender route above
+unit-tests the allow-flags themselves; take a second avatar when the behavior needs a real other
+player — descriptor-synthesized senders riding another armature, arbitration across players, a
+moving-target chase — and flip `EnablePlayerContactPermissions` **on** (the PlayGate one-shot
+override covers both violated preconditions). Each avatar then runs as its own local player, its
+contacts re-stamped with its runtime's `contactPlayerId` (small sequential ints replacing the
+permissions-off descriptor hashes — don't carry ids across the flag flip): cross-avatar contacts
+are genuinely "other"
 (avatar B's synthesized Head sender fires A's `allowOthers` cage), self-blocks enforce (A's own
 head sender reads 0 on A's cage while A's `allowSelf` receiver reads 1 — measured), both animators
 run un-culled, and scripting avatar B's root makes a moving-target chase test. One trap: head/hand
 sender synthesis runs twice per avatar and the duplicate carries a junk `playerId` that reads as a
 *different player*, silently defeating self-blocks — after play starts, destroy every sender whose
-`playerId` differs from its runtime's `contactPlayerId`. What the route cannot show: anything
+`playerId` differs from its runtime's `contactPlayerId`. That field is **non-public**: read it with
+`GetField("contactPlayerId", BindingFlags.NonPublic | BindingFlags.Instance)` and **abort if the
+read is null** — a defaulted sentinel compares unequal to every sender's id and the loop destroys
+the legitimate senders too (measured; play-exit to recover). What the route cannot show: anything
 networked — two locals share no sync channel (remote param routing still needs the clone), and a
 grab does not transport between them.
 
 **Induce a physbone grab/pose.** `VRC.Dynamics.PhysBoneManager.Inst.AttemptGrab(grabberId,
-comp.chainId, bone)` returns a `Grab` — **`grabberId` must be `0`** (an arbitrary id returns null); set
-`grab.GlobalPosition` in the **same call** (it defaults to
-origin, else the chain snaps to 0,0,0). Move it across calls via `GetGrabs()` (match `chainId`) — the
-solver drags the chain and `_IsGrabbed` fires. `ReleaseGrab(chainId)` clears it;
+comp.chainId, bone)` returns a `Grab` — **`grabberId` must be `0`** (an arbitrary id returns null),
+`bone` is an **int** chain index; set `grab.GlobalPosition` in the **same call** (it defaults to
+origin, else the chain snaps to 0,0,0 — the Vector3 property wraps a `globalPosition` float3
+field, and reflection sees only the lowercase field). A call that grabs then throws leaves that
+origin-grab **live** (chain pinned at 0,0,0), and a repeat `AttemptGrab` on a grabbed chain
+returns **null** — recover via `GetGrabs()` → `ReleaseGrab`, not a retry. Move it across calls via
+`GetGrabs()` (match `chainId`) — the solver drags the chain and `_IsGrabbed` fires. `ReleaseGrab(chainId)` clears it;
 `ReleaseGrab(grab, true, grabberId)` on an `allowPosing` bone leaves it **held** (read the bone
 transform; no `_IsPosed` param). Discover grabbable bones by scanning chains for `allowGrabbing != 0`;
 offset the target off the bone endpoint or `SolveGrabIK` spams a benign `FromToRotation` assertion.
