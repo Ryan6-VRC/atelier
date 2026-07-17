@@ -18,7 +18,11 @@ captures) are the single declarations of the two output dirs.
 
 **Invocation & preview grammar** — the string-handle invocation rule, the `Ryan6Vrc`/`Ryan6VRC`
 namespace-vs-assembly split, and the `whatIf`/`preflight` preview grammar every tool here (and in
-§Avatar tools) obeys live in `unity.md` §Agent-callable tools.
+§Avatar tools) obeys live in `unity.md` §Agent-callable tools. `execute_code` compiles your snippet as a
+**method body**, so a `using` directive can't sit at the top (the proxy refuses it) — **fully-qualify each
+call**: `Ryan6Vrc.AgentTools.Editor.<Tool>.<Method>(…)` for the tools here,
+`Ryan6Vrc.AvatarTools.Editor.<Tool>.<Method>(…)` for §Avatar tools. The type namespace is `Ryan6Vrc`
+and the `.Editor` suffix is required — both are the recurring stumble.
 
 `AgentInspector` walks selected/scene objects (incl. VRChat components,
 generically via `SerializedObject`) to JSON under `AvatarProject/Assets/Agent/Snapshots/`; the
@@ -39,7 +43,10 @@ raw fields and leaves decoding to you, `ReportGimmick` interprets a whole gimmic
 compact digest — constraint edge-lists, physbone/contact tables, and mechanically-certain idioms — and
 is complete by construction: a generic tier-2 census names every component no table interpreted
 (Modular Avatar, custom scripts, broken scripts) with a one-struct-level scalar peek, so `other=0`
-genuinely means empty. Reach for it to reason about a gimmick's topology; drop to
+genuinely means empty. This is also why you let the tool read the avatar rather than hand-grepping
+prefab YAML: Modular Avatar components serialize by script **GUID** (MergeArmature is `2df373bf…`), never
+the string `MergeArmature`/`nadena`, so a name grep of the YAML finds nothing. Reach for it to reason
+about a gimmick's topology; drop to
 `AgentInspector.Snapshot(<host path>)` only for what's past that shallow peek — a component's nested
 structs, arrays, or followed assets.
 

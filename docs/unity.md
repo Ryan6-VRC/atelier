@@ -103,6 +103,10 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 - **`execute_code` `safety_checks` blocks destructive patterns** (`AssetDatabase.DeleteAsset`,
   `File.Delete`, `Process.Start`, loops). Pass `safety_checks=false` for a narrowly-scoped,
   confirmed-intentional one.
+- **`Type.GetType("Name, Assembly")` returns null in `execute_code` for VRCSDK / emulator types**
+  (`LyumaAv3Runtime`, `VRCAvatarDescriptor`, `PipelineManager`) — the assembly-qualified lookup doesn't
+  resolve them. Find the type by an `AppDomain` scan matched on name (the pattern §Non-destructive uses to
+  discover tool component types), or grab a live instance with `FindObjectsOfType`.
 - **VRCFury components build cleanly from `execute_code` despite `VF.Model` being internal**:
   `AddComponent(Type)` + `Activator.CreateInstance(type, true)` + reflection field-sets;
   `GuidWrapper.objRef` is public (leave `id` empty — VRCFury syncs it); fresh model instances

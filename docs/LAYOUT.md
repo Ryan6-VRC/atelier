@@ -47,8 +47,9 @@ result lands and why.
   skill's.
 - **Non-Unity source files live outside `Assets/`** at the project root, so editing them never
   triggers an editor refresh:
-  - **`Blender/Avatars/<Name>/`** — the `<Name>.blend` source, namespaced like `Assets/`; also holds
-    the **proportion profiles** the reproportion skill reads/writes (see below).
+  - **`Blender/Avatars/<Name>/`** — the `<Name>.blend` source (a binary: gitignored + externally backed
+    up, local-only), namespaced like `Assets/`; it also holds the **proportion-edge JSONs** the reproportion
+    skill reads/writes, which *are* tracked (diffable recovery artifacts — see below).
   - **`Blender/Outfits/<Base>/<Outfit>/<Outfit>.blend`** — owned outfits go **base-first**: the base
     you fitted to is held constant, the outfit varies underneath it (file by the axis held constant —
     `Vendor/Outfits/<Outfit>/` stays **outfit-first**, since a vendor product's base varies *inside*

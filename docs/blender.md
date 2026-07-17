@@ -48,7 +48,7 @@ still needed on Blender 5.1+ (which abandoned CATS). The callable ops are listed
   `proportions.apply_proportion_edge`, `shapekey_bake.bake_shapekey_to_basis` (edge files live per-avatar in `Blender/Avatars/<Name>/`; the
   extension's `edges/` holds fixtures/examples only).
 - `operators.py` + `ui.py` — thin N-panel wrappers giving end users installable buttons.
-- `cli/` — headless entry points.
+- `cli/` — headless entry points; a **repo-root sibling** of `avatarprep/` (`vrc-blender-tools/cli/`), not under it.
 - **Mesh-state visual capture** is headless too: the `render_mesh` cli (`--background`, Workbench render
   to a stamped contact-sheet PNG the agent reads — solid or vertexcolor, named world-axis angles) gives
   back the deterministic render the denied `render_*_to_path` MCP tools removed, for mesh reads and the
