@@ -70,7 +70,11 @@ the in-flight callback (leaving the log stuck at `pending`). `Verify` routes dee
 
 `.controller`/`.anim` files have their own read-only reporters — `ReportController`, `ReportClip`,
 `CheckAnimator` (whose binding-walk `CheckAvatar` below reuses) — contracted with the rest of the animator
-tooling in `docs/animator.md`.
+tooling in `docs/animator.md`. **Handle convention across the read/check family:** an **asset door**
+(these three) takes the asset it reports — the typed `AnimatorController`/`AnimationClip` *or* its
+**path/GUID** — while a **scene door** (`CheckAvatar`/`CheckSeam`/`ReportShapeOverlap` below) takes a
+**scene handle** (hierarchy path / instance-id / name). A wrong-family handle is a loud bare-`FAIL`, never
+a silent misread.
 
 `CheckAvatar.Inspect(avatarRoot)` is the scene-scoped companion to those digests: on an instantiated
 in-scene avatar (descriptor) root it names the two path-encoded reference breaks a base rename leaves after

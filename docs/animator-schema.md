@@ -438,8 +438,9 @@ at the default grid/constants emits none, so decompiling a never-touched control
 **Import tolerances** (applied silently, listed in `_notes.tolerances`):
 - **Mixed Write Defaults** → the layer's **modal** WD value becomes the layer policy and the minority states
   keep an explicit `writeDefaults:` override (tie → `true`); re-emit reproduces the same per-state mix.
-- **`timeParameterActive` with an empty parameter** (every vendor Gesture ships this) → normalized to
-  unbound motion time (no `motionTimeParam:`).
+- **`timeParameterActive` with an empty parameter** (a stray flag on some vendor Gesture states — not the
+  norm; most states that scrub motion time name a real parameter) → normalized to unbound motion time (no
+  `motionTimeParam:`).
 
 **Named refusals.** A construct the schema's shape can't round-trip makes Decompile return a bare `FAIL:`
 naming each and write **no** yaml — it refuses to approximate; iterate on the message. Two kinds. *Out of
@@ -465,6 +466,7 @@ reaches a fixpoint. The single acknowledged lossy step is a genuinely-broken ven
 A compile rejects these — listed so an "unknown field" error reads as deferred, not a syntax slip:
 
 - **AvatarMask emission.** A layer's `mask:` references an existing `AvatarMask` by path; the compiler never
-  **emits** one (external refs only).
+  **emits** one (external refs only). This bites only a **vendor-local** `.mask`: an SDK/`Packages/` mask
+  round-trips GUID-identical through the path ref, so emitting a project-local mask is the only untested part.
 - **CustomObjectSync-scale parameterized codegen** — its own future slice.
 - **An NDMF build-time pass** — the compiler writes assets, not a build hook.

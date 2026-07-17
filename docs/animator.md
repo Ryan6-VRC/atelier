@@ -10,20 +10,22 @@ every mutating tool obeys is in `unity.md`.
 ## Reading a controller
 
 Three read-only introspection tools (`agent-tools`) turn raw `.controller`/`.anim` YAML into cheap
-deterministic digests:
+deterministic digests. Each takes its asset as the **typed object *or* the asset's path/GUID** — an asset
+handle, not a scene path (the asset-vs-scene-door split is `unity-tools.md`'s). A handle naming no such
+asset is a loud bare-`FAIL`.
 
-- `ReportController.Report(controller)` — a ~50:1 markdown digest that *decodes* animator semantics rather
+- `ReportController.Report(controller | path/GUID)` — a ~50:1 markdown digest that *decodes* animator semantics rather
   than echoing YAML: parameters, layers (+ per-layer Write-Defaults and `states=N`), states and their motions
   (clips named by **asset-path + GUID**, an empty-vs-broken split that surfaces a dangling motion GUID —
   broken further split **live-reachable vs orphan-only** (`brokenMotions=Nlive/Morphan`), a GUID a live state
   plays vs YAML residue no state reaches, so a scary broken count that is all orphan is benign), the
   first-match transition ladder, and VRC state-machine behaviours decoded **typed**. To `Snapshots/`; `…
   layers=… states=… params=… => OK | log=<path>`.
-- `ReportClip.Report(clip)` / `ReportFolder(folder)` — bindings as a `path | type | propertyName | keys`
+- `ReportClip.Report(clip | path/GUID)` / `ReportFolder(folder)` — bindings as a `path | type | propertyName | keys`
   table (one row per curve), paths as-authored (a `""` root shown as `(root)`, never judged). To
   `Snapshots/`. Folder mode mirrors `CheckPackage.VerifyFolder` (`unity-tools.md`), down to the empty-but-valid
   `0 clips => OK`.
-- `CheckAnimator.Lint(controller, basis, mergeSite, avatarRoot, mountRoot)` — binary **PASS/FAIL** (FAIL iff
+- `CheckAnimator.Lint(controller | path/GUID, basis, mergeSite, avatarRoot, mountRoot)` — binary **PASS/FAIL** (FAIL iff
   an `error`-tier rule fires) + per-kind counts + a two-tier offender body, to `RunLogs/`. Only five `error`
   rules flip the verdict — unresolvable-motion-GUID, undeclared-param (VRC built-ins exempt),
   unconditional-entry-shadow, never-firing transition (a state hop with no condition **and** no exit time),
@@ -36,6 +38,11 @@ deterministic digests:
   paths, so an authored-scene resolve would false-FAIL). A **descriptor-borne** controller (played from the
   avatar's own FX slot, no merge component to read a frame from) is the `basis=explicit` case with **null
   roots** — its bindings are already authored against the avatar root, so no remap is asserted.
+
+A controller shipped inside a **never-placed prefab** gives `basis=auto` no in-scene merge component to
+read a `mergeSite` from. Instantiate it transiently (`InstantiatePrefab`), lint against that instance's
+`mergeSite`, then `DestroyImmediate` in a `finally` — asserting the scene didn't dirty. Don't fall back to
+`basis=explicit` unless you can name the real build frame; guessed roots defeat the lint.
 
 `CheckAnimator`'s binding-walk is the same one `CheckAvatar` (`unity-tools.md`) reuses for scene-placement
 ref-breaks — one walk, so the two doors can't disagree on how a binding resolves.

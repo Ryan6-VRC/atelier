@@ -111,9 +111,8 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
   `AddComponent(Type)` + `Activator.CreateInstance(type, true)` + reflection field-sets;
   `GuidWrapper.objRef` is public (leave `id` empty — VRCFury syncs it); fresh model instances
   auto-stamp `version` via serialization callbacks, so no manual versioning. Enum semantics must
-  come from VRCFury source (`ObjectToggleAction.Mode.TurnOn = 0`). Worked recipe covering
-  FullController/Toggle/ApplyDuringUpload/FixWriteDefaults:
-  `vrc-patterns/grabprop/dev~/build_grabprop_prefab.cs`.
+  come from VRCFury source (`ObjectToggleAction.Mode.TurnOn = 0`); the approach covers FullController,
+  Toggle, ApplyDuringUpload, and FixWriteDefaults.
 - **Editing asset/package files outside Unity** leaves the asset DB stale ("Build asset version
   error"); clear the console + `refresh_unity` (mode=force, scope=all).
 - **Scene creation over `execute_code` is `NewSceneMode`, not `NewSceneSetupMode`**; `manage_scene create`
