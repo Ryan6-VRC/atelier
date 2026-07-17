@@ -1,7 +1,7 @@
 # Unity
 
-`AvatarProject/` is the sandbox Unity project (its own Git repo). Unity **2022.3.22f1**, VRChat-pinned —
-never upgrade (breaks uploaded content).
+`AvatarProject/` is the sandbox Unity project (an untracked working venue — CLAUDE.md §Layout). Unity
+**2022.3.22f1**, VRChat-pinned — never upgrade (breaks uploaded content).
 
 Packages are VPM-managed and reproducible (constraints: workspace `CLAUDE.md`; commands: `bootstrap.md`).
 
@@ -120,7 +120,7 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 - **`manage_asset search` scoped to a nonexistent path silently returns *global* results** (not empty or
   an error) — verify the scope path exists, or read every hit's path.
 - **`AssetDatabase.MoveAsset` leaves the drained wrapper folder inconsistently** — self-cleaned in some
-  cases, lingering until a later `STRUCTURE.md` regen / refresh in others. Re-list the destination after
+  cases, lingering until a later asset-database refresh in others. Re-list the destination after
   every relocate rather than assuming either.
 - **Vendor GameObject names carry trailing spaces** (`"Menu "`, `"Ears "`) that silently break exact-path
   lookups (`transform.Find` / `GameObject.Find`) — copy the name from an inspector dump, or match by

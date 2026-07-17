@@ -10,8 +10,9 @@ The install steps name *what* must exist, not an OS-specific recipe — resolve 
 
 ## 1. Assemble the repos
 
-Atelier is a container of independent git repos. Cloning the meta-repo alone gets you the docs + launcher,
-**not** the tools — the sub-repos are gitignored siblings you clone into place:
+Atelier is a meta-repo with independent **tool** sub-repos cloned in as siblings, plus one or more
+**untracked Unity working venues** (`AvatarProject`). Cloning the meta-repo alone gets you the docs +
+launcher, **not** the tools — clone each sibling below into place:
 
 ```
 Atelier/
@@ -26,15 +27,18 @@ Atelier/
 
 The **folder names are load-bearing**: the VPM `file:` refs, `AvatarProject`'s `../../vrc-unity-tools`
 package refs, and the SessionStart hook's `vrc-mcp-proxy` preflight all resolve by these exact paths. Clone
-each as a sibling under `Atelier/`.
+each as a sibling under `Atelier/`. **`AvatarProject` is the exception**: its GitHub repo is a stripped
+sample skeleton — clone it as the seed, then **remove its `.git`** so it becomes an untracked working
+venue (CLAUDE.md §Layout), not a tracked project. Add it to the meta-repo's local `.git/info/exclude`.
 
 ## 2. Prerequisites
 
 Install per your host; all must exist before wiring:
 
-- **`git` + `git-lfs`** — run `git lfs install` **before** cloning `AvatarProject`. Its VPM resolver ships
-  bootstrap DLLs via LFS; without lfs they clone as ~130-byte pointer files and the resolver breaks with a
-  baffling error. git must also be on PATH — Unity fetches the MCP package over a git URL.
+- **`git` + `git-lfs`** — run `git lfs install` **before** cloning `AvatarProject`'s seed skeleton. Its VPM
+  resolver ships bootstrap DLLs via LFS; without lfs they clone as ~130-byte pointer files and the resolver
+  breaks with a baffling error (materialize them during the seed clone, before removing `.git`). git must
+  also be on PATH — Unity fetches the MCP package over a git URL.
 - **Unity Hub + Unity 2022.3.22f1** — the VRChat-pinned version, never upgraded (breaks uploaded content).
   Sign in and activate a (free personal) license, or first launch stalls on a licensing modal that looks
   like the editor is "still loading" (the bridge heartbeat never goes fresh).
@@ -42,7 +46,7 @@ Install per your host; all must exist before wiring:
   newest one there).
 - **`uv`/`uvx`** — runs the MCP servers.
 - **`vrc-get`** and **ALCOM/VCC** — you want both; see §3.
-- **Python 3.10+** — the Unity/Blender tools, the bridge, and `dump_asset_structure.py`.
+- **Python 3.10+** — the Unity/Blender tools and the bridge.
 - **Claude Code** — the agent host.
 
 ## 3. Wire it
@@ -52,7 +56,7 @@ nothing to fill in. Machine-specific servers (paths, private projects) register 
 `claude mcp add <Name> -s local -e KEY=VAL -- <command>` — BlenderMCP's registration is in its section below.
 
 **VPM packages — seed the repos, then resolve.** `vpm-manifest.json` pins community packages (VRCFury,
-Modular Avatar/NDMF, lilToon, Poiyomi, av3emulator, …) whose payloads are gitignored. A bare machine has only
+Modular Avatar/NDMF, lilToon, Poiyomi, av3emulator, …) whose payloads are reproduced from it, not kept. A bare machine has only
 the official VRChat repo registered, so a raw `vrc-get resolve` fails "package not found" for most of them.
 **ALCOM/VCC bundles the curated community repo set** — the supported way to seed them; or `vrc-get repo add
 <url>` each. Then:
@@ -63,8 +67,8 @@ vrc-get outdated -p .\AvatarProject      # list updatable
 vrc-get upgrade  -p .\AvatarProject <id> # bump one
 ```
 
-`vrc-get` resolves/upgrades but **cannot create** a project — `AvatarProject` already ships the skeleton, so
-the clone is enough.
+`vrc-get` resolves/upgrades but **cannot create** a project — `AvatarProject`'s seed skeleton already ships
+it, so the seed clone is enough.
 
 **Unity MCP.** Claude Code connects through the owned **`vrc-mcp-proxy`** (the shipped `.mcp.json` runs
 `uv run --project vrc-mcp-proxy …` over **stdio**), which spawns the **pinned** upstream MCP-for-Unity
@@ -88,7 +92,7 @@ Roslyn assemblies are present; without them it silently falls back to a C# 6 com
 Editor: *Window → MCP for Unity → (dependencies) → Roslyn (C# 12+ Compiler) → Install* (downloads 5 DLLs
 to `Assets/Plugins/Roslyn/`). Then mark all five **Editor-only** — the installer leaves them "Any
 Platform": select each DLL under `Assets/Plugins/Roslyn/`, set platform to Editor only, Apply. The payload
-is gitignored — **restore per Editor, don't commit it**. Verify: any `execute_code` response's `compiler`
+is not kept — **restore per Editor**. Verify: any `execute_code` response's `compiler`
 field reads `roslyn` (not `codedom`).
 
 **`run_tests` is unavailable — by design.** MCP `run_tests` runs NUnit in the live Editor, the wrong

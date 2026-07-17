@@ -1,31 +1,27 @@
 # Adding a Unity project to the workspace
 
-Ordered procedure for standing up a **new** Unity (or tool) project under an already-working workspace.
-From-zero bring-up of the workspace itself (installs, MCP wiring, package restore) is `bootstrap.md`.
-Folder conventions live in [`LAYOUT.md`](LAYOUT.md); hard constraints (git identity, package
-reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not restates.
+Ordered procedure for standing up a **new** Unity working venue under an already-working workspace.
+A Unity project is an **untracked** working folder (CLAUDE.md §Layout) — none of the steps below touch
+git. From-zero bring-up of the workspace itself (installs, MCP wiring, package
+restore) is `bootstrap.md`. Folder conventions live in [`LAYOUT.md`](LAYOUT.md); hard constraints
+(Unity pin, package reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not restates.
 
-1. **Create the repo and set identity.** `git init`, set your git identity, add the remote. Add the
-   folder to the meta-repo's **local** ignore, `.git/info/exclude` — independent repos are not
-   tracked by the workspace, and project names stay out of the public `.gitignore`.
-2. **Add the Unity `.gitignore` + `.gitattributes`** — copy from an existing project (e.g.
-   `AvatarProject`): `Vendor/` and RunLog `*.json.meta` rules after the `!*.meta` un-ignore line,
-   large binaries gitignored (keep their `.meta`; back them up externally), and LFS limited to the
-   VPM bootstrap DLLs. **Seed the Agent-I/O tree the gitignore assumes** — `Assets/Agent/` with
-   `Snapshots/` tracked and `RunLogs/`+`Scratch/` ignored — by committing a `.gitkeep` (and its folder
-   `.meta`) in each ignored dir, or the first `Check*`/tool write leaves an untracked `Assets/Agent.meta`
-   residue no worker surfaces. See [`LAYOUT.md`](LAYOUT.md) for the why.
-3. **Set up packages / VPM** per the CLAUDE.md hard constraints (track `vpm-manifest.json`,
-   gitignore SDK payloads); `vrc-get resolve -p <ProjectDir>` restores. VPM mechanics: `bootstrap.md`.
-   If the avatar skills will run here, the hard floor — copy from `AvatarProject`'s manifests and
-   trim the rest — is the Avatars SDK + Modular Avatar (NDMF rides along) + VRCFury + av3emulator
-   in `vpm-manifest.json`, plus the `com.ryan6vrc.*` `file:` refs in `Packages/manifest.json`;
-   everything else there is convenience, and vendor assets bring their own shader needs
-   (lilToon/Poiyomi).
-4. **Install the structure-snapshot hook** (below).
-5. **Generate the first snapshot:** `python ../tools/dump_asset_structure.py <ProjectDirName>`
-   then commit the resulting `STRUCTURE.md`.
-6. **Wire this Editor for the agent** (if one will drive it) — install the in-Editor MCP package and
+1. **Seed the project folder.** Clone the `AvatarProject` sample skeleton (README §Repos) as the
+   starting point, or copy an existing venue, then **remove the `.git`** — the venue is a working
+   folder, not a repo. Add the folder to the meta-repo's **local** ignore, `.git/info/exclude`, so the
+   meta-repo never surfaces it (project names stay out of the public `.gitignore`). The skeleton already
+   carries the Unity `.gitignore`/`.gitattributes`; they're inert in the venue but record the
+   durable-vs-not-kept split (LAYOUT.md).
+2. **Seed the Agent-I/O tree** the tooling assumes — `Assets/Agent/` with `Snapshots/` (durable) and
+   `RunLogs/`+`Scratch/` (disposable). Create the folders so the first `Check*`/tool write lands
+   cleanly. See [`LAYOUT.md`](LAYOUT.md) for the why.
+3. **Set up packages / VPM** per the CLAUDE.md hard constraints (`vpm-manifest.json` is the source of
+   truth, SDK payloads reproduced from it); `vrc-get resolve -p <ProjectDir>` restores. VPM mechanics:
+   `bootstrap.md`. If the avatar skills will run here, the hard floor — copy from `AvatarProject`'s
+   manifests and trim the rest — is the Avatars SDK + Modular Avatar (NDMF rides along) + VRCFury +
+   av3emulator in `vpm-manifest.json`, plus the `com.ryan6vrc.*` `file:` refs in `Packages/manifest.json`;
+   everything else there is convenience, and vendor assets bring their own shader needs (lilToon/Poiyomi).
+4. **Wire this Editor for the agent** (if one will drive it) — install the in-Editor MCP package and
    Roslyn so `execute_code` gets modern C#; both are per-Editor (mechanics + the mark-Editor-only Roslyn
    gotcha: `bootstrap.md`). **Do not add a `.mcp.json` server for the project.** The workspace's one
    `UnityMCP` server reaches every local Editor; sessions route explicitly (`set_active_instance`, full
@@ -34,66 +30,10 @@ reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not 
    server is earned only by a different trust posture, not a different project. `run_tests` needs no
    per-project action — the `vrc-mcp-proxy` allowlist hides it for every Editor the one server reaches
    (run the EditMode suite headless — see docs/verify.md).
-7. **Seed a known-noise ledger.** Some projects emit benign console lines on every domain reload (a
+5. **Seed a known-noise ledger.** Some projects emit benign console lines on every domain reload (a
    package firing a harmless `[MACS]` / Mecanim exception, say). Record each — line + source package +
    why benign — in a short per-project ledger workers can find, so every agent doesn't pay the same
    rule-out detour.
 
-## Structure-snapshot hook
-
-The snapshot (`STRUCTURE.md`, a folded `Assets/` tree generated by
-`tools/dump_asset_structure.py`) is refreshed by a per-project pre-commit hook. It is opt-in per
-repo so it never surprises an active session.
-
-Create `.githooks/pre-commit` in the project repo:
-
-```sh
-#!/bin/sh
-# Regenerate the Assets/ structure snapshot and include it in this commit.
-# Warn, don't block: a snapshot failure must never gate committing real work.
-top="$(git rev-parse --show-toplevel)"
-engine="$top/../tools/dump_asset_structure.py"
-if command -v python >/dev/null 2>&1 && [ -f "$engine" ]; then
-  if python "$engine" "$(basename "$top")"; then
-    git add STRUCTURE.md || echo "pre-commit: could not stage STRUCTURE.md; continuing" >&2
-  else
-    echo "pre-commit: structure snapshot failed; committing without refresh" >&2
-  fi
-else
-  echo "pre-commit: python or engine missing; skipping structure snapshot" >&2
-fi
-exit 0   # warn, never block: a snapshot problem must not gate the commit
-```
-
-Enable it for this repo:
-
-```bash
-git config core.hooksPath .githooks   # point Git at the tracked hooks dir
-git lfs install                        # (re)write LFS's hooks into that same dir
-```
-
-Order matters: set `core.hooksPath` first, or `git lfs install` writes its hooks (post-checkout/
-commit/merge, pre-push) into `.git/hooks`, where the hooksPath override means they never fire.
-Those LFS hooks are generated and gitignored; only the authored `pre-commit` is tracked.
-
-Add a `.gitattributes` line so the snapshot always checks out with LF endings — otherwise on a
-machine with `core.autocrlf=true` the file gets CRLF and `python ../tools/dump_asset_structure.py
---check` reports a false "stale":
-
-```
-STRUCTURE.md text eol=lf
-```
-
-`core.hooksPath` is local config (not cloned), and the engine lives in the workspace one level
-up — a standalone clone outside the workspace keeps the committed `STRUCTURE.md` but won't
-regenerate it. Use `python ../tools/dump_asset_structure.py <ProjectDirName> --check` (exits
-non-zero if stale) to verify currency in CI or by hand, independent of whether the hook is
-installed.
-
-### Footgun: partial commits leave a confusing index state
-
-With `git commit -- <pathspec>` (or `-p` / `--include`), git runs the hook against a *temporary*
-index, so the regenerated `STRUCTURE.md` **is** captured in that commit correctly. But your real
-index is then left showing a spurious `STRUCTURE.md` modification (`git status` → `MM`) that nets
-to no change vs `HEAD`. Clear it with `git add STRUCTURE.md` (the working tree already holds the
-correct content), or just use a plain `git commit`.
+A new **tool** sub-repo (a `vrc-*` package) is a different thing entirely: its own git repo, added to
+the bootstrap clone list and the meta-repo ignore, versioned normally. That's not this runbook.

@@ -2,18 +2,18 @@
 
 This is a **container workspace** for AI-assisted VRChat avatar work. An agent (Claude Code)
 **observes** the Unity scene/project and Blender armature, **modifies** them via reviewed
-editor/Python scripts (or MCP), and **verifies** the result — with **Git as the audit trail**.
+editor/Python scripts (or MCP), and **verifies** the result — with **Git the audit trail** for the
+tools and this meta-repo.
 
 **Read first**, before any avatar work: `docs/nondestructive.md`, then `docs/workflow.md`.
 
-## Layout (container of independent repos)
+## Layout
 
 ```
 Atelier/                        (this folder = session cwd; workspace docs + launcher)
 ├─ AvatarProject/               Unity sandbox project
-│  ├─ Assets/Agent/             agent I/O: Snapshots/ (tracked); RunLogs/ + Scratch/ (gitignored)
-│  ├─ Packages/                 vpm-manifest.json = source of truth; SDK payload gitignored
-│  └─ STRUCTURE.md              auto-generated asset-tree snapshot (pre-commit hook; do not hand-edit)
+│  ├─ Assets/Agent/             agent I/O: Snapshots/ (durable); RunLogs/ + Scratch/ (disposable)
+│  └─ Packages/                 vpm-manifest.json = source of truth; SDK payload reproducible
 ├─ vrc-bridge/                  Python OSC/SteamVR bridge
 ├─ vrc-unity-tools/             Unity editor packages (creator tools, the agent inspection harness, avatar tools)
 ├─ vrc-skills/                  Claude Code skills (plugin)
@@ -22,14 +22,17 @@ Atelier/                        (this folder = session cwd; workspace docs + lau
 ├─ vrc-mcp-proxy/               owned stdio MCP proxy wrapping the pinned MCP-for-Unity server (allowlist + per-tool transforms)
 └─ references/                  open-source projects we study/replicate; routing in references/README.md
 ```
-Each sub-folder is its own independent git repo (gitignored by this meta-repo).
+**Two classes of sub-folder.** The `vrc-*` tool sub-repos are independent git repos (gitignored here,
+cloned in as siblings); `references/` holds reproducible reference clones. The **Unity projects**
+(`AvatarProject`, and local venues such as `Sandbox`) are **untracked working venues** — not git repos,
+reproducible from `vpm-manifest.json` (`vrc-get resolve`), backed up externally.
 Folder structure is **intentionally grown interactively** — do not impose a rigid tree.
 
 ## Hard constraints
 
 - **Unity 2022.3.22f1** — VRChat-pinned. **Never upgrade** (breaks uploaded content). Already installed.
-- **Packages are reproducible**: VPM SDK payloads (`Packages/com.vrchat.*`) are gitignored; only
-  `vpm-manifest.json` is tracked. Restore with `vrc-get resolve`. Start **newest + trimmed**; add
+- **Packages are reproducible**: `vpm-manifest.json` is the source of truth; the VPM SDK payloads
+  (`Packages/com.vrchat.*`) are reproduced from it, not kept. Restore with `vrc-get resolve`. Start **newest + trimmed**; add
   VRCFury/Modular Avatar/NDMF/etc. deliberately via ALCOM, not in bulk.
 
 ## Tooling stack
@@ -50,7 +53,7 @@ runtime behavior — live in `docs/`. Read the relevant file before operating in
 - **`docs/outfits.md`** — base-body (kisekae) clothing conventions: layered toggleable clothing meshes, the clothing↔body-blendshape coupling, and the FX controller as its authoritative map. Read before de-conflicting a base under a composed outfit (the `map-outfit-shapes` skill executes it).
 - **`docs/LAYOUT.md`** — AvatarProject folder conventions: untouched-`Vendor/` vs. our-work split, non-Unity files outside `Assets/`.
 - **`docs/bootstrap.md`** — from-zero workspace assembly: clone the sub-repos, install + wire Unity·Blender·MCP, verify. Point a fresh agent here to stand the workspace up.
-- **`docs/new-project.md`** — runbook for adding another Unity project to an already-working workspace (git/gitignore, VPM, the structure-snapshot hook). Skip in normal sessions.
+- **`docs/new-project.md`** — runbook for adding another Unity project (an untracked working venue: seed the folder, VPM restore, wire the Editor). Skip in normal sessions.
 - **`docs/mochifitter.md`** — roadmap-only brief on the MochiFitter outfit-retargeting tool (not integrated). Read only for that roadmap item.
 - **`references/README.md`** — routing table of open-source projects we learn from.
 

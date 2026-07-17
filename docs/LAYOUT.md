@@ -9,21 +9,20 @@ result lands and why.
 - **`Assets/Vendor/`** — vendor imports kept as-dropped, hand-edited only for the sanctioned
   reconstructions under *Vendor mutation* below (`Vendor/Avatars/<Name>/`, `Vendor/Outfits/<Outfit>/`,
   and `Vendor/_Common/` for assets shared across a seller's packages).
-  **Gitignored**, reproducible by re-importing the source `.unitypackage` from the **asset library** —
+  **Not kept**, reproducible by re-importing the source `.unitypackage` from the **asset library** —
   the external store of vendor packages; its location is machine-local (`CLAUDE.local.md`), never
-  written into tracked files. Our work references vendor assets **by GUID, not path**, so tracked work survives
+  written into a tracked file. Our work references vendor assets **by GUID, not path**, so our work survives
   a bare re-import even though a package re-imports to its own native top folder. A **patched** vendor
   asset is the exception — it reproduces only with its patch replayed (*Vendor mutation* below).
 - **Everything else under `Assets/`** — our work (prefab variants, scenes, animators, materials).
-  Tracked. No `Work/` wrapper.
-- **Git tracks diffable text, not large binaries.** It versions what diffs cleanly — YAML
+  Durable, kept. No `Work/` wrapper.
+- **Durable work is diffable text, not large binaries.** What we keep is what diffs cleanly — YAML
   (scenes/prefabs/materials), `.meta`, `.json`, scripts. Art/source binaries (`.fbx` `.blend` `.psd`
-  `.png`, audio) don't diff and bloat history + LFS quota, so:
-  - they're **gitignored**, but each keeps its `.meta` (GUID + import settings) so references resolve
+  `.png`, audio) don't diff, so:
+  - they're **not kept**, but each keeps its `.meta` (GUID + import settings) so references resolve
     and a re-exported file rebinds;
-  - RunLog JSON is gitignored too — disposable per-run diagnostics, not a durable artifact; LFS
-    stays only for the VPM bootstrap DLLs;
-  - since binaries live outside Git, **back them up externally** — a fresh clone has no
+  - RunLog JSON is disposable too — per-run diagnostics, not a durable artifact;
+  - since binaries aren't kept, **back them up externally** — a restored venue has no
     meshes/textures until they're restored or re-exported.
 - **Owning is selective.** An owned asset tracks only what it actually changed and keeps
   **GUID-referencing the vendor original** for everything it didn't — an owned base can still point
@@ -47,9 +46,9 @@ result lands and why.
   skill's.
 - **Non-Unity source files live outside `Assets/`** at the project root, so editing them never
   triggers an editor refresh:
-  - **`Blender/Avatars/<Name>/`** — the `<Name>.blend` source (a binary: gitignored + externally backed
-    up, local-only), namespaced like `Assets/`; it also holds the **proportion-edge JSONs** the reproportion
-    skill reads/writes, which *are* tracked (diffable recovery artifacts — see below).
+  - **`Blender/Avatars/<Name>/`** — the `<Name>.blend` source (a binary: not kept, externally backed
+    up), namespaced like `Assets/`; it also holds the **proportion-edge JSONs** the reproportion
+    skill reads/writes, which *are* kept (diffable recovery artifacts — see below).
   - **`Blender/Outfits/<Base>/<Outfit>/<Outfit>.blend`** — owned outfits go **base-first**: the base
     you fitted to is held constant, the outfit varies underneath it (file by the axis held constant —
     `Vendor/Outfits/<Outfit>/` stays **outfit-first**, since a vendor product's base varies *inside*
@@ -60,7 +59,7 @@ result lands and why.
   - **`Photoshop/Avatars/<Name>/`** and **`Photoshop/Outfits/<Outfit>/`** — `.psd` source art,
     **outfit-first** (no `<Base>` segment): reproportioning is geometry-only, so art is
     base-independent. A PSD comes over only to be modified (the package already ships its PNG
-    exports), so PSDs are *our* work, never `Vendor/`; gitignored + externally backed up like all
+    exports), so PSDs are *our* work, never `Vendor/`; not kept, externally backed up like all
     binaries. What enters Unity is a **flattened PNG export** into the owned-materials bucket —
     the `.blend` → `.fbx` contract mirrored; an *owned* material referencing a `.psd` inside
     `Assets/` is a defect (a vendor material linking its own shipped PSD is vendor authoring,
@@ -85,8 +84,8 @@ being tampering, so the rule is **sanctioned mutation, marked**:
   our own structural decisions deeper inside `Vendor/`" (below): sanctioned agent edits, not a claim of
   non-interference. Procedure: the `import-vendor-asset` skill's *Patch a vendor-mutated asset*.
 - **Provenance travels with the patched copy.** A sidecar records the replay recipe — patcher,
-  `.hdiff`, source FBX (path + GUID), output, date. Like everything in `Vendor/` it is **gitignored**
-  (not in the audit trail; restored from external backup, not Git); its job is to catch a base
+  `.hdiff`, source FBX (path + GUID), output, date. Like everything in `Vendor/` it is **not kept**
+  (no durable history; restored from external backup); its job is to catch a base
   re-import that reverted the patch. A patched-variant package reproduces by re-running the import on
   the base + DLC packages, or restoring `Vendor/` from backup — never by re-importing the base alone,
   which restores vanilla only.
@@ -125,34 +124,28 @@ the `own-mergeable` skill, not here.
 `avatarprep_state` is one axis of a three-axis base/state/baked model; its behavior (and the
 `avatarprep_base`/`avatarprep_baked` axes) lives in `blender.md`.
 
-## gitignore note
+## The project `.gitignore`
 
-The stock `!/[Aa]ssets/**/*.meta` un-ignore is load-bearing in two directions:
-- It **keeps** the `.meta` of gitignored **binaries** (we ignore `*.fbx`, not `*.fbx.meta`) — that's
-  what lets tracked refs resolve.
+The venue is untracked, so this `.gitignore` doesn't act on the live tree — but it ships in the seed
+skeleton and records the durable-vs-not-kept split. The stock `!/[Aa]ssets/**/*.meta` un-ignore is
+load-bearing in two directions:
+- It **keeps** the `.meta` of the **binaries we don't keep** (we ignore `*.fbx`, not `*.fbx.meta`) —
+  that's what lets refs resolve.
 - Rules that must **drop** metas — `Vendor/`, `Vendor.meta`, and the RunLog `*.json.meta` — must sit
-  **after** it, or those `.meta` leak back into tracking.
+  **after** it, or those `.meta` leak back in.
 
-## Structure snapshot & vendor categorization
+## Vendor categorization
 
-- **`STRUCTURE.md`** (project root) is a generated, folded `Assets/` tree
-  (`tools/dump_asset_structure.py`), regenerated by the pre-commit hook — **do not hand-edit**.
-  (Distinct from the `AgentInspector` snapshots under `Assets/Agent/Snapshots/` — same word,
-  different artifact.) Gitignored subtrees (`Vendor/`) are truncated 2 levels deep with a
-  recursive file-count rollup, so the snapshot shows our full layout plus a per-package vendor
-  inventory.
 - **Never double up a vendor folder.** Vendor content is categorized one level deep as
   `Vendor/<Category>/<Package>` (e.g. `Vendor/Avatars/Chocolat`, `Vendor/Outfits/<Outfit>`); we
   never nest our own structural decisions deeper inside `Vendor/`. A new vendor system gets its
-  own category (e.g. `Vendor/FaceTracking/`), not a folder buried under an avatar. This is what
-  makes the snapshot's depth-2 truncation lossless for *our* decisions.
-- **Keep our top-level names English.** Folders we author that surface in `STRUCTURE.md` should use
-  English names where possible — some vendors ship Japanese filenames, but our organizing layer stays
-  legible.
-- Because our work references vendor **by GUID, not path**, the snapshot's co-located names
-  (`Avatars/Chocolat` next to `Vendor/Avatars/Chocolat`) are a **convention, not authoritative
+  own category (e.g. `Vendor/FaceTracking/`), not a folder buried under an avatar.
+- **Keep our top-level names English.** Folders we author should use English names where possible —
+  some vendors ship Japanese filenames, but our organizing layer stays legible.
+- Because our work references vendor **by GUID, not path**, the co-located naming convention
+  (`Avatars/Chocolat` next to `Vendor/Avatars/Chocolat`) is a **convention, not authoritative
   linkage** — a renamed or GUID-only dependency won't line up by name. True dependency resolution
-  is a separate concern, out of scope for the snapshot.
+  is a separate concern.
 - The **owned** mirror is a stronger claim than that vendor convention: an owned outfit's
   `Assets/Outfits/<Base>/<Outfit>/` and `Blender/Outfits/<Base>/<Outfit>/` **are** the same logical
   asset in two trees — **load-bearing**, not cosmetic — and a fit gate resolves the `.blend` from

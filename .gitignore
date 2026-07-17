@@ -1,5 +1,5 @@
-# Sub-projects are their own independent git repos — versioned separately,
-# NOT tracked by this workspace meta-repo.
+# Ignored siblings, not tracked here: the vrc-* tool repos are versioned separately (their
+# own git repos); AvatarProject is an untracked working venue (see CLAUDE.md §Layout).
 /AvatarProject/
 /vrc-blender-tools/
 /vrc-skills/

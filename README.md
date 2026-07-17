@@ -68,8 +68,9 @@ creator assets; there are no brittle hard-coded workarounds to outgrow.
 
 ## Repos
 
-Cloning this meta-repo gets you the docs + launcher, **not** the tools; each project below is its
-own independent git repo, gitignored here as a sibling you clone into place.
+Cloning this meta-repo gets you the docs + launcher, **not** the tools; each **tool** repo below is
+its own independent git repo, gitignored here as a sibling you clone into place. `AvatarProject`
+(last) is different — an untracked Unity working venue, not a tracked repo.
 
 - **[`vrc-unity-tools/`](https://github.com/Ryan6-VRC/vrc-unity-tools)** — Unity editor packages
   (UPM): the agent inspection/verification harness (`agent-tools`) and the vendor→owned transplant
@@ -91,10 +92,11 @@ own independent git repo, gitignored here as a sibling you clone into place.
   proxy wrapping the pinned MCP-for-Unity server: validates the upstream tool schemas against a
   committed baseline, allowlists the tools the agent uses, and applies per-tool request/response
   transforms so a class of upstream sharp edges is corrected at the moment of failure.
-- **[`AvatarProject/`](https://github.com/Ryan6-VRC/AvatarProject)** — a **sandbox** Unity project
-  (2022.3.22f1, VRChat Avatars SDK via VPM/ALCOM) where the loop runs against real avatar setups.
-  One instance of the workspace's conventions, not the only one; stand up more projects alongside
-  it via [`docs/new-project.md`](docs/new-project.md).
+- **[`AvatarProject/`](https://github.com/Ryan6-VRC/AvatarProject)** — an **untracked** Unity working
+  venue (2022.3.22f1, VRChat Avatars SDK via VPM/ALCOM) where the loop runs against real avatar setups.
+  The linked public repo is a stripped **sample skeleton** to seed a fresh clone from (bootstrap removes
+  its `.git`), not the tracked project. One instance of the workspace's conventions, not the only one;
+  stand up more via [`docs/new-project.md`](docs/new-project.md).
 
 ## Get the workspace running
 
