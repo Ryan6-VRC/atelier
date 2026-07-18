@@ -112,14 +112,24 @@ seam that won't resolve onto this base, seams that disagree, a non-humanoid base
 scale — abstain-class (proxy, unresolvable) at warning, reflection drift at error. Inspection-only; the
 same world-space mm-drift primitive as `MatchHumanoidRig`'s `poseDriftMm`, position-only.
 
-`ReportShapeOverlap.Report(meshObject, shapeNames)` fills the coupling blind spot `CheckSeam`/`CheckAvatar`
-leave — neither reads blendshapes. Given a candidate **co-active** shape set the agent names from the
-FX/`ShapeChanger` graph, it reports each shape's touched-vertex footprint and pairwise **containment**
-(`|A∩B| / min(|A|,|B|)`) on **one** mesh: the double-subtraction `outfits.md` warns of — a base `Shrink_*`
-left worn while an outfit `ShapeChanger` shrinks the **same vertices**, stacking into an inverted limb the
-render sheet and the fit gates never show. A **`Report`, not a verdict** — it flags pairs past a
-conservative, deliberately un-asset-tuned containment floor as places to look; whether an overlap is a
-defect or a wanted coupling stays the agent's read of the graph. Same-mesh only; `map-outfit-shapes` drives it.
+`ReportShapeOverlap.Report(meshObject, shapeNames = null, outfitRoot = null)` fills the coupling blind
+spot `CheckSeam`/`CheckAvatar` leave — neither reads blendshapes. Over **one** mesh it emits per-shape
+touched-vertex footprints with pairwise **containment** (`|A∩B| / min(|A|,|B|)`) — the locator for the
+double-subtraction `outfits.md` warns of, a base `Shrink_*` left worn while an outfit `ShapeChanger`
+shrinks the **same vertices**, invisible to the render sheet and the fit gates — plus a per-shape
+**resolution table** (reaction, current weight, resolved-target, and the `MISMATCH` / `CONFLICT` /
+`UNKNOWN` / `MISSING` cells).
+
+Both arguments are optional because it assembles its own co-active set: caller-passed ∪ worn-nonzero ∪
+every MA `ShapeChanger` row under `outfitRoot` resolving to **this** mesh. **The third source is the point
+of the tool and is gated on `outfitRoot`** — those reactions sit at weight 0 at edit time, exactly what the
+caller's own scan cannot see — so omitting the root silently narrows the set to the first two; `reacted=0`
+is the tell.
+
+A **`Report`, not a verdict** — a deliberately un-asset-tuned containment floor flags pairs as places to
+look. **`map-outfit-shapes` drives it and owns the disposition doctrine**: what each cell means and how to
+rule on a row live there, not here. Drift is loud in one direction only — MA absent is a silent no-op, MA
+installed with the type or member unresolved warns and yields zero reactions.
 
 `RenderAvatar.Capture(target, angles, hide, margin, showGizmos, resolution)` drives the
 operator's **Scene View** to render **one** avatar subtree in isolation to a temp contact-sheet PNG —
