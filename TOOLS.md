@@ -87,7 +87,6 @@ at merge (the hook skips worktrees).
 | `apply_pose` | Bake the current pose into the rest pose, shape-key-safe. |
 | `merge_armatures` | Union-merge two armatures by bone name behind the compat gate; gates on base and state (`force_stamps` overrides the stamp gate, `whatif` previews). |
 | `prune_bones` | Prune zero-weight bone chains, keeping physbone tips (`whatif` previews the removals as rooted chains); refuses when an object rides a doomed bone unless `force`. |
-| `prune_bones_whatif` | Read-only preview door for `prune_bones`: reports the removal list (doomed chains, rooted) and any rides-a-doomed-bone refusal without deleting anything. The Blender-operator sibling of `prune_bones`'s destructive apply; the CLI exposes the same via `prune_bones --whatif`. |
 | `bake_shapekey` | Normal-preserving shape-key→Basis bake (refuses the head mesh); records `avatarprep_baked`. |
 | `stamp_base` | Stamp `avatarprep_base` (avatar lineage) on an armature; a deliberate agent assertion. |
 
