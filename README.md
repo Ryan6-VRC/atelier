@@ -38,6 +38,7 @@ avatar live on VRChat.
 | `author-gimmick` | Build a new gimmick from intent — a touch reaction, a held or droppable prop, synced interactive state: transport and bit design first, authored as recompilable controller text, packaged as one self-contained module, verified up the ladder. |
 | `own-gimmick` | Take surgical ownership of an existing gimmick module: extract the one subsystem you want, trim a vendor system, or fork a variant — with the checklist that keeps cut modules from silently resurrecting meshes, drifting params, or driving ghosts. |
 | `reproportion` | Reshape proportions to taste (longer arms, a custom body, matching your real measurements so IK feels right) as validated, repeatable profiles, with the Unity side reconciled so nothing downstream breaks. |
+| `shoot-thumbnail` | Generate your avatar's upload thumbnail as a staged portrait — your choice of dynamic pose, expression, and background, or a look the agent picks to suit the avatar and its outfit. |
 | `upload-avatar` | The last mile to VRChat: preflight the batch, confirm names and scope, and drive the operator-authorized upload, including re-uploading the ten avatars that inherit one changed base. |
 | `showcase-record` | Film a work session (ffmpeg screen capture) and cut it into a short showcase video. |
 | `fitting-session` | Wear-test the workshop itself: dispatch worker agents on real vendor-asset tasks, grade independently, distill the sharp edges into a cross-run ledger + fixup kickoffs. |
@@ -182,7 +183,7 @@ at merge (the hook skips worktrees).
 | Key | Purpose |
 | --- | --- |
 | `UploadAvatar` | Batch-upload composed avatars live to VRChat, driving Continuous Avatar Uploader by reflection (optional; absent → REFUSE with the fix). Operator-gated, never autonomous; `whatIf` previews readiness without uploading. |
-| `RenderThumbnail` | Baked posed portrait for an avatar's upload thumbnail: NDMF-bakes the avatar (`ManualProcessAvatar`) so a dedicated off-screen camera renders real resolved meshes at a guaranteed 1200×900 4:3 PNG — where `RenderAvatar` never bakes and is capped to the Scene-View pane over NDMF proxies. `pose` is null (floor/unposed), a bundled `RTPose_<Name>` clip, or a humanoid-clip path/GUID (a generic/transform clip fails loud pre-bake — it won't retarget); `whatIf` preflights target/descriptor/pose without baking. Returns a one-line verdict whose `png=` trailer feeds `UploadAvatar`. |
+| `RenderThumbnail` | Baked posed portrait for an avatar's upload thumbnail — 1200x900 PNG. Bakes the **full VRC SDK preprocess chain** (optimizers included), so it shows what actually uploads; `RenderAvatar` never bakes. `pose` and optional `expression` are names, and an unknown one enumerates. `png=` feeds `UploadAvatar`. |
 
 ## vrc-blender-tools
 

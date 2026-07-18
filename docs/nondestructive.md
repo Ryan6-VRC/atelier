@@ -35,6 +35,24 @@ scene assets are never mutated** — non-destructiveness is structural, not our 
   gate for composition (behavior has its own ladder: `gimmicks.md`).
 - The stack won't process a hierarchy that still holds prefab instances — a clone is unpacked first.
 
+### The bake door — `OnPreprocessAvatar`, never `ManualProcessAvatar`
+
+A tool that bakes calls **`VRCBuildPipelineCallbacks.OnPreprocessAvatar`** (`VRC.SDKBase.Editor.BuildPipeline`)
+— the SDK preprocess chain, the door VRCFury's own "build a test copy" uses.
+
+**Never `AvatarProcessor.ManualProcessAvatar`**: it runs NDMF's plugin chain only, so Modular Avatar
+survives while everything hooking `IVRCSDKPreprocessAvatarCallback` — VRCFury, the optimizers — is
+skipped. That is the trap: a plausible baked avatar, no error, and nothing signalling it is not the
+one that uploads.
+
+Three consequences. The build renames and merges, so anything derived from the avatar — clips, meshes,
+binding paths — must be read from the **baked** result, never the source asset. `OnPreprocessAvatar`
+mutates its argument **in place**, returning `false` when a hook blocks the build; surface that
+refusal, since such an avatar would not upload either. And **hooks may open modal dialogs** — VRCFury
+prompts per build on an avatar with a broken Write Defaults mix — so a bake driven over MCP can wedge
+the editor: a timed-out bake means read the dialog (`tools/unity-dialog.ps1 -List`), never retry
+blindly. Don't suppress these; the prompt is reporting a real avatar defect.
+
 ## Reference hardening — the fact tooling hinges on
 
 The two frameworks store references differently, which decides what survives a copy to another hierarchy:
