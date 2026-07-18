@@ -233,6 +233,12 @@ not a hunch.
   the inspector's Lock/Activate **button routine** — script-setting `Locked = true` captures nothing,
   leaving `*AtRest`/offsets at type defaults, so code building constraints must set them explicitly
   or the constraint silently drives to the wrong rest.
+- `Sources` is a bare field of **struct** type, and `IsActive` a bare bool defaulting **false** (the
+  inspector's Activate button sets it). Reflection or `dynamic` access (`execute_code`) boxes the
+  struct, so `Sources.Add(...)` mutates a copy and serializes nothing — no error, just
+  `totalLength: 0` on disk and a constraint that never runs. Script-built constraints: write
+  `Sources.source0.*`, `Sources.totalLength`, and `IsActive` through `SerializedObject`, then re-read
+  the saved asset.
 
 ## Scale
 
