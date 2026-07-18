@@ -193,7 +193,8 @@ reference-hardening model that governs what these path-based tools can rebind an
   re-export that skipped re-running `MatchHumanoidRig`. Position-only: Unity stores a thumb-corrected
   bind rotation that legitimately differs even on a healthy rig.
 - `ConformRenderers` — assigns vendor materials by renderer name from any source hierarchy (by reference,
-  no `.mat` copies; an optional override map covers meshes renamed during normalization) and applies the
+  no `.mat` copies; an optional `ownedToSource` override map covers meshes renamed during normalization,
+  its direction the reverse of the transplant kit's — see below) and applies the
   renderer-normalization standard below. `whatIf` previews the full match/verdict and mutates nothing. A
   **mergeable** (no humanoid rig / no `Hips`) **PASSes with a note** on the missing anchor rather than
   FAILing — that missing `Hips` is exactly the input `own-mergeable` prescribes it for; an avatar base
@@ -221,13 +222,23 @@ root** `(vendorSource, ownedRoot)` bounds the remap: refs to objects under the v
 our counterparts; out-of-reach refs (assets, other-avatar objects) are left for placement-repair.
 
 A **differently-named armature-root GO** (owned `Armature.1` vs vendor `Armature`) nulls every ref through
-it under the name-based matching above. `CopyComponents` / `GraftHierarchy` take an optional `renameMap`
-(`vendorName ⇒ ownedName`, injective, **case-sensitive**) that reconciles it — one entry
-(`"Armature" ⇒ "Armature.1"`) covers hosts and relocated-outside-armature anchor refs alike. An absent map
-is a no-op; a non-injective or ambiguous map (one that can't address a unique dest sibling) is a **named
-FAIL in both `whatIf` and execute**, never a silent mis-bind.
+it under the name-based matching above. `CopyComponents` / `GraftHierarchy` take an optional `vendorToOwned`
+map (injective, **case-sensitive**) that reconciles it — one entry (`"Armature" ⇒ "Armature.1"`) covers hosts
+and relocated-outside-armature anchor refs alike. An absent map is a no-op; a non-injective or ambiguous map
+(one that can't address a unique dest sibling) is a **named FAIL in both `whatIf` and execute**, never a
+silent mis-bind.
 
-- `CopyComponents(ownedRoot, vendorSource, typeNames, force=null, renameMap=null, whatIf=false)` — reproduce all
+**Rename-map direction — the kit runs two, pointing opposite ways.** A rename map's **key** names the
+hierarchy its tool **walks**; its **value** the hierarchy that tool **resolves into**. Direction follows
+traversal and is not a style choice, a dictionary being unindexable by its values. So the transplant tools
+(walking vendor, resolving into ours) take `vendorToOwned`, while `ConformRenderers` (walking our renderers,
+resolving into the source) takes `ownedToSource` — and holding "one map" across both gets one backwards.
+Two consequences follow: `vendorToOwned` **must be injective** to address a unique dest sibling (enforced),
+where `ownedToSource` is legitimately **many-to-one** (two owned meshes taking one source renderer's
+materials — inverting it would make that inexpressible); and `vendorToOwned` matches **Ordinal** where
+`ownedToSource` matches **case-insensitively**. Trust the parameter names over the shape of your map.
+
+- `CopyComponents(ownedRoot, vendorSource, typeNames, force=null, vendorToOwned=null, whatIf=false)` — reproduce all
   components of the named types onto our rig, **additive + idempotent** (count-parity skip per
   `(host, type)`; never destroys; a re-run is a no-op). `whatIf` reports the full plan and mutates nothing;
   a real run replays that same plan (preview == execute). A **flagged-missing host is PASS** — the named
@@ -255,7 +266,7 @@ FAIL in both `whatIf` and execute**, never a silent mis-bind.
   **never moves a bone**. Anchor field per type comes from the VRC table; a targeted type with **no table
   anchor FAILs loud** (refuses MA/VRCF/NDMF *and* Unity built-in constraints). Idempotent (skips a holder
   already placed under `destPath`); run **pre-prefab**. Called N times at operator discretion; echoes matches for closed-accounting.
-- `GraftHierarchy(ownedRoot, vendorSource, subtreeRoots, renameMap=null, whatIf=false)` — copies named GO **subtrees
+- `GraftHierarchy(ownedRoot, vendorSource, subtreeRoots, vendorToOwned=null, whatIf=false)` — copies named GO **subtrees
   wholesale**: scaffold the full structure (vendor verbatim local TRS) + copy **all** components on every
   GO (type-blind), remapped against the reach root. For pulling an outfit's authoring/menu subtree without
   listing every GameObject. Inverted contract vs CopyComponents: a missing host is **expected/normal**

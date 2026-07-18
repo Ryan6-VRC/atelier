@@ -74,11 +74,29 @@ pipeline stage, and `compare_armatures` knows nothing of MA/VRCFury.
 `import_fbx` runs the same under `--background` and over the windowed MCP path (it wraps the operator in
 `scene_utils.op_override` only when a VIEW_3D area exists); it uses the current `wm.fbx_import` — the
 legacy `import_scene.fbx` `automatic_bone_orientation` rotates some bones ~90° and corrupts bone-local
-pose ops. `prune_zero_weight_bones` keeps physbone tips
-(a zero-weight leaf of a weighted parent), attachment-point bones, and any weighted-descendant ancestor,
-and deletes the rest. It preserves only **depth-1** zero-weight leaves — a wrongly-pruned load-bearing bone
-surfaces downstream as an unresolved transplant target, not at prune time (over-pruning is unrecoverable
-post-export, so it errs toward keeping).
+pose ops. `prune_zero_weight_bones` keeps physbone tips (a **depth-1** zero-weight leaf of a weighted parent)
+and any weighted-descendant ancestor, and deletes the rest. A wrongly-pruned load-bearing bone surfaces
+downstream as an unresolved transplant target, not at prune time, and over-pruning is unrecoverable
+post-export — so read `--whatif` first. It groups the removals into **rooted chains**, the unit you spare or
+cut, and mutates nothing. Ignore `parent_weighted` as a shortlist: nearly every chain on a real avatar has it,
+clothing being hung off weighted body bones.
+
+**Both keep rules are weight-structural, which closes the keep set under ancestors — and that closure is the
+constraint, not a nicety.** `edit_bones.remove` splices children onto the removed bone's parent, so a keep
+rule that breaks closure re-routes a *survivor* to a new hierarchy path while its name, rest pose and every
+reported count stay identical. Nothing here can see it; it surfaces in Unity as a path-addressed lookup
+missing a bone that is still present.
+
+Holding a bone-parented object is therefore not a keep reason but prune's **one gate**: such an object riding
+a doomed bone raises `PruneRefused` before anything mutates (exit 1, `--out` unwritten — the merge-gate
+shape), and `--force` prunes anyway. A warning instead would exit 0, which to a caller reading exit codes is a
+clean run on a broken asset. `--whatif` carries the same verdict (0 = would prune, 1 = would refuse), so a
+preview answers *will this go through* and not only *what would it take*.
+
+The gate is near-dead weight on vendor input — 113 FBX / 22810 bones across the library carry zero
+bone-parented non-skeleton objects, avatars attaching by skinning. It exists because that scan covered vendor
+FBX *sources* while prune runs on a `.blend` after import, merge and hand-authoring, so a refusal tells you
+this file acquired one along the way.
 
 **Shape-key facts that bite the Unity round-trip.** The FBX export writes the **value-0 Basis + morph
 deltas** for geometry, **and** the current shape-key *value* as each blendshape's default weight — which Unity imports as the SMR blendshape weight (value ×100), so a Blender-set value is **visible by default and still sliderable** in Unity, not inert. Set values coherently across body + outfit meshes in Blender and they cross. The `bake_shapekey` op —
