@@ -86,11 +86,19 @@ don't assert a mechanism from the summary alone.
 
 - **Modular Avatar** — the avatar-relative reference appears as a path string (plus a cached object that
   is trusted only while it still belongs to the current avatar). `Merge Armature` fuses an outfit
-  armature into the avatar's by **bone-name match** under a target (prefix/suffix strip); bones with no
-  match are silently auto-created on the avatar (**phantom bones**), so a wrong-base merge reports no
-  error while the outfit skins to bones that never move. The merge is **identity-preserving**: it retargets
-  bones exactly as they sit in the scene and reconciles nothing, so a mismatched rest pose bakes through
-  unchanged — what you see pre-build is what ships. `Bone Proxy`
+  armature into the avatar's by **bone-name match** under a target (prefix/suffix strip), and its two
+  branches decide what an owned base should carry. A **matched** bone *zips*: the outfit's bone collapses and
+  its references retarget onto the avatar's — unless it carries a Unity built-in constraint, which forces the
+  kept branch under a scale-preserving intermediate parent. An **unmatched** bone is reparented into the
+  avatar hierarchy and **kept** as the outfit's own — the ordinary case for outfit-specific chains (skirt,
+  ribbon), not a defect. Children of a physbone root are skipped entirely, left on the outfit side, and
+  **fatal** if one names a humanoid bone. The **phantom-bone** failure is a *whole-armature* mismatch:
+  nothing zips, no error is reported (there is no zero-match diagnostic), and the outfit skins to a private
+  copy of the armature the avatar never animates. Corollary for owning: a base retaining a chain it does not
+  weight flips a mergeable from the kept branch to the zipped one, so whatever the base carries on those
+  bones — constraints especially — inherits the mergeable's geometry. The merge is **identity-preserving**:
+  it retargets bones exactly as they sit in the scene and reconciles nothing, so a mismatched rest pose
+  bakes through unchanged — what you see pre-build is what ships. `Bone Proxy`
   attaches by **humanoid-bone enum** + subpath — the most portable seam. `Mesh Settings` / `Blendshape
   Sync` carry path refs. The **menu system** is an authoring GO subtree (installer / group / item /
   toggle) whose targets are path refs — it *adds to* the avatar's descriptor-borne menu
@@ -127,8 +135,10 @@ don't assert a mechanism from the summary alone.
   coincidence of the **weighted humanoid bones** — the bones with a knowable "must be zero" contract, since
   a correct mergeable duplicates the base armature (correct fits land ≤~0.01mm, a real misfit tens of mm).
   Non-humanoid bones — physbone/collider tips — legitimately deviate up to ~75mm on a correct fit and are
-  never a fit signal. Where a genuine misalignment needs correcting, make the transform edit **in code**;
-  framework auto-align is an operator convenience, not an agent's alignment path.
+  never a fit signal. A PASS is therefore evidence about the humanoid seam alone, and says nothing about
+  clothing and helper chains — where a merge's structural surprises actually live. Where a genuine
+  misalignment needs correcting, make the transform edit **in code**; framework auto-align is an operator
+  convenience, not an agent's alignment path.
 - A faithful copy reproduces the vendor's authoring so an owned (e.g. reproportioned) FBX is
   **drop-in-equivalent** to the vendor. Re-authoring discretion — cleaning up a messy prefab, customizing
   menus — is deliberate human work; placement itself is the `compose-mergeable` skill, which flags the
