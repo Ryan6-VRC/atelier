@@ -101,8 +101,8 @@ not a hunch.
 - Receiver modes: Constant (0/1 while overlapping), OnEnter (one-frame pulse; honors `minVelocity`,
   tested once at entry), Proximity (0..1; `minVelocity` inert). Proximity is **receiver-scoped**,
   not sender-centered — the value rises as the sender's *nearest surface* reaches the receiver, so
-  enlarging the *receiver* lengthens the falloff. The exact model (SDK-source-verified,
-  emulator-confirmed): `1 − clamp(dist / radius)` where `dist` runs from the sender's nearest point
+  enlarging the *receiver* lengthens the falloff. The exact model (emulator-confirmed,
+  measured to three decimals): `1 − clamp(dist / radius)` where `dist` runs from the sender's nearest point
   to the nearest point on the receiver's **axis segment** — a capsule is a swept sphere (segment
   length = height − 2·radius, world-scaled; **radius alone** sets the falloff length everywhere
   along the axis; uniform scale preserves the shape, it never becomes a sphere unless
