@@ -156,7 +156,7 @@ at merge (the hook skips worktrees).
 | `CopyDescriptor` | Transplant the VRC avatar descriptor, with a fresh PipelineManager. |
 | `FixViewpoint` | Recompute `ViewPosition` from a reference rig's viewpoint plus both rigs' Head/eyes. |
 | `MatchHumanoidRig` | Conform our humanoid rig to the vendor's bone mapping; `Preflight` previews. |
-| `ConformRenderers` | Copy materials by renderer name from a source hierarchy and normalize bounds/anchor. |
+| `ConformRenderers` | Copy materials by renderer name from a source hierarchy and normalize bounds/anchor (optional `ownedToSource` override map — direction is the reverse of the transplant kit's). |
 | `OwnMaterial` | Own a vendor material: deep-copy it (or branch/augment an already-owned one), fork the named texture slots into the copy's own subfolder, and unlock a locked-Poiyomi copy — every unforked slot stays on its vendor GUID. The skill chooses which slots; the tool's `slots[]` provenance table is the caller's gate. |
 
 ### vrc-unity-tools · controllers & clips
@@ -201,7 +201,8 @@ at merge (the hook skips worktrees).
 | --- | --- |
 | `apply_pose` | Bake the current pose into the rest pose, shape-key-safe. |
 | `merge_armatures` | Union-merge two armatures by bone name behind the compat gate; gates on base and state (`force_stamps` overrides the stamp gate, `whatif` previews). |
-| `prune_bones` | Prune zero-weight bone chains, keeping physbone tips and attachment bones. |
+| `prune_bones` | Prune zero-weight bone chains, keeping physbone tips (`whatif` previews the removals as rooted chains); refuses when an object rides a doomed bone unless `force`. |
+| `prune_bones_whatif` | Read-only preview door for `prune_bones`: reports the removal list (doomed chains, rooted) and any rides-a-doomed-bone refusal without deleting anything. The Blender-operator sibling of `prune_bones`'s destructive apply; the CLI exposes the same via `prune_bones --whatif`. |
 | `bake_shapekey` | Normal-preserving shape-key→Basis bake (refuses the head mesh); records `avatarprep_baked`. |
 | `stamp_base` | Stamp `avatarprep_base` (avatar lineage) on an armature; a deliberate agent assertion. |
 
