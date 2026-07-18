@@ -61,6 +61,21 @@ Consequences:
   module that both **moves** objects and **animates** them keeps both operations in one framework
   (cross-framework moves break clip paths); a module that may be **instanced more than once** needs
   VRCFury (per-instance parameter isolation by default).
+- **The build-order mechanism behind that first rule.** MA passes run inside NDMF's preprocess hook
+  (`callbackOrder -11000`); VRCFury applies at `-10000` and re-resolves every merged binding against
+  the **post-MA** hierarchy by a nearest-match prefix walk up from the `FullController`'s object
+  (`ClipRewritersService.CreateNearestMatchPathRewriter`) — it does not track objects across moves. A
+  node moved *with* the module (its root MA-anchored) keeps a component-relative path and is safe; a
+  binding pathing through a node MA moved *out* of the module subtree (an interior `BoneProxy`) finds
+  no valid prefix and **silently vanishes from the merged FX** — no error, no warning. The reverse
+  breaks symmetrically: an MA-merged clip pathing through a node VRCFury later moves (`ArmatureLink`)
+  froze its paths at `-11000` and nothing repaths after. The same escape hits VRCFury's
+  **parameter-name rewrite**: `FullControllerBuilder` prefixes the param fields of
+  receivers/raycasts/physbones only within its own subtree, so a param-carrying component MA moved out
+  keeps the bare name and its writes bridge to nothing (a receiver under a moved anchor reads 0
+  forever). Hence behavior lives in VRCFury, MA touches only anchor nodes carrying no animated
+  bindings, and a module **senses from inside** — constrain a sense point to the anchor GO, never
+  parent it there.
 
 ## What you'll see when you inspect these components
 

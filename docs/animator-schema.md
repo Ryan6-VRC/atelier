@@ -171,6 +171,14 @@ A machine-body key (root and every sub-machine may carry one), it is authored by
 Overlap is **unmanaged by design** — a placed or gridded node may land on another; a one-drag fix for the
 human, not the compiler's concern.
 
+**Arranging for legibility.** A committed multi-state machine earns a hand-authored `layout:` — the grid
+erases the structure the states encode. Make the arrangement tell the machine's story: lifecycle descends
+from the default state below `entry`; same-stage alternatives fan left/right at one height; a state only
+one audience ever reaches gets its own lane; park unused `any`/`exit` stacked above `entry`, and move
+`exit` down only where the machine actually exits through it. Snap states to shared rows and columns where
+the graph offers them. Node overlap and near-collinear transitions that visually merge are authoring
+defects to fix; plain crossings in a dense graph are not.
+
 ## transitions and conditions
 
 ```yaml
@@ -304,8 +312,12 @@ clips:
   `UnityEngine.Animations`, `VRC.SDK3.Dynamics.{Constraint,Contact,PhysBone}.Components` — and must be a
   `Component` (`GameObject` is special-cased). So VRC constraints (`Cage/VRCPositionConstraint.GlobalWeight`,
   `….Sources.source0.Weight`), contacts (`Recv/VRCContactReceiver.allowOthers`), and native constraints
-  (`Node/PositionConstraint.m_Weight`) bind inline. Anything else — UI, TMP, arbitrary scripts, a
-  non-Component like `Time` — is refused fail-loud, as is a simple name matching in more than one allowlisted
+  (`Node/PositionConstraint.m_Weight`) bind inline. A **path-less `Animator.<property>`** binding is the
+  empty-path degenerate: component `Animator` (resolved in `UnityEngine`), property a **humanoid muscle**
+  (`Animator.RightHand.Index.1 Stretched`) — a rig-agnostic muscle curve for a Gesture/Action-playable
+  pose (grip, expression), since humanoid muscles retarget across any rig. Decompile emits this form for a
+  path-`""` `Animator` binding whose property is not a declared parameter, so it round-trips. Anything
+  else — UI, TMP, arbitrary scripts, a non-Component like `Time` — is refused fail-loud, as is a simple name matching in more than one allowlisted
   namespace. A refusal here is a fork, not a dead end: author the clip by hand as a human-owned `.anim`
   (§external clips), and see `animator.md` for when a recurring refusal should widen this allowlist instead.
   Decompile enforces the same vocabulary through the emit resolver (a binding whose `type.Name`

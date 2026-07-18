@@ -95,6 +95,13 @@ a late joiner, and by what you can verify without two clients):
   Animation, exitTime-choreographed intro/loop/outro restores both. Author the overlay **once** and
   mount the clip in two playables — Action consumes its humanoid-muscle curves, FX its
   GO-active/blendshape curves (non-FX playables can't drive those).
+- **Name states by behavior, not graph position.** Prop-family states take the name of where the prop
+  rests / who carries it — **Grabbed** (physbone-carried, native sync), **Anchored** (constraint source
+  to a named `<X>Anchor` GO, late-syncs off the mode value), **Dropped** / **Tracked** (world-frozen, or
+  a cage chasing a sender — neither late-syncs) — and the off-state is named for what off *does*:
+  **Disabled** (hides the module) and **Reset** (parks it home) are distinct behaviors, not one word.
+  Across stacked modules rig object names collide (two prop modules each shipping a `GrabBone`), so
+  resolve by path or physbone `chainId` and give new modules unique bone names.
 
 ## Blend tree patterns
 
@@ -263,11 +270,27 @@ library, not this section, is the per-entry index.
   (`FullController`/`Toggle`/`ApplyDuringUpload`). The menu front
   travels **inside** the module (it's part of the gimmick's function — the opposite of clothing,
   whose menus are avatar-level: `menus.md`).
-- Keep OSC-facing param names in `globalParams`; let everything else take instance prefixes.
+- Keep OSC-facing param names in the FullController's `globalParams`; let everything else take
+  instance prefixes — VRCFury's param-name rewrite prefixes every param *not* listed there. A menu
+  **Toggle** drives the module's enable **by name**, so that enable must itself be a `globalParams`
+  export: otherwise the rewrite prefixes the controller's own copy while the Toggle still drives the
+  bare name — a **stranded toggle that silently does nothing**, no build error. The Toggle also *is*
+  the menu front (its placement is a string path, so moving a control into a submenu is an edit, not
+  menu-asset surgery).
 - **Variants by prefab composition + config params, never a controller fork** (a forked
   controller drifts from its mainline silently). A behavioral knob that isn't a menu control
   becomes a **non-synced param whose default lives in the params asset and which no menu drives**
   — envvar-style: one controller mainline reads it, each variant/install sets its default.
+- **A self-contained module is its own source — no regenerator script.** The shipped prefab plus its
+  controller source (and the README's rig/constants) carry what a rebuild needs; don't commit a builder
+  that reflects against a framework's internal model (VRCFury `VF.Model.*`) — it rots unrun and then
+  lies about reproducing the artifact. Capture construction as prose; promote a genuinely reusable
+  recipe to shared tooling, not a per-module script.
+- **Ship materials self-contained.** VPM's identical-GUID guarantee holds only for in-package GUIDs, so
+  a distributed module ships simple self-contained materials (Unity Standard or a VPM-pinnable shader) —
+  never a Poiyomi/lilToon dependency (Poiyomi isn't VPM-pinnable; a consumer without it gets pink
+  materials). Placeholder primitives (payload spheres, demo cubes) carry no owned `.mat` — use Unity's
+  built-in default. Declare any unavoidable external shader dependency loudly.
 - Two cross-boundary seams worth knowing: a **cross-product param contract** (independent modules
   compose by agreeing on a synced param name, merged at build; design the consumer to no-op when
   the partner is absent), and **PC/Quest parameter-parity stubs** (the Quest variant carries
