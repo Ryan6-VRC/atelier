@@ -31,23 +31,33 @@ legs, disabled without releasing that shape, leaves no legs.
 The coupling is **not derivable from the mesh alone** and naming is only a hint — resolve it from the
 FX graph.
 
+**The mesh carrying the cage is usually not the mesh named `Body`.** By VRChat convention `Body` is the
+viseme mesh (the descriptor's `VisemeSkinnedMesh`); the cage commonly lives on a differently-named
+sibling (`Body_base`, vendor-specific). Identify the body-morph mesh by its shapes and by the outfit
+reactions that target it, deferring to `VisemeSkinnedMesh` — never by the name (a vendor may
+legitimately name its body `Body` with visemes on a separate `Face`). It may span more than one mesh, or
+coincide with the viseme mesh.
+
 **Shrink and hide travel together; over shared vertices they are almost never both on.** Two rules, each
 sufficient: hiding a base mesh flips its paired `Shrink_*` off (mesh and shrink are one unit); and a
 composed outfit that needed a base shape would drive it from its *own* `ShapeChanger`, so its absence
 there means the base shape isn't wanted. Leave a base `Shrink_*` worn while a kept outfit `ShapeChanger`
 shrinks the **same vertices** and the two subtractions stack into an **inverted mesh** — invisible to the
 render sheet (the outfit covers it in T-pose) and to `CheckSeam`/`CheckAvatar` (neither reads coupling).
-The shape map catches it by reasoning; `ReportShapeOverlap` measures the shared-vertex overlap that
-confirms the stack once you have named the co-active shapes (the base worn `Shrink_*` and the outfit
-`ShapeChanger`'s targets) — a `Report`, not a verdict: it locates the collision, you rule wanted-vs-defect.
+The shape map catches it by reasoning; `ReportShapeOverlap`, given the body-morph mesh and the outfit
+root, ingests the outfit's `ShapeChanger` reactions itself (the weight-0 targets a scan misses) and emits
+the resolution table — each shape's reaction, current weight, resolved-target (declared value; `Delete`→100;
+undeclared→0), shared-vertex overlap, and a MISMATCH on any worn-but-undeclared shape. A `Report`, not a
+verdict: it locates the collision, you rule wanted-vs-defect.
 
 **A foot-pose shape (a heel arch — `Heel_Feet`-style) is coupled to the worn footwear, not to a
 garment mesh the graph names — resolve it declared-or-zero.** Ship the value the composed outfit's
 own authoring declares (its `ShapeChanger` setting the heel pose); absent a declaration, 0 — the
 fail-safe direction: an arched foot clips through a flat sole (visible from below), where a neutral
-one merely under-fills an undeclared heel. Never classify footwear from a render — model vision
-cannot tell a heel from a platform sole; an outfit that ships heels and declares no pose is residue
-to name, not a render to read.
+one merely under-fills an undeclared heel. Never resolve footwear from a render *look* — model vision
+cannot tell a heel from a platform sole. Override the zero only with a `CaptureDiff` differential (an
+undeclared heel whose flat-sole zero shows the foot piercing the sole), never a single capture; absent a
+differential, an outfit that ships heels and declares no pose is residue to name.
 
 **Anti-clip has a second idiom: geometry deletion.** Beside the shrink-shape model this doc centers, an
 outfit's MA `ShapeChanger` in **Delete** mode removes the overlapped base vertices outright — a live
