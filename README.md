@@ -182,6 +182,7 @@ at merge (the hook skips worktrees).
 | Key | Purpose |
 | --- | --- |
 | `UploadAvatar` | Batch-upload composed avatars live to VRChat, driving Continuous Avatar Uploader by reflection (optional; absent → REFUSE with the fix). Operator-gated, never autonomous; `whatIf` previews readiness without uploading. |
+| `RenderThumbnail` | Baked posed portrait for an avatar's upload thumbnail: NDMF-bakes the avatar (`ManualProcessAvatar`) so a dedicated off-screen camera renders real resolved meshes at a guaranteed 1200×900 4:3 PNG — where `RenderAvatar` never bakes and is capped to the Scene-View pane over NDMF proxies. `pose` is null (floor/unposed), a bundled `RTPose_<Name>` clip, or a humanoid-clip path/GUID (a generic/transform clip fails loud pre-bake — it won't retarget); `whatIf` preflights target/descriptor/pose without baking. Returns a one-line verdict whose `png=` trailer feeds `UploadAvatar`. |
 
 ## vrc-blender-tools
 
