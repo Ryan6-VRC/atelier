@@ -131,68 +131,34 @@ look. **`map-outfit-shapes` drives it and owns the disposition doctrine**: what 
 rule on a row live there, not here. Drift is loud in one direction only — MA absent is a silent no-op, MA
 installed with the type or member unresolved warns and yields zero reactions.
 
-`RenderAvatar.Capture(target, angles, hide, margin, showGizmos, resolution)` drives the
-operator's **Scene View** to render **one** avatar subtree in isolation to a temp contact-sheet PNG —
-the clipping/fit backstop `compose-mergeable` defers to the operator. Where the MCP
-`manage_camera`/`manage_scene` screenshots render the whole scene, this shows the target alone with the
-**NDMF/MA preview resolved** (reactive fit applied). It auto-frames each angle to the drawn silhouette,
-so prop-heavy and shader-scaled avatars fit correctly; `margin` pulls back, `hide` drops clutter props
-(the build-added ~10 km `Culling` mesh is dropped automatically), `showGizmos` overlays physbone/contact
-gizmos. It renders the avatar **as the operator has it** — eye-hidden children stay hidden; to include a
-hidden part, un-hide it before the grab and restore it after (the read-only tool never reveals what the
-operator hid). Angles are the six world axes `{front,back,left,right,top,bottom}` (default `[front,back]`);
-success carries a `png=` trailer to `Read`.
+`RenderAvatar.Capture(target, angles, hide, margin, showGizmos, resolution)` renders **one** avatar
+subtree in isolation, through the operator's **Scene View**, to a temp contact-sheet PNG with the
+**NDMF/MA preview resolved** (reactive fit applied). Read-only: restores the view, leaves the scene
+un-dirtied. Two framing traps — angles are the six **world** axes, so a rotated target shows the scene's
+front rather than the avatar's; and it renders the avatar **as the operator has it**, so an eye-hidden
+child is silently absent from the sheet.
 
-The traps a model won't hit by just calling it: the fit is the editor *preview*, not the baked upload
-clone (`nondestructive.md`) — a play-mode build and the operator's eye stay the bar, and **a model-read of
-the sheet is not an agent fit gate** (`verify.md` owns why; quantified `CheckSeam` decides the compose
-seam). **Grab in a separate
-call from any edit** — a same-call grab shows the pre-edit proxy; the summary's `note=` flags an in-flight
-rebuild but cannot catch the same-call case. A **transient settle miss logs as a `Warning`, not an
-`Error`** — it won't fail a console-clean gate, so just re-grab; a genuine failure stays `Error`. Angles are **world** axes, so a rotated target shows the scene's front (the upside: it also
-works on a child or non-avatar object). Headlight shading is truthful for geometry/silhouette/clipping/
-fit, not matcap/rim/fresnel. INSPECTION-class: it restores the view transform, display toggles,
-selection, and root-level visibility, leaving the scene un-dirtied, and writes to
-`Application.temporaryCachePath`; visibility restore is coarse — a nested eye-hide the operator set
-under a subtree the grab hid isn't preserved. In **play mode** it captures the
-driven runtime: play's game loop pumps `update` ticks continuously, so the reactive rebuild settles on its
-own — no separate-call step needed — and the `note=` is suppressed (nothing in flight to flag). It doubles
-as the visual companion to `verify.md`. **Grab driven state while still in play**: exiting play reverts the
-scene to authoring state, so a post-exit grab can verify only the static baseline — never a
-toggle/param-driven claim.
+**Its ceiling is the point.** A model-read of the sheet is **not** an agent gate — not for fit
+(quantified `CheckSeam` decides that) and not for clipping. It is operator-eye evidence, the visual
+companion to `verify.md`; what it shows is the editor *preview*, not the baked upload clone
+(`nondestructive.md`), and headlight shading is truthful for geometry and silhouette, not
+matcap/rim/fresnel.
 
-`Capture` and `CaptureDiff` are two doors over one capture core (`CaptureDiff` is `verify.md`'s
-sanctioned differential form). Both share the `[RenderAvatar] <door> …` summary envelope, report
-counts/bboxes rather than a fit verdict, and restore every mutation in `finally`. The diff carries no
-tunable tolerance — it compares exactly — so there is no threshold to creep against one avatar.
+**Freshness.** **Grab in a separate call from any edit** — a same-call grab shows the pre-edit proxy. The
+summary's `gate=` token reads `armed` (a probe ran and NDMF's settle predicate read clean) or `exempt`
+(nothing to certify); `armed` is *probed and settled*, **never a guarantee the pixels are current**, so
+**byte-identical pixels around a verified edit mean assume stale**. A transient settle miss logs a
+`Warning`, not an `Error` — re-grab. Mechanism and residuals:
+`Tests/Editor/RenderAvatarFreshnessGate.md`. **Grab driven state while still in play** — exiting reverts
+to authoring state, so a post-exit grab verifies only the static baseline.
 
-**Freshness (in `Capture`).** Target any subtree; the freshness gate arms at its **avatar root** (the
-outermost VRCAvatarDescriptor at/above the target, resolved by NDMF's own walk-up), so a leaf-mesh
-target whose reactives sit on sibling meshes still arms; a target with no avatar root (a plain prop)
-doesn't. OK is legible via the summary's `gate=` token — **`armed`** = probed and settled
-(rendered-current) vs **`exempt`** = nothing to certify (no avatar root, or previews globally disabled);
-FAIL says what to do next — re-grab an unsettled preview, focus a backgrounded editor, or re-pin a
-drifted NDMF handle. A backgrounded editor renders the camera fresh but freezes
-`SkinnedMeshRenderer` skin re-baking to the parked editor tick — two layers, both forced: the NDMF
-settle gate + change-horizon sweep keep proxy *content* honest (weights, reactive state), and the
-skin-bake layer is closed by force-flagging a synchronous re-bake on every drawn SMR — originals **and
-kept MA proxies** (on a reactive target the proxies are what draw). The mechanism intends: an edit in a
-prior call renders current; a same-call edit settles in-call or FAILs transiently. That contract was
-**measured only on an un-armed editor** (V3) — one armed editor state (multi-hour un-poked background
-idle) has been witnessed serving frozen deform through settled gates, so byte-identical pixels around a
-BakeMesh-verified edit still mean **assume stale and investigate**, whatever the summary said.
-Residuals: a cold pipeline (right after a domain reload) cannot build while backgrounded — the first
-grab FAILs and focus-kicks (EditorPref `Ryan6VRC.AgentTools.RenderAvatar.DisableFocusKick` suppresses
-the kick for focus-sensitive measurement sessions, at the cost of needing one manual focus); attribution
-drift FAILs the grab rather than rendering unflagged proxies. The live gate protocol sits beside the tests
-(`Tests/Editor/RenderAvatarFreshnessGate.md`). Every grab writes a `<png>.cam.json` manifest
-(`cam=ok`) — `CaptureDiff`'s camera handle.
-
-**`CaptureDiff(target, against)`** — `against` is a prior grab's PNG. It pins that grab's exact framing
-from the sidecar so a silhouette-changing edit can't move the camera, then compares B to A exactly, per
-angle. FAILs loud on an absent/pruned/drifted manifest or a SceneView resize since A. Trap: `_Time`-driven
-shading (emission scroll, rim, dissolve) advances between grabs into a phantom diff — trust it only for
-time-static shading.
+**`CaptureDiff(target, against)` — the door that settles decisions.** `against` is a prior grab's PNG; it
+pins that grab's framing from the `<png>.cam.json` sidecar, then compares B to A **exactly**, per angle —
+no tunable tolerance, so no threshold to creep against one avatar. Reports counts and bboxes, never a
+verdict; FAILs loud rather than compare mismatched framing. Trap: `_Time`-driven shading (emission
+scroll, rim, dissolve) advances between grabs into a phantom diff — trust it only for time-static
+shading. `map-outfit-shapes` argues keep/hide calls from these, so unlike `Capture` its caveats are
+load-bearing.
 
 ## Avatar tools
 
