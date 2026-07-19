@@ -73,6 +73,12 @@ Consequences:
   are raw pointers that **null out** when the component is copied or prefabbed across hierarchies. Only
   refs **inside the copy's reach** can be repathed; avatar-facing refs outside it are nulled by
   prefabbing and re-resolve when the prefab is later placed.
+- **A Full Controller build listing a missing file as `Unset` is an empty list row, not a missing
+  package.** `VrcfObjectId.Pretty()` prints the literal `Unset` only for a reference carrying no guid,
+  path, *or* name — a slot left `None`; a genuinely absent asset still has its guid and prints
+  `GUID <hash>` or a path. Fix by deleting the empty row from the Full Controller's menus/controllers/
+  prms list. The same prefab building clean elsewhere means no build exercised it there since VRCFury
+  updated — not that a package differs, so don't go hunting one.
 - **Which to reach for, composing a mergeable.** Modular Avatar by default — the self-heal makes it
   forgiving. VRCFury when a mergeable needs robust **animator merging**: the more it drives the avatar's
   FX (gestures moving ears, tail, expressions), the more VRCFury earns its place. Two hard rules: a
