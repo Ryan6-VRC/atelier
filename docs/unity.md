@@ -132,6 +132,12 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 - **Reparenting a prefab instance's internal children silently no-ops.** `Transform.SetParent` on an
   object owned by a prefab instance reverts with no error — restructure before prefab conversion, or
   edit the asset via `PrefabUtility.LoadPrefabContents`. Verify by `childCount`, not `SetParent` calls.
+- **A fully-unpacked FBX instance saves as a Regular prefab, silently.** `SaveAsPrefabAsset` mints a
+  **Variant** only while the root is still a prefab instance of the FBX; unpacked, the save succeeds
+  with no error and the asset stops tracking the FBX — the next re-export ships a stale rest pose
+  (mesh bindposes move, the prefab's transforms don't). Don't unpack during a build-up (added GOs and
+  components are legal instance overrides, and so is destroying them); after converting, assert
+  `PrefabUtility.GetPrefabAssetType(prefab) == PrefabAssetType.Variant`.
 - **Entering play blocks the Editor main thread** while the non-destructive build runs
   (NDMF/VRCFury/d4rk/LAC): `editor_state` freezes and reads time out for ~minutes on a heavy avatar; an
   `execute_code` issued during it queues and returns once the build frees the thread — unless the build

@@ -262,8 +262,12 @@ materials — inverting it would make that inexpressible); and `vendorToOwned` m
   deliberately-pruned accessory, so the flagged-missing default (force / re-prune / accept) stands.
 - `MoveComponents(ownedRoot, targetRoot, typeNames, destPath, whatIf=false)` — relocation primitive
   (the type-name list replaces the old `mode`). Matches components whose effective anchor descends from
-  `targetRoot`, mints a holder under `destPath`, pins each anchor to its original transform — behavior-neutral,
-  **never moves a bone**. Anchor field per type comes from the VRC table; a targeted type with **no table
+  `targetRoot`, mints a holder under `destPath`, pins each anchor to its original transform, and rewires
+  inbound serialized refs to each re-created component (a physbone's `colliders[]` entry to a relocated
+  collider; `inboundRefsRewired`, whatIf-predicted) — behavior-neutral, **never moves a bone**. Matching
+  is by **anchor, not current location**: a later call with a broader `targetRoot` re-captures components
+  an earlier narrower call already grouped, leaving stale empty holders — order the calls broad→narrow.
+  Anchor field per type comes from the VRC table; a targeted type with **no table
   anchor FAILs loud** (refuses MA/VRCF/NDMF *and* Unity built-in constraints). Idempotent (skips a holder
   already placed under `destPath`); run **pre-prefab**. Called N times at operator discretion; echoes matches for closed-accounting.
 - `GraftHierarchy(ownedRoot, vendorSource, subtreeRoots, vendorToOwned=null, whatIf=false)` — copies named GO **subtrees
