@@ -43,6 +43,19 @@ exact pixel compare of a before/after pair around a camera pinned from frame A, 
 An occlusion-coverage read (is a should-be-hidden renderer visible?) is now expressed as a `CaptureDiff`
 toggle-diff.
 
+**Never let a render be its own ground truth.** A capture draws the NDMF preview proxy, so it can only
+report what the GPU last baked — and an ad-hoc `Camera.Render()` of the live scene is *not* an
+independent second opinion, it draws the same proxy. Pair pixels with an instrument that cannot show a
+render at all: `SkinnedMeshRenderer.BakeMesh` evaluates CPU state on demand and is always current, so a
+vertex delta proves an edit landed even when every live view disagrees; a baked copy under a scratch
+camera images geometry the live pipeline is refusing to redraw. The inverse also holds — **proxy
+`BakeMesh` is not a staleness signal**, and proxy-vs-source bakes differ legitimately (MA reactive
+drives extra shapes on the proxy). Attribute a live proxy through
+`NDMFPreview.GetOriginalObjectForProxy` and filter on `enabled`: live proxies sit in the
+`___NDMF Preview___` scene, while sceneless name-matches are dead-session fossils that read stale
+weights. Expect a small nonzero pixel floor on a real avatar (a plain clone diffs byte-identical), and
+trip a **visible** shape — a shape under clothing is occlusion-confounded and reads as floor.
+
 ## Test venue — NUnit vs execute_code
 
 NUnit EditMode tests may build and read live `UnityEngine.Object`s, but must not **mutate** them
