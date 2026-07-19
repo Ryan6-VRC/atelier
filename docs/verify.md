@@ -56,6 +56,10 @@ drives extra shapes on the proxy). Attribute a live proxy through
 weights. Expect a small nonzero pixel floor on a real avatar (a plain clone diffs byte-identical), and
 trip a **visible** shape — a shape under clothing is occlusion-confounded and reads as floor.
 
+**In play, the playable graph wins on anything it animates** — a direct `SetBlendShapeWeight`/transform write
+reads back correct but does not survive a capture. Impose mesh state through the animation system (drive a
+param, or play a clip on a playable layer), not the renderer.
+
 ## Test venue — NUnit vs execute_code
 
 NUnit EditMode tests may build and read live `UnityEngine.Object`s, but must not **mutate** them
@@ -118,6 +122,13 @@ var rts = UnityEngine.Object.FindObjectsOfType<Lyuma.Av3Emulator.Runtime.LyumaAv
 Lyuma.Av3Emulator.Runtime.LyumaAv3Runtime local=null;
 foreach (var rt in rts) if (rt.IsLocal) local = rt;
 ```
+
+The three runtimes are **co-located at the same origin** and differ only by layer: local on **`PlayerLocal`**,
+the clones on `Player` / `MirrorReflection`. So `FindObjectOfType<VRCAvatarDescriptor>` and a name match both
+return whichever came first — often a clone (culled/fossil), not the local; always select by `IsLocal`. A
+scratch camera capturing the local **must set `cullingMask` to `PlayerLocal` only**, or a co-located clone
+draws over it (the ShadowClone renders opaque). Disabling a clone GO does **not** stick — the emulator
+re-enables it every frame; cull by layer instead.
 
 **Drive / observe.** For menu/expression **float** inputs write **`.expressionValue`** on the local
 runtime's param, **not `.value`** — the runtime rewrites `.value` from `.expressionValue` each frame on
