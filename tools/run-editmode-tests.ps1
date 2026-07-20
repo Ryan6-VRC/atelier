@@ -18,7 +18,15 @@ param(
   [int]$TimeoutSec    = 540
 )
 $editor = "C:/Program Files/Unity/Hub/Editor/2022.3.22f1/Editor/Unity.exe"
-$out = $PSScriptRoot
+# Run-output goes to a disposable sibling of TestEditor, never into tracked tooling: gitignored
+# wholesale, worktree-local, and safe to delete at any time. Pruned at 30 days because nothing
+# reads an old run — output accrues one file per -Tag, so it grows with wave count, not runs.
+$out = Join-Path $PSScriptRoot "../test-output"
+New-Item -ItemType Directory -Force -Path $out | Out-Null
+$out = (Resolve-Path $out).Path
+Get-ChildItem $out -File -ErrorAction SilentlyContinue |
+  Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } |
+  Remove-Item -Force -ErrorAction SilentlyContinue
 
 function Get-SdkVersion($proj, $pkg) {
   $pj = Join-Path $proj "Packages/$pkg/package.json"

@@ -51,6 +51,7 @@ fixups.md
 # Local, script-generated headless test projects (tools/setup-test-editor.ps1) — never committed.
 # The glob covers per-session suffixed editors (TestEditor-<name>) run from worktrees.
 /TestEditor*/
-# Runner artifacts (tools/run-editmode-tests.ps1).
-tools/results-*.xml
-tools/run-*.log
+# Disposable run-output (tools/run-editmode-tests.ps1 writes results-*.xml + run-*.log here and
+# self-prunes at 30 days). Sits beside TestEditor rather than in tools/ so tooling dirs hold only
+# tooling: the same files under a narrower in-place ignore reached 457 MB unseen.
+/test-output/
