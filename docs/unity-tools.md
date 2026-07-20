@@ -310,6 +310,22 @@ rather than risk Thry's blocking dialog when the original-shader tag can't resol
 source untouched. The `own-material` skill holds the judgment of which slots to fork; the tool executes it
 deterministically and returns a one-line PASS/FAIL + RunLog path.
 
+## Thumbnails
+
+`RenderThumbnail` (edit mode, the default) and `RenderThumbnailPlay` (play mode) are two front-ends over
+one camera/capture spine (`RenderThumbnailCore`) — same caller vocabulary, a 1200×900 `png=` that feeds
+`UploadAvatar`. Edit mode is one synchronous baked call. Reach for play mode only when dynamics or FX must
+be truthful: it renders with hair/cloth **settled** by the real physbone solver and FX toggles/materials
+**resolved**.
+
+Play is a **session**, not a call (physbones need the player loop, and the tool can't flip play itself):
+`Begin(target)` → `manage_editor play` → `Shoot(...)` (async — returns a tag, poll `Status()`) →
+`manage_editor stop` → `End()`. One `Begin` serves many `Shoot`s. Settle is never asserted — the verdict
+**names any chain still moving** at capture. The venue is a loaded scene lit by its own lights (not edit
+mode's fixed rig); `End` reopens it from disk, discarding the pose and emulator edits. The `shoot-thumbnail`
+skill picks the mode; play-mode capture mechanics (graph-wins, local-layer cull, param drive) are in
+`verify.md`.
+
 ## Publish
 
 `UploadAvatar` batch-uploads composed avatars live to VRChat, driving Continuous Avatar Uploader (CAU) by

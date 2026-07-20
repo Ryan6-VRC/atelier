@@ -126,9 +126,12 @@ foreach (var rt in rts) if (rt.IsLocal) local = rt;
 The three runtimes are **co-located at the same origin** and differ only by layer: local on **`PlayerLocal`**,
 the clones on `Player` / `MirrorReflection`. So `FindObjectOfType<VRCAvatarDescriptor>` and a name match both
 return whichever came first — often a clone (culled/fossil), not the local; always select by `IsLocal`. A
-scratch camera capturing the local **must set `cullingMask` to `PlayerLocal` only**, or a co-located clone
-draws over it (the ShadowClone renders opaque). Disabling a clone GO does **not** stick — the emulator
-re-enables it every frame; cull by layer instead.
+scratch camera capturing the local **must cull to the local's layer only**, or a co-located clone draws over
+it (the ShadowClone renders opaque). Cull by the local runtime GameObject's **actual layer number**
+(`1 << local.gameObject.layer`), **not** `1 << NameToLayer("PlayerLocal")` — the VRChat layer *names* are
+unset in a bare project (`NameToLayer` → −1, a broken mask), though the emulator still separates the runtimes
+onto distinct numeric layers. Disabling a clone GO does **not** stick — the emulator re-enables it every
+frame; cull by layer instead.
 
 **Drive / observe.** For menu/expression **float** inputs write **`.expressionValue`** on the local
 runtime's param, **not `.value`** — the runtime rewrites `.value` from `.expressionValue` each frame on
