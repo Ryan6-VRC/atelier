@@ -199,7 +199,9 @@ clone's renderers actually *render*: an **unfocused editor renders nothing** (`r
 stays false even with a scene camera aimed at a visible body mesh), so the clone's FX playable
 silently stops ticking and reads as a graph frozen mid-transition. For graph-logic reads, set the
 clone's Animator to `AlwaysAnimate` after spawn (a deliberate fidelity trade — you are testing
-routing, not culling) or keep the editor focused. **Contacts are never simulated against clones —
+routing, not culling) or keep the editor focused. The clone's FX runs on the playable graph, so its
+`Animator.runtimeAnimatorController` is null and `GetCurrentAnimatorStateInfo` reads nothing —
+infer the clone's state from rig pose plus synced params, never from state names. **Contacts are never simulated against clones —
 clone contact values are spawn-time fossils, not zeros**: a clone receiver's `paramValue` (and its
 mirrored animator param) holds whatever the *local* avatar's receiver read at the moment the clone
 spawned, forever — a clone spawned mid-latch reads latched with no sender anywhere near (the
@@ -261,7 +263,10 @@ the legitimate senders too (measured; play-exit to recover). What the route cann
 networked — two locals share no sync channel (remote param routing still needs the clone), and a
 grab does not transport between them.
 
-**Induce a physbone grab/pose.** `VRC.Dynamics.PhysBoneManager.Inst.AttemptGrab(grabberId,
+**Induce a physbone grab/pose.** A live chain re-asserts `_IsGrabbed` every frame, so writing the
+mirror bool silently reverts (the sibling of the receiver and driver reversion traps; it holds only
+while the bone GO is inactive, which hides the trap) — induce a real grab instead.
+`VRC.Dynamics.PhysBoneManager.Inst.AttemptGrab(grabberId,
 comp.chainId, bone)` returns a `Grab` — **`grabberId` must be `0`** (an arbitrary id returns null),
 `bone` is an **int** chain index; set `grab.GlobalPosition` in the **same call** (it defaults to
 origin, else the chain snaps to 0,0,0 — the Vector3 property wraps a `globalPosition` float3
@@ -290,7 +295,9 @@ permanently at their un-driven defaults while local shows the driven value — d
 
 **Reproduced (assert in the emulator):** local param drive/read, driven outputs, `IsLocal`-branch
 divergence, 8-bit sync quantization + the ~0.1 s tick, local contact physics, a scripted "other"
-sender, **mirror-clone SMB-asymmetry** (so mirror-detection is testable), and a real **local**
+sender, filters-check-only-at-acquisition latch persistence (an in-progress contact survives its
+receiver's allow-flag flipping shut — the held float is the latch working, not a bug),
+**mirror-clone SMB-asymmetry** (so mirror-detection is testable), and a real **local**
 physbone grab/pose.
 
 **Not faithful — needs two clients in-game:** network-sync *correctness* (the compressor hides it), remote-side

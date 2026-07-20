@@ -95,6 +95,15 @@ a late joiner, and by what you can verify without two clients):
   Animation, exitTime-choreographed intro/loop/outro restores both. Author the overlay **once** and
   mount the clip in two playables — Action consumes its humanoid-muscle curves, FX its
   GO-active/blendshape curves (non-FX playables can't drive those).
+- **Off-state hygiene.** A module whose enable is off leaves no interactive component live: the
+  grab physbone's GO dies (`resetWhenDisabled 0` keeps its pose for re-enable) and the receiver
+  GOs die. The trap: a disabled receiver's param freezes at its last value (`runtime.md`), so an
+  off state that gates re-arm on sensing floats wedges on stale lows or false-fires on stale
+  highs — **driver-zero the sensing params on the off state's entry** (`localOnly` false: unsynced
+  sensing is per-client, every client clears its own) and exit the off state on the enable alone.
+  Resume-in-place then routes through the searching state, whose live receivers relatch a
+  still-present sender one frame later. Enabled park states are exempt: a late-join Waiting keeps
+  its physbone alive because the witnessed grab is its only exit.
 - **Name states by behavior, not graph position.** Prop-family states take the name of where the prop
   rests / who carries it — **Grabbed** (physbone-carried, native sync), **Anchored** (constraint source
   to a named `<X>Anchor` GO, late-syncs off the mode value), **Dropped** / **Tracked** (world-frozen, or
@@ -169,6 +178,16 @@ library, not this section, is the per-entry index.
   weight 0; states select exactly one. All "where is this attached" logic collapses into clip data.
   (The tempting shortcut — a full duplicate prop per anchor, swapped by GO-actives — doubles mesh
   memory and teleports between anchors; the multiplexer costs the same at author time.)
+- **Offsets live on draggable GOs, never in constraints.** Each rest offset (anchor lift, ride
+  height, sensed-point drop) is a dedicated child GO at a plain local position, referenced as a
+  constraint source; constraint `PositionOffset`/`*AtRest` fields stay zero, so the transform
+  reads in real meters and tunes by dragging. When the natural parent is scaled or
+  rotation-driven (a tracker cage), don't child the offset there — parent scale multiplies a
+  child's local position and leftover rotation tilts the lift; interpose a GO
+  position-constrained to the parent (position propagates, scale and rotation don't) and hang
+  the offset under it. Neither constraint field substitutes: per-source `ParentPositionOffset`
+  is ignored on VRC position constraints (measured), and the global `PositionOffset` applies
+  across every source, not per mode.
 - **World anchors.** Per-client drop = FreezeToWorld enabled at upload; cross-client absolute frame
   = never-instantiated-prefab source (see `runtime.md` for the guarantees and the culling caveat).
   FreezeToWorld can also be **animated at runtime** as a drop primitive with no physbone at all
@@ -270,6 +289,14 @@ library, not this section, is the per-entry index.
   (`FullController`/`Toggle`/`ApplyDuringUpload`). The menu front
   travels **inside** the module (it's part of the gimmick's function — the opposite of clothing,
   whose menus are avatar-level: `menus.md`).
+- **A module ships anchored to the avatar.** An unanchored module deploys its rest geometry at the
+  avatar-root origin — the wearer's feet — so homes, parked markers, and payloads load in the floor
+  or out of reach. The idiom: an **Anchor** GO carrying the MA `BoneProxy` (AsChildAtRoot — snaps in
+  edit mode and at build, adapting across vendors' rest poses; bone roll is the residual risk) plus a
+  child **Offset** whose local transform pre-configures the rest point; constraints and senders
+  reference the Offset. Only nodes referenced **by object** (constraint sources, sender mounts) may
+  be proxied — a path-animated node anchors by constraint from inside the subtree
+  (`nondestructive.md` owns the mechanism and the ArmatureLink trade-offs).
 - Keep OSC-facing param names in the FullController's `globalParams`; let everything else take
   instance prefixes — VRCFury's param-name rewrite prefixes every param *not* listed there. A menu
   **Toggle** drives the module's enable **by name**, so that enable must itself be a `globalParams`

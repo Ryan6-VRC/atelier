@@ -322,6 +322,13 @@ clips:
   (§external clips), and see `animator.md` for when a recurring refusal should widen this allowlist instead.
   Decompile enforces the same vocabulary through the emit resolver (a binding whose `type.Name`
   doesn't resolve back to the same type is a named refusal), so the two directions can't drift.
+- **Transform vector properties animate as a unit.** The animator evaluates `m_LocalPosition` /
+  `m_LocalScale` / `localEulerAngles` as whole vectors: a state whose motion binds only some
+  components drives the unbound ones to **0**, not leave-at-rest (measured in-game — a y-only
+  slide clip collapsed every box on a display rail to x=0). Write all three components in every
+  such clip, rest values baked in. Coverage counts across the state's whole blend tree (the union
+  of its clips' bindings), which is how a summed DBT readout legitimately splits axes across
+  leaves (`vrc-patterns/contact-tracker-box`).
 - **PhysBone bindings compile but barely animate.** VRChat captures PhysBone simulation properties
   (Spring/Pull/Stiffness, …) at avatar initialization: animating them has no live effect, and the
   animate-then-toggle-`m_Enabled` workaround is explicitly unsupported and may break without notice

@@ -119,7 +119,11 @@ not a hunch.
   filter *changes* affect only future acquisitions (an animated `allowSelf` opt-in works); a latched
   contact that fully breaks (sender exits range) **cannot re-latch while filters are shut** —
   re-entry is a new acquisition, so a multi-receiver rig degrades to partial probe sets whose
-  skewed equilibria look like tracking error.
+  skewed equilibria look like tracking error. A latched contact also survives its filter flipping
+  shut mid-overlap — the held value is the latch working (emulator-reproduced), not a bug.
+- Disabling a receiver's GO stops simulation but **freezes its parameter at the last written
+  value** — nothing zeroes it (measured). Any machine that gates on sensing params across a
+  disable must clear them itself (`gimmicks.md` off-state hygiene owns the idiom).
 - Contacts are simulated on **every** client from replicated bone positions, but IK delay and
   per-client discrepancy mean remote-side triggers misalign — do not treat contact outputs as
   synced. Default: sense with `localOnly` receivers and sync a bool. When trigger latency matters,

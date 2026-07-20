@@ -139,7 +139,11 @@ don't assert a mechanism from the summary alone.
   (asset refs, GUID-safe); it **auto-detects each binding's frame** — prop-root vs avatar-root per
   binding, **preferring the prop (mount) root on ties**. `Armature Link` mirrors Merge Armature: the avatar side is a bone-enum/path
   (hardenable), the **prop side is a raw ref**; its analogous align-to-base options apply **at build**,
-  not in edit mode, so MA's "what you see is what bakes" invariant does not hold for VRCFury. Toggles / object & material actions reference scene
+  not in edit mode, so MA's "what you see is what bakes" invariant does not hold for VRCFury. It also
+  **deletes parent constraints on the objects it merges by default** (`removeParentConstraints`, on,
+  under Super Advanced Options — aimed at pre-VRCFury merge leftovers), so linking a rig whose
+  behavior *is* a parent constraint destroys it silently; clear the flag or anchor that rig another
+  way. Toggles / object & material actions reference scene
   objects by **raw ref**. A `Toggle` feature generates the menu control, the parameter, *and* the FX
   layer at build from its declarative action list — VRCFury has **no reactive components**, so a
   toggle's side effects (hide the feet under shoes) stack as additional actions on that one Toggle,
