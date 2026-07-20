@@ -97,10 +97,14 @@ a late joiner, and by what you can verify without two clients):
   GO-active/blendshape curves (non-FX playables can't drive those).
 - **Off-state hygiene.** A module whose enable is off leaves no interactive component live: the
   grab physbone's GO dies (`resetWhenDisabled 0` keeps its pose for re-enable) and the receiver
-  GOs die. The trap: a disabled receiver's param freezes at its last value (`runtime.md`), so an
-  off state that gates re-arm on sensing floats wedges on stale lows or false-fires on stale
-  highs — **driver-zero the sensing params on the off state's entry** (`localOnly` false: unsynced
-  sensing is per-client, every client clears its own) and exit the off state on the enable alone.
+  GOs die. The trap: a disabled component's param freezes at its last value (`runtime.md`) — a
+  receiver's sensing float wedges an off state that gates re-arm on stale lows or false-fires on
+  stale highs, and the physbone's `_IsGrabbed` stays **true**, so the next enable re-enters the
+  grabbed state. **Driver-zero the frozen params on the off state's entry** (`localOnly` false:
+  unsynced sensing is per-client, every client clears its own) and exit the off state on the
+  enable alone; the writes stick precisely because the GOs are inactive — a live chain re-asserts
+  `_IsGrabbed` every frame (`verify.md`). A module whose off is a park rather than an interrupt
+  may accept the stale grab, but records it (`vrc-patterns/grab-prop`).
   Resume-in-place then routes through the searching state, whose live receivers relatch a
   still-present sender one frame later. Enabled park states are exempt: a late-join Waiting keeps
   its physbone alive because the witnessed grab is its only exit.
