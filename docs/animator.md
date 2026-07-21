@@ -153,7 +153,8 @@ without parsing contents; `OwnControllerClips` forks vendor `.anim`s the compile
 scope.
 
 `SchemaValidation` (pre-emit gate on the typed document — condition operator-vs-param-type legality,
-reserved names, base-fx layer floor, dangling default/inline-clip refs) and `ControllerRules` (post-emit
+blend-axis param-type legality, reserved names, base-fx layer floor, dangling default/inline-clip refs)
+and `ControllerRules` (post-emit
 graph oracle on the built asset — missing motions, undeclared params, orphans, dead transitions) **stay
 separate**: two representations, not two copies of one check. They share the one rule library
 `ControllerRules.Run` (both `CheckAnimator` and `CompileController` call it); each pass catches what only its
