@@ -122,8 +122,20 @@ not a hunch.
   skewed equilibria look like tracking error. A latched contact also survives its filter flipping
   shut mid-overlap — the held value is the latch working (emulator-reproduced), not a bug.
 - Disabling a receiver's GO stops simulation but **freezes its parameter at the last written
-  value** — nothing zeroes it (measured). Any machine that gates on sensing params across a
-  disable must clear them itself (`gimmicks.md` off-state hygiene owns the idiom).
+  value** — nothing zeroes it (measured); deactivating an **ancestor** GO instead read back as
+  zeroes (~ emulator; in-game unverified). Either way, any machine that gates on sensing params
+  across a disable must clear them itself (`gimmicks.md` off-state hygiene owns the idiom).
+- **Contact shape and plumbing fields do not animate.** `radius`/`height`/`size`/`position`/
+  `rotation`/`shapeType`/`localOnly`/`collisionTags`/`useFaceProximity`/`parameter` carry
+  `[NotKeyable]` (attribute read via reflection; curve-drop behaviorally confirmed for `size`
+  and `radius`) — clip curves on them are silently dropped (`allowSelf`/`allowOthers`/
+  `receiverType`/`minVelocity` do bind). Script writes to shape fields don't reach the sim
+  either — not even across a GO enable-bounce — until `UpdateShape()`. The animatable size knob
+  is the host GO's **transform scale**: honored per-frame and **per-axis** (a non-uniform scale
+  reshapes a box exactly, true-matrix through 90°-rotated parents; non-90° rotations under
+  non-uniform scale shear — untested, avoid). `boxSizeAbsolute` ignores transform scale — probe
+  the sim, never read it as ground truth. Runtime `collisionTags` edits never re-register with
+  the manager — spawn a fresh sender instead of retagging one (all emulator-measured).
 - Contacts are simulated on **every** client from replicated bone positions, but IK delay and
   per-client discrepancy mean remote-side triggers misalign — do not treat contact outputs as
   synced. Default: sense with `localOnly` receivers and sync a bool. When trigger latency matters,
@@ -217,6 +229,13 @@ not a hunch.
     ("World.prefab" trick) — resolves as world origin **for every client**; required under any
     absolute-position sync. Known issue: remote distance-culling can displace the origin between
     hide/shows **(~, no workaround)**.
+- `FreezeToWorld` captures the frozen pose on its 0→1 edge (all measured): on a **sourced**
+  constraint every edge re-captures and the bit is clip-animatable — off = ride the source, on =
+  pin where it stands, the deploy/recall idiom. **Source-less it captures once** and nothing
+  re-captures (the pose lives native-side; no serialized field, knob cycle, or component/GO bounce
+  resets it). Unfreezing snaps back to the source-driven pose unless `RebakeOffsetsWhenUnfrozen=1`,
+  which re-bakes the source offsets at the frozen pose so the object holds position and rides its
+  sources from there.
 - Source-weight animation is the universal multiplexer: N sources at weight 0, states select one.
   Weights are **normalized by their sum**, not clamped to [0,1] — only the ratios matter.
   Self-as-source at partial weight = rotational/positional lag ("feel"
