@@ -253,8 +253,16 @@ Read-only params: `ScaleFactor`/`ScaleFactorInverse` (ratio to upload height, fo
 
 ## Other load-bearing components
 
-- **VRCHeadChop**: exempts chosen head-descendant bones from first-person head shrink (scaleFactor
-  1 = visible in first person) — required for self-interactable face gimmicks.
+- **VRCHeadChop**: exempts chosen bones from first-person head shrink (scaleFactor 1 = full size
+  in first person) — required for self-interactable face gimmicks, whose colliders and physbone
+  chains otherwise collapse with the head. First-person-local only: mirror clones strip the
+  component, remotes never apply it. An exempt bone is not left alone: the client
+  re-places it every frame anchored to the **humanoid head's** live transform, so anything
+  docked on an exempt bone follows the humanoid head wherever constraints or IK send it — and
+  the chop **releases entirely once the target bone is roughly 0.5–1 m from the avatar root**
+  (in-game measured; threshold unpinned, plausibly scale-relative). Worked entries — exempt
+  mount, proxy-head rig, mirror-gated fake chop, face-stretch reconstruction — live in
+  `vrc-patterns` (`headchop-mount`, `head-proxy-rig`).
 - **VRCRaycast** — the one avatar component that senses **world geometry**: a bone-origin ray with a
   set `distance`; the hit lands in a `resultTransform` (usable as a constraint source) and an
   animator param. Enables aim/attach-at-a-distance (throw a prop onto a wall = raycast hit +
