@@ -173,11 +173,18 @@ human, not the compiler's concern.
 
 **Arranging for legibility.** A committed multi-state machine earns a hand-authored `layout:` — the grid
 erases the structure the states encode. Make the arrangement tell the machine's story: lifecycle descends
-from the default state below `entry`; same-stage alternatives fan left/right at one height; a state only
-one audience ever reaches gets its own lane; park unused `any`/`exit` stacked above `entry`, and move
-`exit` down only where the machine actually exits through it. Snap states to shared rows and columns where
-the graph offers them. Node overlap and near-collinear transitions that visually merge are authoring
-defects to fix; plain crossings in a dense graph are not.
+from the default state below `entry`; same-stage alternatives fan left/right at one height; the more
+exceptional a path, the further outboard its lane.
+
+The house grid (nodes are 200 wide): `entry` at `[50, 120]` with the default state at `[30, 180]` beneath
+it; rows every 70–100, one pitch per machine; same-row neighbors ≥210 apart, 240 the norm; columns on the
+~120 half-grid, so a child can center between two parents. Specials pack tightly above `entry` in 40s, `exit`
+then `any` — full stack `any` `[50, 40]`, `exit` `[50, 80]` — and stay there while unused. A machine that
+actually exits through `exit` moves it one row below the content, still in the stack column, and the rest
+of the stack closes up (no hole where it was); a used `any` keeps its stack spot (its edges radiate
+legibly from there). An off-grid nudge is a deliberate tool for separating
+near-collinear transitions — read one as intent, place one only for that reason. Node overlap and
+transitions that visually merge are authoring defects to fix; plain crossings in a dense graph are not.
 
 ## transitions and conditions
 
