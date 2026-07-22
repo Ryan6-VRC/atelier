@@ -81,6 +81,7 @@ Everything written in this workspace is read by another agent.
 - **After drafting, make a deletion pass** — remove every sentence the reader could regenerate from the artifacts. Draft-then-delete binds; "be concise" doesn't.
 - **Specifics rot.** Bias version-agnostic, outcome-based instructions — point at the enforcement mechanism, not a copied value that will drift. **Update documents, don't add to them**: growing line count should reflect a larger underlying system, not accumulated amendments.
 - **Omit, don't litigate.** Say what a thing *is*; frame the general rule so edge cases fall out, and simply don't build what you don't want.
+- **Litigate only discipline junctures.** At a delegation seam or an irreversible act, explicit loophole closure and rationalization rebuttals earn their lines — skipped-step defects cluster exactly there; everywhere else, omit-don't-litigate stands.
 - **Favor clean domain separation.** Duplicated knowledge multiplies rot surface; refactor and reorganize rather than restate.
 - Capable models do their best work when given **tools and discretion** — give the outcome and the constraints, not the procedure.
 - **Legibility over edge-case cleverness.** Tools are read and driven by frontier models — a tool that's intuitive to use and whose diagnostic you can *trust* beats one that silently handles a rare case but is hard to reason about.

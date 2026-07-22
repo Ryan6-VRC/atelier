@@ -36,6 +36,25 @@ Each skill carries its own gates, sequencing, and tool doors; this is only the g
   MA-scene-ref miss, it repairs in place.
 - **Deferred arc:** copying Modular Avatar / VRCFury / NDMF systems off a base.
 
+## No operator to ask?
+
+A gate you can't put to an operator is expected, not a blocker. A dispatched worker or background
+job still **has a channel** — the dispatcher — so surface the gate by ending the turn with
+`needs input:` and wait; a background job is not "no operator." Only with no channel at all do you
+take the derivable defaults, and even then the disclosure leads the report — every undecided call
+flagged at the top, never a silently minted convention (folder or category placement especially).
+Gated skills cite this protocol; a skill may name its own derivable default beside the citation.
+
+## Deviating from a mandated step
+
+Skills mark a step mandatory because the cheap substitute is known-insufficient — the step exists
+against a failure the substitute cannot see. A deviation is legitimate only in this form: announced
+before acting, backed by a probe or measurement (never an inference), citing the skill's own caveat
+that covers the case, and surfaced on the operator channel. "Proportionate to a small task", "the
+render will catch it", and "my cheaper read already covers it" are the rationalizations that have
+preceded every recorded defect from a skipped step — a justification in that family is the signal
+to stop and run the step as written.
+
 ## Unity ↔ Blender split
 
 Blender owns mesh/armature work (FBX import + observe, drop/rename, prune, rest-pose bake,
