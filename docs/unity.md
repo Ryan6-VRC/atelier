@@ -132,6 +132,9 @@ The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions
 - **Reparenting a prefab instance's internal children silently no-ops.** `Transform.SetParent` on an
   object owned by a prefab instance reverts with no error — restructure before prefab conversion, or
   edit the asset via `PrefabUtility.LoadPrefabContents`. Verify by `childCount`, not `SetParent` calls.
+  The no-op is specific to reparenting: **deleting** such a child works (even plain `DestroyImmediate`)
+  and records a revertible removed-GameObject override on the still-packed instance — the Overrides
+  dropdown, or `PrefabUtility.GetRemovedGameObjects()[i].Revert()`; the asset on disk is untouched.
 - **A fully-unpacked FBX instance saves as a Regular prefab, silently.** `SaveAsPrefabAsset` mints a
   **Variant** only while the root is still a prefab instance of the FBX; unpacked, the save succeeds
   with no error and the asset stops tracking the FBX — the next re-export ships a stale rest pose

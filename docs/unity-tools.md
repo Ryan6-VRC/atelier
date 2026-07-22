@@ -320,7 +320,10 @@ be truthful: it renders with hair/cloth **settled** by the real physbone solver 
 
 Play is a **session**, not a call (physbones need the player loop, and the tool can't flip play itself):
 `Begin(target)` → `manage_editor play` → `Shoot(...)` (async — returns a tag, poll `Status()`) →
-`manage_editor stop` → `End()`. One `Begin` serves many `Shoot`s. Settle is never asserted — the verdict
+`manage_editor stop` → `End()`. One `Begin` serves many `Shoot`s. Toggle/menu-param state set in play
+survives a `Shoot` (the swapped-in FX playable is seeded from the outgoing one; the toggled states
+re-resolve during settle) — but layer state a param does not imply, e.g. trigger-latched, does not.
+Settle is never asserted — the verdict
 **names any chain still moving** at capture. The venue is a loaded scene lit by its own lights (not edit
 mode's fixed rig); `End` reopens it from disk, discarding the pose and emulator edits. The `shoot-thumbnail`
 skill picks the mode; play-mode capture mechanics (graph-wins, local-layer cull, param drive) are in
