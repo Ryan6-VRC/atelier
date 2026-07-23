@@ -9,23 +9,30 @@ touches one line instead of reflowing a block, so diffs stay minimal under
 
 This tool both establishes and enforces that form:
 
-  reflow_md.py PATH...            reflow in place (PATH = file, or dir -> recurse *.md)
-  reflow_md.py --check PATH...    exit non-zero if any file is not already
-                                  canonical; write nothing (the CI/pre-commit gate)
+  reflow_md.py FILE...           reflow the given files in place
+  reflow_md.py --check FILE...   exit non-zero if any file is not already
+                                 canonical; write nothing (the CI/pre-commit gate)
 
 Because the reflow is idempotent, "already canonical" == reflow(f) == f, so the
-same function defines the form and checks it. Byte-preserved: fenced/indented
-code, table rows (any line with '|'), blockquotes, headings, HR, setext
-underlines, YAML front-matter, and hard-break lines (trailing two spaces / '\\').
-The file's existing newline style (LF/CRLF) is preserved.
+same function defines the form and checks it. Every write is guarded twice: the
+whitespace-collapsed token stream must be unchanged (no word added/removed/
+reordered/altered), AND the result must be a fixed point of reflow (reflow(res)
+== res) — either failing aborts loud, naming the file, rather than writing a
+corrupted or non-canonical result.
 
-Safety invariant, always asserted before any write: the whitespace-collapsed
-token stream is unchanged -> only inter-token whitespace moved, no word was
-added, removed, reordered, or altered. A violation aborts loud, naming the file,
-rather than writing a corrupted result.
+Byte-preserved: fenced code (any delimiter run length; an inner shorter run does
+not close an outer longer one) and indented (4-space) code; raw-text HTML
+elements (<pre>/<script>/<style>/<textarea>) and any line opening an HTML block;
+table rows (any line with '|'); blockquotes; ATX and setext headings; thematic
+breaks; link/footnote reference definitions ([label]: / [^id]:); YAML
+front-matter (only when properly terminated); and hard-break lines (trailing two
+spaces / backslash). The file's existing newline style (LF/CRLF) is preserved.
 
-For a repo-wide gate, pass an explicit tracked-file list rather than a dir so
-scope is exact and never surprises:  reflow_md.py --check $(git ls-files '*.md')
+Pass an explicit tracked-file list, never a directory — scope is then exact and
+never descends into gitignored/vendor/reference trees (the -z/-0 pair is
+space-safe for paths containing spaces):
+
+  git ls-files -z '*.md' | xargs -0 python tools/reflow_md.py --check
 """
 import argparse
 import re
@@ -33,13 +40,13 @@ import sys
 from pathlib import Path
 
 LIST_RE = re.compile(r'^(\s*)([-*+]|\d+[.)])\s+\S')
-FENCE_RE = re.compile(r'^\s*(```|~~~)')
+FENCE_OPEN_RE = re.compile(r'^\s{0,3}(`{3,}|~{3,})')
 HEADING_RE = re.compile(r'^\s{0,3}#{1,6}(\s|$)')
 HR_RE = re.compile(r'^\s{0,3}([-*_])(\s*\1){2,}\s*$')
-SETEXT_RE = re.compile(r'^\s{0,3}(=+|-+)\s*$')
+SETEXT_RE = re.compile(r'^\s{0,3}(=+|-+)\s*$')          # a setext underline / dash rule, alone on its line
 INDENT_CODE_RE = re.compile(r'^(\t| {4,})')
-
-SKIP_DIRS = {'.git', 'node_modules'}
+DEF_RE = re.compile(r'^\s{0,3}\[\^?[^\]]+\]:\s')        # [label]: url  |  [^id]: footnote text
+HTML_RAW_OPEN_RE = re.compile(r'^\s{0,3}<(pre|script|style|textarea)[\s/>]', re.IGNORECASE)
 
 
 class ReflowError(Exception):
@@ -55,9 +62,15 @@ def _is_special_standalone(line):
         return True
     if HR_RE.match(line):
         return True
-    if '|' in line:            # table row (conservative: never join across a pipe)
+    if SETEXT_RE.match(line):        # ===  /  --- underline or dash rule
         return True
-    if s.startswith('>'):      # blockquote
+    if '|' in line:                  # table row (conservative: never join across a pipe)
+        return True
+    if s.startswith('>'):            # blockquote
+        return True
+    if s.startswith('<'):            # HTML block / tag / comment / autolink at line start
+        return True
+    if DEF_RE.match(line):           # link / footnote reference definition
         return True
     if INDENT_CODE_RE.match(line):
         return True
@@ -66,6 +79,13 @@ def _is_special_standalone(line):
 
 def _is_hardbreak(line):
     return line.endswith('  ') or line.rstrip('\n').endswith('\\')
+
+
+def _fence_close(line, ch, length):
+    """A closing fence: >= `length` of the SAME char `ch`, <=3 indent, nothing
+    but whitespace after (a closing fence carries no info string)."""
+    m = re.match(r'^\s{0,3}(' + re.escape(ch) + r'+)[ \t]*$', line)
+    return bool(m) and len(m.group(1)) >= length
 
 
 def reflow(text):
@@ -77,34 +97,43 @@ def reflow(text):
     i = 0
     n = len(lines)
 
-    # YAML front-matter passthrough
-    if n and lines[0].strip() == '---':
-        out.append(lines[0])
-        i = 1
-        while i < n and lines[i].strip() != '---':
-            out.append(lines[i])
-            i += 1
-        if i < n:
-            out.append(lines[i])
-            i += 1
+    # YAML front-matter passthrough — only when a real terminator exists at col 0.
+    if n and lines[0] == '---':
+        close = next((k for k in range(1, n) if lines[k] in ('---', '...')), None)
+        if close is not None:
+            out.extend(lines[:close + 1])
+            i = close + 1
 
-    in_fence = False
-    fence_tok = None
     while i < n:
         line = lines[i]
-        m = FENCE_RE.match(line)
-        if in_fence:
+
+        # Fenced code: verbatim until a matching-or-longer close of the same char.
+        fo = FENCE_OPEN_RE.match(line)
+        if fo:
+            seq = fo.group(1)
+            ch, length = seq[0], len(seq)
             out.append(line)
-            if m and (fence_tok in line):
-                in_fence = False
-                fence_tok = None
             i += 1
+            while i < n:
+                out.append(lines[i])
+                closed = _fence_close(lines[i], ch, length)
+                i += 1
+                if closed:
+                    break
             continue
-        if m:
-            in_fence = True
-            fence_tok = m.group(1)
+
+        # Raw-text HTML element: verbatim until its close tag.
+        ho = HTML_RAW_OPEN_RE.match(line)
+        if ho:
+            tag = ho.group(1).lower()
+            close_re = re.compile(r'</' + tag + r'>', re.IGNORECASE)
             out.append(line)
+            done = bool(close_re.search(line))
             i += 1
+            while not done and i < n:
+                out.append(lines[i])
+                done = bool(close_re.search(lines[i]))
+                i += 1
             continue
 
         if _is_special_standalone(line) or _is_hardbreak(line):
@@ -119,20 +148,15 @@ def reflow(text):
             nxt = lines[i]
             if nxt.strip() == '':                 # blank ends the block
                 break
-            if _is_special_standalone(nxt):       # heading/hr/table/quote/indent-code
+            if _is_special_standalone(nxt):       # heading/hr/setext/table/quote/html/def/indent-code
                 break
-            if FENCE_RE.match(nxt):
+            if FENCE_OPEN_RE.match(nxt):
                 break
             if LIST_RE.match(nxt):                # a new list item ends the current one
                 break
-            if SETEXT_RE.match(nxt) and acc.strip():
-                break
-            if _is_hardbreak(acc):                # prior line forced a break
+            if _is_hardbreak(nxt):                # a hard break must keep its own line
                 break
             acc = acc.rstrip() + ' ' + nxt.strip()
-            if _is_hardbreak(nxt):
-                i += 1
-                break
             i += 1
         out.append(acc)
     return '\n'.join(out)
@@ -140,43 +164,35 @@ def reflow(text):
 
 def _reflow_file_content(path):
     """Return (original_text_LF, reflowed_text_LF, newline). Reads bytes so the
-    file's newline style is known and preserved; asserts token preservation."""
+    file's newline style is known and preserved. Guards the result twice: token
+    preservation, then idempotency — either failing raises a named ReflowError
+    rather than emitting a corrupted or non-canonical file."""
     data = path.read_bytes()
     newline = '\r\n' if b'\r\n' in data else '\n'
     src = data.decode('utf-8').replace('\r\n', '\n').replace('\r', '\n')
     res = reflow(src)
     if src.split() != res.split():
-        # Name the first divergence for a legible failure.
         a, b = src.split(), res.split()
         where = next((f'token {k}: {a[k]!r} vs {b[k]!r}'
                       for k in range(min(len(a), len(b))) if a[k] != b[k]),
                      f'length {len(a)} vs {len(b)}')
         raise ReflowError(f'{path}: reflow would alter content ({where}) — refusing')
+    if reflow(res) != res:
+        raise ReflowError(f'{path}: reflow is not idempotent here (unhandled construct) — refusing')
     return src, res, newline
-
-
-def _iter_md(paths):
-    for p in paths:
-        p = Path(p)
-        if p.is_dir():
-            for f in sorted(p.rglob('*.md')):
-                if any(part in SKIP_DIRS for part in f.parts):
-                    continue
-                yield f
-        else:
-            yield p
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description='Reflow markdown to one line per paragraph.')
-    ap.add_argument('paths', nargs='+', help='markdown files, or dirs to recurse for *.md')
+    ap.add_argument('paths', nargs='+', help='markdown files (pass an explicit list, e.g. via git ls-files)')
     ap.add_argument('--check', action='store_true',
                     help='verify canonical form; write nothing; exit non-zero on drift')
     args = ap.parse_args(argv)
 
     drifted = []
     wrote = 0
-    for f in _iter_md(args.paths):
+    for name in args.paths:
+        f = Path(name)
         src, res, newline = _reflow_file_content(f)
         if src == res:
             continue
