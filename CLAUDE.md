@@ -1,9 +1,6 @@
 # Atelier — an AI-operated workshop for VRChat avatar work
 
-This is a **container workspace** for AI-assisted VRChat avatar work. An agent (Claude Code)
-**observes** the Unity scene/project and Blender armature, **modifies** them via reviewed
-editor/Python scripts (or MCP), and **verifies** the result — with **Git the audit trail** for the
-tools and this meta-repo.
+This is a **container workspace** for AI-assisted VRChat avatar work. An agent (Claude Code) **observes** the Unity scene/project and Blender armature, **modifies** them via reviewed editor/Python scripts (or MCP), and **verifies** the result — with **Git the audit trail** for the tools and this meta-repo.
 
 **Read first**, before any avatar work: `docs/nondestructive.md`, then `docs/workflow.md`.
 
@@ -23,27 +20,18 @@ Atelier/                        (this folder = session cwd; workspace docs + lau
 ├─ test-output/                 disposable: headless-run results/logs, gitignored + self-pruned at 30d
 └─ references/                  open-source projects we study/replicate; routing in references/README.md
 ```
-**Two classes of sub-folder.** The `vrc-*` tool sub-repos are independent git repos (gitignored here,
-cloned in as siblings); `references/` holds reproducible reference clones. The **Unity projects**
-(`AvatarProject`, and local venues such as `Sandbox`) are **untracked working venues** — not git repos,
-reproducible from `vpm-manifest.json` (`vrc-get resolve`), backed up externally.
-Folder structure is **intentionally grown interactively** — do not impose a rigid tree.
+**Two classes of sub-folder.** The `vrc-*` tool sub-repos are independent git repos (gitignored here, cloned in as siblings); `references/` holds reproducible reference clones. The **Unity projects** (`AvatarProject`, and local venues such as `Sandbox`) are **untracked working venues** — not git repos, reproducible from `vpm-manifest.json` (`vrc-get resolve`), backed up externally. Folder structure is **intentionally grown interactively** — do not impose a rigid tree.
 
-**Run-output never lands in a tracked tooling dir.** A script that writes results or logs writes them
-to `test-output/`, not beside itself: a disposable pile inside `tools/` is invisible to `git status`
-and grows unbounded.
+**Run-output never lands in a tracked tooling dir.** A script that writes results or logs writes them to `test-output/`, not beside itself: a disposable pile inside `tools/` is invisible to `git status` and grows unbounded.
 
 ## Hard constraints
 
 - **Unity 2022.3.22f1** — VRChat-pinned. **Never upgrade** (breaks uploaded content). Already installed.
-- **Packages are reproducible**: `vpm-manifest.json` is the source of truth; the VPM SDK payloads
-  (`Packages/com.vrchat.*`) are reproduced from it, not kept. Restore with `vrc-get resolve`. Start **newest + trimmed**; add
-  VRCFury/Modular Avatar/NDMF/etc. deliberately via ALCOM, not in bulk.
+- **Packages are reproducible**: `vpm-manifest.json` is the source of truth; the VPM SDK payloads (`Packages/com.vrchat.*`) are reproduced from it, not kept. Restore with `vrc-get resolve`. Start **newest + trimmed**; add VRCFury/Modular Avatar/NDMF/etc. deliberately via ALCOM, not in bulk.
 
 ## Tooling stack
 
-Per-system operating details and domain knowledge — install paths, MCP wiring, build commands,
-runtime behavior — live in `docs/`. Read the relevant file before operating in that domain:
+Per-system operating details and domain knowledge — install paths, MCP wiring, build commands, runtime behavior — live in `docs/`. Read the relevant file before operating in that domain:
 
 - **`docs/nondestructive.md`** — **read first.** How NDMF / Modular Avatar / VRCFury compose avatars non-destructively (build-on-a-clone), and the reference-hardening facts all avatar tooling depends on.
 - **`docs/unity.md`** — Unity operating knowledge (always-read): MCP usage, the tool invocation/preview grammar, geometry-change reconcile, sharp edges. (Controller tooling lives in `animator.md`.)

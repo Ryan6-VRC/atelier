@@ -1,133 +1,50 @@
 # Expression menus
 
-How menu controls are authored on avatars composed non-destructively — the model behind the
-`author-menu` skill. `nondestructive.md` owns the framework mechanics these controls ride on;
-`gimmicks.md` owns the gimmick menu front; `runtime.md` §Parameters owns sync costs.
+How menu controls are authored on avatars composed non-destructively — the model behind the `author-menu` skill. `nondestructive.md` owns the framework mechanics these controls ride on; `gimmicks.md` owns the gimmick menu front; `runtime.md` §Parameters owns sync costs.
 
 ## Where a menu lives
 
-**Three origins — survey the first two before authoring the third.** A vendor base's
-**`VRCAvatarDescriptor`** (`expressionsMenu` / `expressionParameters` / FX playable layer) is already a
-complete menu with **zero MA/VRCFury components** — the default vendor state (`outfits.md`); a **Full
-Controller** (VRCFury `FullController`, or a raw menu/params/controller trio) merges **one or more**
-menu and params files in at build (its menu/params fields are lists, each at an install prefix);
-**MA/VRCFury components** author new controls on top. *Absent components never means absent menu* —
-read the descriptor first (`author-menu` §1).
+**Three origins — survey the first two before authoring the third.** A vendor base's **`VRCAvatarDescriptor`** (`expressionsMenu` / `expressionParameters` / FX playable layer) is already a complete menu with **zero MA/VRCFury components** — the default vendor state (`outfits.md`); a **Full Controller** (VRCFury `FullController`, or a raw menu/params/controller trio) merges **one or more** menu and params files in at build (its menu/params fields are lists, each at an install prefix); **MA/VRCFury components** author new controls on top. *Absent components never means absent menu* — read the descriptor first (`author-menu` §1).
 
-- **Clothing/prop menus are avatar-level, authored after composition.** Mergeables ship bare
-  (seam + physics, blank physbone params, no menu) by design: the avatar picks which pieces get
-  controls, mixes pieces across outfits without menu baggage, and keeps never-toggled geometry
-  deletable for a perf variant. Don't decorate outfit prefabs with menus.
-- **Gimmick menus travel inside the module** — the enable is part of the gimmick's function
-  (`gimmicks.md`). Placing a well-built gimmick means installing its existing menu (install
-  path/prefix), not authoring one; author a front only where one is missing.
+- **Clothing/prop menus are avatar-level, authored after composition.** Mergeables ship bare (seam + physics, blank physbone params, no menu) by design: the avatar picks which pieces get controls, mixes pieces across outfits without menu baggage, and keeps never-toggled geometry deletable for a perf variant. Don't decorate outfit prefabs with menus.
+- **Gimmick menus travel inside the module** — the enable is part of the gimmick's function (`gimmicks.md`). Placing a well-built gimmick means installing its existing menu (install path/prefix), not authoring one; author a front only where one is missing.
 
 ## Control vocabulary
 
 - **Toggle** (bool) — the workhorse; a GO active state / blendshape / material change.
-- **Exclusive select** — two mechanics, same UX: an **int mode param** with N toggles writing
-  values ("none" = VRChat's native un-toggle-to-0), or **VRCFury exclusive tags** with exactly one
-  member `exclusiveOffState` as the fallback. Int when the states feed one state machine; tags
-  when they're independent toggles that merely exclude each other (color swatches).
-- **Radial** (float) — anything continuous. Defaults are *tuned*, never 0 by laziness (a resting
-  bust size, Saturation 0.8). One radial may drive several coordinated values (fresnel + mask on
-  one Transparency knob).
+- **Exclusive select** — two mechanics, same UX: an **int mode param** with N toggles writing values ("none" = VRChat's native un-toggle-to-0), or **VRCFury exclusive tags** with exactly one member `exclusiveOffState` as the fallback. Int when the states feed one state machine; tags when they're independent toggles that merely exclude each other (color swatches).
+- **Radial** (float) — anything continuous. Defaults are *tuned*, never 0 by laziness (a resting bust size, Saturation 0.8). One radial may drive several coordinated values (fresnel + mask on one Transparency knob).
 - **Button** — rare; reset/transform pulses only.
-- **Submenus** — the house shape (vendors + `AvatarMenu`): nearly everything grouped into
-  **3–6 top-level category submenus** with leaves one level down; a loose control at the root is
-  the exception, not the rule. Category-first, ≤2 levels (depth 3 only to split one oversized
-  category by region); both MA (GO parenting) and VRCFury (slash-paths in the toggle name) build
-  depth for free. A menu page holds **8 controls**; both frameworks
-  auto-chain a "More" slot on overflow — poor UI, and visible only in the baked menu. Restructure
-  any submenu that would exceed 8 at plan time (split by region or type; strip minor toggles into
-  an accessories group). Propose a grouping per avatar
-  and let the user reshape it — the recurring vendor vocabulary (Costume/Hair/Face/Accessory/Option,
-  plus avatar-specifics like Kemono / Breast Size) is a familiar default, not a fixed taxonomy. No
-  icons unless the user supplies them. TwoAxis/FourAxis puppets are effectively unused here.
+- **Submenus** — the house shape (vendors + `AvatarMenu`): nearly everything grouped into **3–6 top-level category submenus** with leaves one level down; a loose control at the root is the exception, not the rule. Category-first, ≤2 levels (depth 3 only to split one oversized category by region); both MA (GO parenting) and VRCFury (slash-paths in the toggle name) build depth for free. A menu page holds **8 controls**; both frameworks auto-chain a "More" slot on overflow — poor UI, and visible only in the baked menu. Restructure any submenu that would exceed 8 at plan time (split by region or type; strip minor toggles into an accessories group). Propose a grouping per avatar and let the user reshape it — the recurring vendor vocabulary (Costume/Hair/Face/Accessory/Option, plus avatar-specifics like Kemono / Breast Size) is a familiar default, not a fixed taxonomy. No icons unless the user supplies them. TwoAxis/FourAxis puppets are effectively unused here.
 
-**Defaults.** `saved` = identity (worn state, colors, fit); unsaved = session tweaks and gimmick
-enables. Synced = intent only — sensing stays local (`gimmicks.md`). Bool for on/off — an int
-used as a bool wastes 7 bits. Outfit pieces default worn; opt-in accessories off.
+**Defaults.** `saved` = identity (worn state, colors, fit); unsaved = session tweaks and gimmick enables. Synced = intent only — sensing stays local (`gimmicks.md`). Bool for on/off — an int used as a bool wastes 7 bits. Outfit pieces default worn; opt-in accessories off.
 
-**Unguided plans are modest.** When the user hasn't said what to expose, propose the conservative
-set: no toggle whose off-state can strand the wearer undressed (core garments stay untoggled;
-accessories are the natural toggle set), and few controls — the handful that serve the intent, not
-one per mesh. This bounds the *default*, never the user: build whatever they explicitly ask for.
+**Unguided plans are modest.** When the user hasn't said what to expose, propose the conservative set: no toggle whose off-state can strand the wearer undressed (core garments stay untoggled; accessories are the natural toggle set), and few controls — the handful that serve the intent, not one per mesh. This bounds the *default*, never the user: build whatever they explicitly ask for.
 
 ## A toggle is a dependency closure
 
-"Toggle the shoes" is never just a mesh: real toggles carry edges — shoes bend `Toe_heels` and
-un-shrink feet, a top hides `Nipple_OFF`/pasties and the bra, a sweater reshapes the hair, pants
-exclude socks. Several are the base's clothing↔blendshape coupling (`outfits.md`): a garment sits
-over a pre-collapsed body region, so a toggle that hides it must release that shape and one that
-shows it must re-apply it. Discovery here ranks **authored edges on the composed mergeables** (MA
-reactions first); a base's own **shipped** couplings invert the top two — FX graph first (`outfits.md`
-/ `map-outfit-shapes`). In authority order:
+"Toggle the shoes" is never just a mesh: real toggles carry edges — shoes bend `Toe_heels` and un-shrink feet, a top hides `Nipple_OFF`/pasties and the bra, a sweater reshapes the hair, pants exclude socks. Several are the base's clothing↔blendshape coupling (`outfits.md`): a garment sits over a pre-collapsed body region, so a toggle that hides it must release that shape and one that shows it must re-apply it. Discovery here ranks **authored edges on the composed mergeables** (MA reactions first); a base's own **shipped** couplings invert the top two — FX graph first (`outfits.md` / `map-outfit-shapes`). In authority order:
 
-1. **Existing MA reactions** on the composed mergeables — `Shape Changer`/`Object Toggle` entries
-   reaching into `Body_Base` or sibling meshes are declared dependency edges. Read them from the
-   **live scene**, not prefab YAML: instance overrides correct prefab-local reference paths.
-2. **The vendor's original toggle clips/controllers** — for raw-regime sources the edges are
-   frozen in clip curves (`ReportClip`); re-express them as reactions.
-3. **Blendshape naming conventions** on the base (`Shrink_*`, `*_OFF`, `Corset`, `Toe_heels`) —
-   suggestive, not authoritative.
+1. **Existing MA reactions** on the composed mergeables — `Shape Changer`/`Object Toggle` entries reaching into `Body_Base` or sibling meshes are declared dependency edges. Read them from the **live scene**, not prefab YAML: instance overrides correct prefab-local reference paths.
+2. **The vendor's original toggle clips/controllers** — for raw-regime sources the edges are frozen in clip curves (`ReportClip`); re-express them as reactions.
+3. **Blendshape naming conventions** on the base (`Shrink_*`, `*_OFF`, `Corset`, `Toe_heels`) — suggestive, not authoritative.
 4. **Ask the user, or verify visually** — `RenderAvatar` both states.
 
-When a garment mesh duplicates a base-body blendshape name, dependent reactions drive **every**
-mesh carrying it, in lockstep. Edges that hold whenever the outfit is worn (heels, corset) attach
-to the outfit root, not a per-piece toggle.
+When a garment mesh duplicates a base-body blendshape name, dependent reactions drive **every** mesh carrying it, in lockstep. Edges that hold whenever the outfit is worn (heels, corset) attach to the outfit root, not a per-piece toggle.
 
 ## Substrate: MA-first, escalate to VRCFury
 
-Organize authored nodes under one **`AvatarMenu`** child of the avatar root — the menu analogue of
-`AvatarDynamics` — but that container only *groups*; it installs nothing. **A `Menu Item` is one
-control (a leaf, or a SubMenu whose children come from its `MenuSource`); it reaches the avatar's
-menu only through a `Menu Installer` on its own GameObject** (install target unset = root menu).
-There is no child-of-root auto-install — a `Menu Item` with no installer on its GO, and no installed
-SubMenu/`Menu Group` above it, generates its parameter but adds **zero** controls. The installer
-roots one menu source; a SubMenu `Menu Item` sourcing `Children` (or a `Menu Group`, which installs
-its children flat, no wrapper control) pulls the nodes beneath it, and deeper nesting rides that
-chain — only the top of each installed branch carries an installer.
+Organize authored nodes under one **`AvatarMenu`** child of the avatar root — the menu analogue of `AvatarDynamics` — but that container only *groups*; it installs nothing. **A `Menu Item` is one control (a leaf, or a SubMenu whose children come from its `MenuSource`); it reaches the avatar's menu only through a `Menu Installer` on its own GameObject** (install target unset = root menu). There is no child-of-root auto-install — a `Menu Item` with no installer on its GO, and no installed SubMenu/`Menu Group` above it, generates its parameter but adds **zero** controls. The installer roots one menu source; a SubMenu `Menu Item` sourcing `Children` (or a `Menu Group`, which installs its children flat, no wrapper control) pulls the nodes beneath it, and deeper nesting rides that chain — only the top of each installed branch carries an installer.
 
-So each top-level category is one GO with **`Menu Installer` + a SubMenu `Menu Item`(`Children`)**,
-toggles as installer-less children (the vendor and `AvatarMenu` shape); a lone root control is
-one GO with **`Menu Installer` + a Toggle `Menu Item`**. `MenuSource` governs only where a SubMenu
-gets its children and is inert on a leaf.
+So each top-level category is one GO with **`Menu Installer` + a SubMenu `Menu Item`(`Children`)**, toggles as installer-less children (the vendor and `AvatarMenu` shape); a lone root control is one GO with **`Menu Installer` + a Toggle `Menu Item`**. `MenuSource` governs only where a SubMenu gets its children and is inert on a leaf.
 
-A toggle node is a `Menu Item` (`automaticValue`, empty parameter — one synced bool auto-named
-`__MA/AutoParam/<GO>$<hash>` (hashed, **not** the GameObject name — `nondestructive.md`), no controller,
-no `MA Parameters`) plus its `Object Toggle` / `Shape Changer`
-reactions, dependencies as extra list entries. **A default-visible object needs the inverted
-closure**: `Inverted=true` + entry `Active=false`, firing on param-off — the naive `Active=true`
-entry on an already-active object compiles to a silent no-op.
+A toggle node is a `Menu Item` (`automaticValue`, empty parameter — one synced bool auto-named `__MA/AutoParam/<GO>$<hash>` (hashed, **not** the GameObject name — `nondestructive.md`), no controller, no `MA Parameters`) plus its `Object Toggle` / `Shape Changer` reactions, dependencies as extra list entries. **A default-visible object needs the inverted closure**: `Inverted=true` + entry `Active=false`, firing on param-off — the naive `Active=true` entry on an already-active object compiles to a silent no-op.
 
-Escalate a **control** to a VRCFury `Toggle` when it needs what MA lacks: exclusive tags,
-a slider driving material properties, a global/OSC param (`useGlobalParam` — one radial can drive
-many outfits' merged controllers), transitions, `holdButton`, or an `ApplyDuringUpload` baseline
-(bake the off-state material value so the avatar renders right before FX loads). Escalate a
-**module** wholly when most of its controls escalated, it's animator-heavy, or it may be
-instanced more than once (`nondestructive.md`'s rules). **VRC-native assets are the third
-substrate**, real but narrow: raw menu/params assets are for reading vendor avatars and for a
-portable asset-trio (or several menu/params files — FullController merges lists) behind a
-FullController — pick MA or VRCFury to match the avatar/prefab's main system, and author native
-assets only as FullController payload, never loose on composed avatars here.
+Escalate a **control** to a VRCFury `Toggle` when it needs what MA lacks: exclusive tags, a slider driving material properties, a global/OSC param (`useGlobalParam` — one radial can drive many outfits' merged controllers), transitions, `holdButton`, or an `ApplyDuringUpload` baseline (bake the off-state material value so the avatar renders right before FX loads). Escalate a **module** wholly when most of its controls escalated, it's animator-heavy, or it may be instanced more than once (`nondestructive.md`'s rules). **VRC-native assets are the third substrate**, real but narrow: raw menu/params assets are for reading vendor avatars and for a portable asset-trio (or several menu/params files — FullController merges lists) behind a FullController — pick MA or VRCFury to match the avatar/prefab's main system, and author native assets only as FullController payload, never loose on composed avatars here.
 
 ## Reading what exists
 
-- Menu-relevant truth is **post-build only**: the descriptor's authored assets miss everything MA
-  and VRCFury inject (`runtime.md`). Play mode is the bake: the build runs on the transient play
-  copy — read the populated descriptor there, and drive it in the same session (the play-entry
-  gate: `verify.md`).
-- To read an **authored** menu chain cheaply, `AgentInspector.Snapshot(… followAssets:true)` and
-  read the inlined `fields` — it follows the `subMenu` asset refs to the whole tree in one capture
-  (great for vendor/raw asset-trios), no YAML grep. It reads the descriptor's authored assets only,
-  so on a composed avatar it still misses MA/VRCFury-injected controls — the post-build live read
-  above governs there. The dump is raw: this SDK line serializes control types as ~100-offset ints
-  (102=Toggle, 103=SubMenu, 203=RadialPuppet), not the documented 0–5, and the tool does not decode
-  them — identify controls by *shape* (subMenu ref vs `subParameters` vs flat value), not the literal.
-- In scene/prefab YAML, MA components appear only as script GUIDs — build a GUID→type map from
-  `Packages/nadena.dev.modular-avatar/**/*.cs.meta` before grepping. VRCFury features serialize
-  as typed JSON-ish blocks inside one `VF.Model.VRCFury` MonoBehaviour.
-- Vendor raw menus wire per-toggle 2-state FX layers and motion-time radials; expect orphaned
-  params and dead layers when a vendor controller was trimmed — re-exposing vs pruning them is a
-  per-case decision, not a default.
+- Menu-relevant truth is **post-build only**: the descriptor's authored assets miss everything MA and VRCFury inject (`runtime.md`). Play mode is the bake: the build runs on the transient play copy — read the populated descriptor there, and drive it in the same session (the play-entry gate: `verify.md`).
+- To read an **authored** menu chain cheaply, `AgentInspector.Snapshot(… followAssets:true)` and read the inlined `fields` — it follows the `subMenu` asset refs to the whole tree in one capture (great for vendor/raw asset-trios), no YAML grep. It reads the descriptor's authored assets only, so on a composed avatar it still misses MA/VRCFury-injected controls — the post-build live read above governs there. The dump is raw: this SDK line serializes control types as ~100-offset ints (102=Toggle, 103=SubMenu, 203=RadialPuppet), not the documented 0–5, and the tool does not decode them — identify controls by *shape* (subMenu ref vs `subParameters` vs flat value), not the literal.
+- In scene/prefab YAML, MA components appear only as script GUIDs — build a GUID→type map from `Packages/nadena.dev.modular-avatar/**/*.cs.meta` before grepping. VRCFury features serialize as typed JSON-ish blocks inside one `VF.Model.VRCFury` MonoBehaviour.
+- Vendor raw menus wire per-toggle 2-state FX layers and motion-time radials; expect orphaned params and dead layers when a vendor controller was trimmed — re-exposing vs pruning them is a per-case decision, not a default.

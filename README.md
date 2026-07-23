@@ -1,30 +1,17 @@
 # Atelier
 
-Atelier is a workspace where a coding agent (Claude Code) does VRChat avatar work end-to-end: it
-observes the live Unity scene and Blender armature, modifies them through reviewed scripts and
-purpose-built tools, and verifies the result. It can self-drive most of my process with the same
-organization and rigor I would use if I had unlimited time. It uses a mix of:
+Atelier is a workspace where a coding agent (Claude Code) does VRChat avatar work end-to-end: it observes the live Unity scene and Blender armature, modifies them through reviewed scripts and purpose-built tools, and verifies the result. It can self-drive most of my process with the same organization and rigor I would use if I had unlimited time. It uses a mix of:
 
 - Carefully constructed knowledge `.md` files to inject Unity/VRChat conventions and tooling.
-- Full control of Blender and Unity via MCP, although models generally prefer to run Blender
-  headless.
+- Full control of Blender and Unity via MCP, although models generally prefer to run Blender headless.
 - A set of chainable and legible Blender and Unity tools.
-- Claude Code skills that package each workflow's judgment calls (own a base, compose an outfit,
-  author a menu) into repeatable units.
+- Claude Code skills that package each workflow's judgment calls (own a base, compose an outfit, author a menu) into repeatable units.
 
-The project is opinionated. Vendor assets are never modified, only *owned*: deep-copied exactly as
-far as a change requires, while the avatar in the scene stays a non-destructive recipe until
-upload. The agent is fluent in the workflows this implies; it can split an avatar across FBXs and
-merge it back with Modular Avatar or VRCFury, physbone/constraint/contact topology intact,
-authoring FX controllers and menus as needed.
+The project is opinionated. Vendor assets are never modified, only *owned*: deep-copied exactly as far as a change requires, while the avatar in the scene stays a non-destructive recipe until upload. The agent is fluent in the workflows this implies; it can split an avatar across FBXs and merge it back with Modular Avatar or VRCFury, physbone/constraint/contact topology intact, authoring FX controllers and menus as needed.
 
 ## Skills
 
-These skills are how you use the workshop: invoke one by name, or just say what you want and the
-agent picks the right one. Each runs a complete arc of avatar work end-to-end, driving the tools
-catalogued at the bottom of this page; most users never need anything past this section. Together
-they are what this workshop can do, from a vendor `.unitypackage` to a dressed, menued, reshaped
-avatar live on VRChat.
+These skills are how you use the workshop: invoke one by name, or just say what you want and the agent picks the right one. Each runs a complete arc of avatar work end-to-end, driving the tools catalogued at the bottom of this page; most users never need anything past this section. Together they are what this workshop can do, from a vendor `.unitypackage` to a dressed, menued, reshaped avatar live on VRChat.
 
 | Key | Purpose |
 | --- | --- |
@@ -45,66 +32,31 @@ avatar live on VRChat.
 
 ## Controller authoring
 
-The fluency above forms the baseline "common sense" layer required to do useful VRChat work, but
-is not the ultimate objective of the project. A full set of tools is included to enable full use
-of frontier model coding aptitude for controller and gimmick work.
+The fluency above forms the baseline "common sense" layer required to do useful VRChat work, but is not the ultimate objective of the project. A full set of tools is included to enable full use of frontier model coding aptitude for controller and gimmick work.
 
-- **Decoded structure.** Animator, constraint, physbone, and contact topology arrive as read-only
-  graph digests (`ReportController`, `ReportGimmick`, `CheckAnimator`), so the model reasons over
-  decoded structure instead of raw unity files.
-- **Controllers as code.** `DecompileController` and `CompileController` round-trip a built
-  `.controller` to declarative YAML: reviewable, diffable text, the representation coding models
-  are strongest in. Study a vendor controller, modify it, or author a new system from scratch.
-- **A closed validation loop.** The emulator lets the agent drive parameters, frame-step, induce
-  physbone grabs, fake another player's contacts, and spawn remote clones; so it can self-test its
-  work in play mode and iterate instead of asserting.
+- **Decoded structure.** Animator, constraint, physbone, and contact topology arrive as read-only graph digests (`ReportController`, `ReportGimmick`, `CheckAnimator`), so the model reasons over decoded structure instead of raw unity files.
+- **Controllers as code.** `DecompileController` and `CompileController` round-trip a built `.controller` to declarative YAML: reviewable, diffable text, the representation coding models are strongest in. Study a vendor controller, modify it, or author a new system from scratch.
+- **A closed validation loop.** The emulator lets the agent drive parameters, frame-step, induce physbone grabs, fake another player's contacts, and spawn remote clones; so it can self-test its work in play mode and iterate instead of asserting.
 
 ## Tools for AI
 
-Most Unity plugins and Blender scripts are designed for humans, so they hide complexity behind
-clever defaults. Tooling built for an AI operator inverts that: legibility beats edge-case
-cleverness. If a tool cannot do exactly what was asked, it refuses and explains why, so the
-driving model can understand and adapt. This makes the system robust to the enormous variety of
-creator assets; there are no brittle hard-coded workarounds to outgrow.
+Most Unity plugins and Blender scripts are designed for humans, so they hide complexity behind clever defaults. Tooling built for an AI operator inverts that: legibility beats edge-case cleverness. If a tool cannot do exactly what was asked, it refuses and explains why, so the driving model can understand and adapt. This makes the system robust to the enormous variety of creator assets; there are no brittle hard-coded workarounds to outgrow.
 
 ## Repos
 
-Cloning this meta-repo gets you the docs + launcher, **not** the tools; each **tool** repo below is
-its own independent git repo, gitignored here as a sibling you clone into place. `AvatarProject`
-(last) is different — an untracked Unity working venue, not a tracked repo.
+Cloning this meta-repo gets you the docs + launcher, **not** the tools; each **tool** repo below is its own independent git repo, gitignored here as a sibling you clone into place. `AvatarProject` (last) is different — an untracked Unity working venue, not a tracked repo.
 
-- **[`vrc-unity-tools/`](https://github.com/Ryan6-VRC/vrc-unity-tools)** — Unity editor packages
-  (UPM): the agent inspection/verification harness (`agent-tools`) and the vendor→owned transplant
-  kit (`avatar-tools`). Editor-only, SDK-gated, tested.
-- **[`vrc-blender-tools/`](https://github.com/Ryan6-VRC/vrc-blender-tools)** — the `avatarprep`
-  Blender extension: shape-key-safe rest-pose bake, proportion profiles, armature merge/prune,
-  Unity FBX export. Blender 5.1+, with an N-panel for humans and headless CLIs for agents over the
-  same core.
-- **[`vrc-skills/`](https://github.com/Ryan6-VRC/vrc-skills)** — the Claude Code skills plugin:
-  the import / own / compose / reproportion / menu workflows as repeatable, gated units of work.
-- **[`vrc-patterns/`](https://github.com/Ryan6-VRC/vrc-patterns)** — a VPM library of reusable,
-  verified avatar patterns, controllers, and drop-in gimmick modules: YAML-sourced
-  (`CompileController`), gated on compile→decompile-equality, with built assets committed only where
-  a prefab references them by GUID.
-- **[`vrc-bridge/`](https://github.com/Ryan6-VRC/vrc-bridge)** — a Python runtime bridge between
-  SteamVR controller input and VRChat OSC: zero-config discovery (OSCQuery/mDNS), hot-swappable
-  control mappings, camera-system routing.
-- **[`vrc-mcp-proxy/`](https://github.com/Ryan6-VRC/vrc-mcp-proxy)** — an owned stdio MCP interception
-  proxy wrapping the pinned MCP-for-Unity server: validates the upstream tool schemas against a
-  committed baseline, allowlists the tools the agent uses, and applies per-tool request/response
-  transforms so a class of upstream sharp edges is corrected at the moment of failure.
-- **[`AvatarProject/`](https://github.com/Ryan6-VRC/AvatarProject)** — an **untracked** Unity working
-  venue (2022.3.22f1, VRChat Avatars SDK via VPM/ALCOM) where the loop runs against real avatar setups.
-  The linked public repo is a stripped **sample skeleton** to seed a fresh clone from (bootstrap removes
-  its `.git`), not the tracked project. One instance of the workspace's conventions, not the only one;
-  stand up more via [`docs/new-project.md`](docs/new-project.md).
+- **[`vrc-unity-tools/`](https://github.com/Ryan6-VRC/vrc-unity-tools)** — Unity editor packages (UPM): the agent inspection/verification harness (`agent-tools`) and the vendor→owned transplant kit (`avatar-tools`). Editor-only, SDK-gated, tested.
+- **[`vrc-blender-tools/`](https://github.com/Ryan6-VRC/vrc-blender-tools)** — the `avatarprep` Blender extension: shape-key-safe rest-pose bake, proportion profiles, armature merge/prune, Unity FBX export. Blender 5.1+, with an N-panel for humans and headless CLIs for agents over the same core.
+- **[`vrc-skills/`](https://github.com/Ryan6-VRC/vrc-skills)** — the Claude Code skills plugin: the import / own / compose / reproportion / menu workflows as repeatable, gated units of work.
+- **[`vrc-patterns/`](https://github.com/Ryan6-VRC/vrc-patterns)** — a VPM library of reusable, verified avatar patterns, controllers, and drop-in gimmick modules: YAML-sourced (`CompileController`), gated on compile→decompile-equality, with built assets committed only where a prefab references them by GUID.
+- **[`vrc-bridge/`](https://github.com/Ryan6-VRC/vrc-bridge)** — a Python runtime bridge between SteamVR controller input and VRChat OSC: zero-config discovery (OSCQuery/mDNS), hot-swappable control mappings, camera-system routing.
+- **[`vrc-mcp-proxy/`](https://github.com/Ryan6-VRC/vrc-mcp-proxy)** — an owned stdio MCP interception proxy wrapping the pinned MCP-for-Unity server: validates the upstream tool schemas against a committed baseline, allowlists the tools the agent uses, and applies per-tool request/response transforms so a class of upstream sharp edges is corrected at the moment of failure.
+- **[`AvatarProject/`](https://github.com/Ryan6-VRC/AvatarProject)** — an **untracked** Unity working venue (2022.3.22f1, VRChat Avatars SDK via VPM/ALCOM) where the loop runs against real avatar setups. The linked public repo is a stripped **sample skeleton** to seed a fresh clone from (bootstrap removes its `.git`), not the tracked project. One instance of the workspace's conventions, not the only one; stand up more via [`docs/new-project.md`](docs/new-project.md).
 
 ## Get the workspace running
 
-To assemble the full workspace on a bare machine (clone the sub-repos, install and wire
-Unity · Blender · the MCP bridges, then verify), point a capable agent at
-**[`docs/bootstrap.md`](docs/bootstrap.md)**. Prereqs at a glance: Unity Hub + 2022.3.22f1,
-Blender 5.1+, `git`/`git-lfs`, `uv`, `vrc-get`/ALCOM, Python 3.10+, Claude Code.
+To assemble the full workspace on a bare machine (clone the sub-repos, install and wire Unity · Blender · the MCP bridges, then verify), point a capable agent at **[`docs/bootstrap.md`](docs/bootstrap.md)**. Prereqs at a glance: Unity Hub + 2022.3.22f1, Blender 5.1+, `git`/`git-lfs`, `uv`, `vrc-get`/ALCOM, Python 3.10+, Claude Code.
 
 ## Tools
 
@@ -113,13 +65,7 @@ _The tool surface the skills above drive. Generated from `TOOLS.md`._
 <!-- BEGIN tools -->
 <!-- generated from TOOLS.md — edit TOOLS.md, not here -->
 
-Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row each. Rows are
-routing, not contracts; behavior lives in `docs/unity-tools.md` / `docs/animator.md` (controllers & clips) /
-`docs/blender.md`. The pre-commit hook
-`tools/sync_tool_inventory.py` verifies each key against its code declaration site (Unity
-`[AgentTool]` classes, Blender operator names ∪ `cli/` stems) and mirrors this file into
-`README.md`; it never writes a row itself. The agent landing a tool change updates its row by hand
-at merge (the hook skips worktrees).
+Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row each. Rows are routing, not contracts; behavior lives in `docs/unity-tools.md` / `docs/animator.md` (controllers & clips) / `docs/blender.md`. The pre-commit hook `tools/sync_tool_inventory.py` verifies each key against its code declaration site (Unity `[AgentTool]` classes, Blender operator names ∪ `cli/` stems) and mirrors this file into `README.md`; it never writes a row itself. The agent landing a tool change updates its row by hand at merge (the hook skips worktrees).
 
 ## vrc-unity-tools
 

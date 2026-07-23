@@ -1,211 +1,80 @@
 # Animator controllers — the tool doors
 
-The contract for every animator/controller tool: what each door does, its verdict grammar, and when to
-reach for it. The YAML **authoring language** the compile/decompile doors speak is `animator-schema.md`;
-the one-line index of the whole callable surface is `TOOLS.md`. Shared plumbing lives in `unity-tools.md`:
+The contract for every animator/controller tool: what each door does, its verdict grammar, and when to reach for it. The YAML **authoring language** the compile/decompile doors speak is `animator-schema.md`; the one-line index of the whole callable surface is `TOOLS.md`. Shared plumbing lives in `unity-tools.md`:
 the `agent-tools`/`avatar-tools` package split and the `RunLogFormat` reporting conventions (`… => RESULT |
-log=<path>`; `RunLogs/` verdicts vs `Snapshots/` read-captures); the `whatIf`/`preflight` preview grammar
-every mutating tool obeys is in `unity.md`.
+log=<path>`; `RunLogs/` verdicts vs `Snapshots/` read-captures); the `whatIf`/`preflight` preview grammar every mutating tool obeys is in `unity.md`.
 
 ## Reading a controller
 
-Three read-only introspection tools (`agent-tools`) turn raw `.controller`/`.anim` YAML into cheap
-deterministic digests. Each takes its asset as the **typed object *or* the asset's path/GUID** — an asset
-handle, not a scene path (the asset-vs-scene-door split is `unity-tools.md`'s). A handle naming no such
-asset is a loud bare-`FAIL`.
+Three read-only introspection tools (`agent-tools`) turn raw `.controller`/`.anim` YAML into cheap deterministic digests. Each takes its asset as the **typed object *or* the asset's path/GUID** — an asset handle, not a scene path (the asset-vs-scene-door split is `unity-tools.md`'s). A handle naming no such asset is a loud bare-`FAIL`.
 
 - `ReportController.Report(controller | path/GUID)` — a ~50:1 markdown digest that *decodes* animator semantics rather
-  than echoing YAML: parameters, layers (+ per-layer Write-Defaults and `states=N`), states and their motions
-  (clips named by **asset-path + GUID**, an empty-vs-broken split that surfaces a dangling motion GUID —
-  broken further split **live-reachable vs orphan-only** (`brokenMotions=Nlive/Morphan`), a GUID a live state
-  plays vs YAML residue no state reaches, so a scary broken count that is all orphan is benign), the
-  first-match transition ladder, and VRC state-machine behaviours decoded **typed**. To `Snapshots/`; `…
+  than echoing YAML: parameters, layers (+ per-layer Write-Defaults and `states=N`), states and their motions (clips named by **asset-path + GUID**, an empty-vs-broken split that surfaces a dangling motion GUID — broken further split **live-reachable vs orphan-only** (`brokenMotions=Nlive/Morphan`), a GUID a live state plays vs YAML residue no state reaches, so a scary broken count that is all orphan is benign), the first-match transition ladder, and VRC state-machine behaviours decoded **typed**. To `Snapshots/`; `…
   layers=… states=… params=… => OK | log=<path>`.
 - `ReportClip.Report(clip | path/GUID)` / `ReportFolder(folder)` — bindings as a `path | type | propertyName | keys`
-  table (one row per curve), paths as-authored (a `""` root shown as `(root)`, never judged). To
-  `Snapshots/`. Folder mode mirrors `CheckPackage.VerifyFolder` (`unity-tools.md`), down to the empty-but-valid
-  `0 clips => OK`.
+  table (one row per curve), paths as-authored (a `""` root shown as `(root)`, never judged). To `Snapshots/`. Folder mode mirrors `CheckPackage.VerifyFolder` (`unity-tools.md`), down to the empty-but-valid `0 clips => OK`.
 - `CheckAnimator.Lint(controller | path/GUID, basis, mergeSite, avatarRoot, mountRoot)` — binary **PASS/FAIL** (FAIL iff
-  an `error`-tier rule fires) + per-kind counts + a two-tier offender body, to `RunLogs/`. Only five `error`
-  rules flip the verdict — unresolvable-motion-GUID, undeclared-param (VRC built-ins exempt),
-  unconditional-entry-shadow, never-firing transition (a state hop with no condition **and** no exit time),
-  broken-binding; every heuristic (WD disagreement, orphans, dead layers, cross-package/archive refs) stays
-  **advisory**, so the verdict never rests on a guess. Binding resolution needs a root the `.controller`
-  lacks: `basis=auto` reads the merge component at `mergeSite` to take the frame the build will (MA
-  `pathMode` / VRCFury prop-root preference — `nondestructive.md`), refusing on zero/multiple/mismatched
-  components and rendering the choice (`basis=auto→mount(<path>) [MA MergeAnimator]`); `basis=explicit`
-  asserts `avatarRoot`/`mountRoot`. Under `auto`, broken-binding demotes to advisory (the build rewrites
-  paths, so an authored-scene resolve would false-FAIL). A **descriptor-borne** controller (played from the
-  avatar's own FX slot, no merge component to read a frame from) is the `basis=explicit` case with **null
-  roots** — its bindings are already authored against the avatar root, so no remap is asserted.
+  an `error`-tier rule fires) + per-kind counts + a two-tier offender body, to `RunLogs/`. Only five `error` rules flip the verdict — unresolvable-motion-GUID, undeclared-param (VRC built-ins exempt), unconditional-entry-shadow, never-firing transition (a state hop with no condition **and** no exit time), broken-binding; every heuristic (WD disagreement, orphans, dead layers, cross-package/archive refs) stays **advisory**, so the verdict never rests on a guess. Binding resolution needs a root the `.controller` lacks: `basis=auto` reads the merge component at `mergeSite` to take the frame the build will (MA `pathMode` / VRCFury prop-root preference — `nondestructive.md`), refusing on zero/multiple/mismatched components and rendering the choice (`basis=auto→mount(<path>) [MA MergeAnimator]`); `basis=explicit` asserts `avatarRoot`/`mountRoot`. Under `auto`, broken-binding demotes to advisory (the build rewrites paths, so an authored-scene resolve would false-FAIL). A **descriptor-borne** controller (played from the avatar's own FX slot, no merge component to read a frame from) is the `basis=explicit` case with **null roots** — its bindings are already authored against the avatar root, so no remap is asserted.
 
-A controller shipped inside a **never-placed prefab** gives `basis=auto` no in-scene merge component to
-read a `mergeSite` from. Instantiate it transiently (`InstantiatePrefab`), lint against that instance's
-`mergeSite`, then `DestroyImmediate` in a `finally` — asserting the scene didn't dirty. Don't fall back to
-`basis=explicit` unless you can name the real build frame; guessed roots defeat the lint.
+A controller shipped inside a **never-placed prefab** gives `basis=auto` no in-scene merge component to read a `mergeSite` from. Instantiate it transiently (`InstantiatePrefab`), lint against that instance's `mergeSite`, then `DestroyImmediate` in a `finally` — asserting the scene didn't dirty. Don't fall back to `basis=explicit` unless you can name the real build frame; guessed roots defeat the lint.
 
-`CheckAnimator`'s binding-walk is the same one `CheckAvatar` (`unity-tools.md`) reuses for scene-placement
-ref-breaks — one walk, so the two doors can't disagree on how a binding resolves.
+`CheckAnimator`'s binding-walk is the same one `CheckAvatar` (`unity-tools.md`) reuses for scene-placement ref-breaks — one walk, so the two doors can't disagree on how a binding resolves.
 
 ## Owning & consolidating a controller
 
-These mutate on-disk assets. All are `avatar-tools` static methods, `whatIf`-previewable and idempotent
-(conventions in `unity-tools.md`; the `whatIf`/`preflight` grammar in `unity.md`).
+These mutate on-disk assets. All are `avatar-tools` static methods, `whatIf`-previewable and idempotent (conventions in `unity-tools.md`; the `whatIf`/`preflight` grammar in `unity.md`).
 
-- `CleanController(sourceFx, ownedRoot, outDir, keepLayerNames, whatIf=false)` — **resets an owned avatar's
-  FX to a blank slate at the start of a build**: discards the vendor's elaborate FX down to a minimal
-  controller keeping the **named** layers (base layer 0 always retained; FAILs on an absent/ambiguous name —
-  no magic layer count), its **parameter list pruned to what the kept layers reference**, + empty expression
-  params/menu, wired into the descriptor. **Create-if-missing / reuse-if-present** with GUID-stable shared asset names
-  (`<sourceFx>_Clean.controller`, `VRCExpressionParameters_Empty.asset`, `VRCExpressionsMenu_Empty.asset`)
-  so variations of one base share assets; never delete-recreate. `whatIf` reports what it would
-  create/reuse, trim, and wire — touching no asset.
+- `CleanController(sourceFx, ownedRoot, outDir, keepLayerNames, whatIf=false)` — **resets an owned avatar's FX to a blank slate at the start of a build**: discards the vendor's elaborate FX down to a minimal controller keeping the **named** layers (base layer 0 always retained; FAILs on an absent/ambiguous name — no magic layer count), its **parameter list pruned to what the kept layers reference**, + empty expression params/menu, wired into the descriptor. **Create-if-missing / reuse-if-present** with GUID-stable shared asset names (`<sourceFx>_Clean.controller`, `VRCExpressionParameters_Empty.asset`, `VRCExpressionsMenu_Empty.asset`) so variations of one base share assets; never delete-recreate. `whatIf` reports what it would create/reuse, trim, and wire — touching no asset.
 
-The **clip-repathing pair** rewrites *clip binding paths* / motion refs in on-disk `.anim` assets — a
-different domain from `RemapReferencesByPath` (scene-object refs, `unity-tools.md`). Both obey the
-**read-only-asset rule** (`LAYOUT.md`: `Assets/Vendor/` + `Packages/` read-only) and are single-controller,
-**frame-blind** rewriters — the **caller owns frame-correctness** (descriptor / MA MergeAnimator / VRCFury
-FullController frames differ, VRCFury may mix absolute + relative in one controller; no whole-avatar sweep)
-— though the frame is **discoverable from the merge component** (`nondestructive.md`), which is exactly what
-`CheckAnimator`'s `auto` basis reads.
+The **clip-repathing pair** rewrites *clip binding paths* / motion refs in on-disk `.anim` assets — a different domain from `RemapReferencesByPath` (scene-object refs, `unity-tools.md`). Both obey the **read-only-asset rule** (`LAYOUT.md`: `Assets/Vendor/` + `Packages/` read-only) and are single-controller, **frame-blind** rewriters — the **caller owns frame-correctness** (descriptor / MA MergeAnimator / VRCFury FullController frames differ, VRCFury may mix absolute + relative in one controller; no whole-avatar sweep) — though the frame is **discoverable from the merge component** (`nondestructive.md`), which is exactly what `CheckAnimator`'s `auto` basis reads.
 
-- `RepathClips(controller, oldPaths, newPaths, force=false, whatIf=false)` — deterministic **segment-safe**
-  repath of the bindings a controller references (float + objectReference; `Armature/Hips` rewrites
-  `Armature/Hips[/…]`, never `Armature/HipsFoo`). **Owned-clips-only** (a read-only clip a move would touch
-  FAILs unless `force`); curve-collision + duplicate/empty-path FAIL; every write is re-read from disk and
-  content-verified (`force` never bypasses that). Mutates each `.anim` in place; idempotent. `whatIf`
-  previews.
-- `OwnControllerClips(controller, outDir, scope=VendorOnly, force=false, whatIf=false)` — closes the
-  CleanController gap (owned controller still referencing **vendor clips by GUID**): copies in-scope clips
+- `RepathClips(controller, oldPaths, newPaths, force=false, whatIf=false)` — deterministic **segment-safe** repath of the bindings a controller references (float + objectReference; `Armature/Hips` rewrites `Armature/Hips[/…]`, never `Armature/HipsFoo`). **Owned-clips-only** (a read-only clip a move would touch FAILs unless `force`); curve-collision + duplicate/empty-path FAIL; every write is re-read from disk and content-verified (`force` never bypasses that). Mutates each `.anim` in place; idempotent. `whatIf` previews.
+- `OwnControllerClips(controller, outDir, scope=VendorOnly, force=false, whatIf=false)` — closes the CleanController gap (owned controller still referencing **vendor clips by GUID**): copies in-scope clips
   (`VendorOnly` default | `All`) to owned `.anim` copies under `outDir` (absent-only reuse) and **mutates
-  the controller**, repointing every motion slot; disk-truthful residual post-condition. `UC2 =
-  OwnControllerClips → RepathClips`.
-- `NormalizeExpressionClips(clipAssetPaths, limitToBlendshapeCurves=true, normalizeOnly=true, repairKeys=true,
-  nonZeroEpsilon=0.001, whatIf=false)` — makes a set of expression `.anim` clips share **one binding + key-time
-  set** (union the curves and key times across the clips), so a toggle's on/off pair drives the same bindings
-  and no blendshape is left un-driven in one state; `normalizeOnly=false` additionally prunes curves unused
-  across the set. Refuses non-editable clips (imported / FBX-embedded / read-only `.anim` — a write would
-  silently not persist, so it FAILs rather than report a false PASS). Reports `+curves/+keys/-curves` counts;
-  `whatIf` previews them.
+  the controller**, repointing every motion slot; disk-truthful residual post-condition. `UC2 = OwnControllerClips → RepathClips`.
+- `NormalizeExpressionClips(clipAssetPaths, limitToBlendshapeCurves=true, normalizeOnly=true, repairKeys=true, nonZeroEpsilon=0.001, whatIf=false)` — makes a set of expression `.anim` clips share **one binding + key-time set** (union the curves and key times across the clips), so a toggle's on/off pair drives the same bindings and no blendshape is left un-driven in one state; `normalizeOnly=false` additionally prunes curves unused across the set. Refuses non-editable clips (imported / FBX-embedded / read-only `.anim` — a write would silently not persist, so it FAILs rather than report a false PASS). Reports `+curves/+keys/-curves` counts; `whatIf` previews them.
 
 ## The compile/decompile substrate
 
-`CompileController(sourcePath, outDir, whatIf=false)` is the animator **write substrate** — the inverse of
-`ReportController`: it compiles a declarative YAML document into a persisted `.controller` (+ inline clips,
-embedded blend trees, and a `VRCExpressionParameters` asset listing every non-builtin/non-scratch param,
-**unsynced included, for legibility**). Pipeline: parse → validate → emit → the shared `ControllerRules`
-graph lint → atomic persist. Atomic + PASS/FAIL: nothing reaches `outDir` unless every stage passes, a
-`whatIf` preview leaves nothing on disk, and a recompile of the same source to the same `outDir` is
-idempotent (reset-in-place, stable GUID). The RunLog body carries never-failing advisories — per-layer
-frame latency (the longest firing-transition chain — conditional or exit-time; a conditional hop is ~1
-frame, an exit-time hop costs its state's clip length), driver↔AAP isolation conflicts (a driver cannot
-durably set a clip-written param — `runtime.md`), and OSC-unsafe parameter names (space / OSC pattern
-metacharacters — the hazard is in `animator-schema.md` §parameters). The schema — every key, accepted values, and traps — is
-`animator-schema.md`; the three worked fixtures (`vrc-unity-tools/fixtures/animator-substrate/{debounce,
-smoother,codec}.yaml` — a dwell timer, an AAP exponential smoother, a float→bool codec) are its runnable
-companions, each compiling clean, linting PASS, and emulator-verified.
+`CompileController(sourcePath, outDir, whatIf=false)` is the animator **write substrate** — the inverse of `ReportController`: it compiles a declarative YAML document into a persisted `.controller` (+ inline clips, embedded blend trees, and a `VRCExpressionParameters` asset listing every non-builtin/non-scratch param, **unsynced included, for legibility**). Pipeline: parse → validate → emit → the shared `ControllerRules` graph lint → atomic persist. Atomic + PASS/FAIL: nothing reaches `outDir` unless every stage passes, a `whatIf` preview leaves nothing on disk, and a recompile of the same source to the same `outDir` is idempotent (reset-in-place, stable GUID). The RunLog body carries never-failing advisories — per-layer frame latency (the longest firing-transition chain — conditional or exit-time; a conditional hop is ~1 frame, an exit-time hop costs its state's clip length), driver↔AAP isolation conflicts (a driver cannot durably set a clip-written param — `runtime.md`), and OSC-unsafe parameter names (space / OSC pattern metacharacters — the hazard is in `animator-schema.md` §parameters). The schema — every key, accepted values, and traps — is `animator-schema.md`; the three worked fixtures (`vrc-unity-tools/fixtures/animator-substrate/{debounce, smoother,codec}.yaml` — a dwell timer, an AAP exponential smoother, a float→bool codec) are its runnable companions, each compiling clean, linting PASS, and emulator-verified.
 
-`DecompileController(controllerPath, outPath, whatIf=false, stripLayout=false)` is the animator **read substrate**, mirror of
-`CompileController`: it reachability-walks a built `.controller` and serializes it back to animator-schema
-YAML at `outPath`. PASS/FAIL like the compile door — a clean run returns `[DecompileController] <name>:
+`DecompileController(controllerPath, outPath, whatIf=false, stripLayout=false)` is the animator **read substrate**, mirror of `CompileController`: it reachability-walks a built `.controller` and serializes it back to animator-schema YAML at `outPath`. PASS/FAIL like the compile door — a clean run returns `[DecompileController] <name>:
 layers=… states=… orphans=… unresolved=… => OK | log=<path>`, writing the `.yaml` plus a Snapshot RunLog;
-`whatIf` runs the whole walk but writes no `.yaml`; `stripLayout` (default off) drops all graph-layout
-capture — the own-a-vendor path, where the vendor's node arrangement is noise; a refusal (an out-of-vocabulary or malformed construct)
+`whatIf` runs the whole walk but writes no `.yaml`; `stripLayout` (default off) drops all graph-layout capture — the own-a-vendor path, where the vendor's node arrangement is noise; a refusal (an out-of-vocabulary or malformed construct)
 is `[DecompileController] <leaf>: … => FAIL | log=<path>` naming each — a Snapshot artifact records the
-failure, and no `.yaml` is written (the compile door's refusals carry the same grammar on the RunLog
-channel). A **READ** tool — it never mutates the
-controller, so it self-logs to the **Snapshot** dir (read-capture channel), not the verdict RunLog dir.
-Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) rides in the document's
-`_notes:` block, which re-compiles inert.
+failure, and no `.yaml` is written (the compile door's refusals carry the same grammar on the RunLog channel). A **READ** tool — it never mutates the controller, so it self-logs to the **Snapshot** dir (read-capture channel), not the verdict RunLog dir. Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) rides in the document's `_notes:` block, which re-compiles inert.
 
-`CompileClips(sourcePath, outDir, force=false, whatIf=false)` is the **second write door**: the sole *authoring* writer
-of external clips — it emits clip content from a clips-file YAML, where `OwnControllerClips` emits standalone
-`.anim`s only by *copying* existing clips. Its source is a clips file — the same schema surface (`schema:`, `basis:`, `clips:`,
-optional `parameters:`) but with **no `layers:`** — and it emits each clip to `<outDir>/<clip>.anim` as a
-standalone, *visible*, human-editable asset (contrast the controller's hidden inline sub-assets). **Which
-clips belong here:** hand-authored artifacts a human sees, tunes, or repaths as a unit (poses, expressions,
-toggle targets) — not generated plumbing, which stays inline even when it targets a material (AAP and
-blend-tree endpoints; `animator-schema.md` §external clips carries the decidable rule). The contract is in its
-doc-comment; the load-bearing decisions:
+`CompileClips(sourcePath, outDir, force=false, whatIf=false)` is the **second write door**: the sole *authoring* writer of external clips — it emits clip content from a clips-file YAML, where `OwnControllerClips` emits standalone `.anim`s only by *copying* existing clips. Its source is a clips file — the same schema surface (`schema:`, `basis:`, `clips:`, optional `parameters:`) but with **no `layers:`** — and it emits each clip to `<outDir>/<clip>.anim` as a standalone, *visible*, human-editable asset (contrast the controller's hidden inline sub-assets). **Which clips belong here:** hand-authored artifacts a human sees, tunes, or repaths as a unit (poses, expressions, toggle targets) — not generated plumbing, which stays inline even when it targets a material (AAP and blend-tree endpoints; `animator-schema.md` §external clips carries the decidable rule). The contract is in its doc-comment; the load-bearing decisions:
 
-- **Emit-only — never prunes.** A clip dropped from the file is left on disk, which is exactly what makes
-  *promotion* a no-op: delete a clip from the file to hand it to a human, and the controller's path `ref:`
-  keeps resolving to an `.anim` no compile touches again (`animator-schema.md` §external clips).
-- **Refuses to clobber a hand-edit.** It stamps each `.anim` with a content hash and, on recompile, writes
-  nothing if the on-disk clip diverged from that stamp — so *promote to keep edits*, don't `force` over them.
-  `force` overrides both this divergence refusal and the read-only-outDir (`Vendor/`/`Packages/`) guard.
-- **Writer/reader split → two-door order.** `CompileClips` writes; `CompileController` only reads (a path
-  `ref:` resolves like any motion, a miss fails loud). Compile the clips file **before** the controller: a
-  controller has no back-reference to its clips file, so an unresolved `ref:` into a clips `outDir` usually
-  just means the clips file is uncompiled — read the failure that way before hunting a missing asset.
+- **Emit-only — never prunes.** A clip dropped from the file is left on disk, which is exactly what makes *promotion* a no-op: delete a clip from the file to hand it to a human, and the controller's path `ref:` keeps resolving to an `.anim` no compile touches again (`animator-schema.md` §external clips).
+- **Refuses to clobber a hand-edit.** It stamps each `.anim` with a content hash and, on recompile, writes nothing if the on-disk clip diverged from that stamp — so *promote to keep edits*, don't `force` over them. `force` overrides both this divergence refusal and the read-only-outDir (`Vendor/`/`Packages/`) guard.
+- **Writer/reader split → two-door order.** `CompileClips` writes; `CompileController` only reads (a path `ref:` resolves like any motion, a miss fails loud). Compile the clips file **before** the controller: a controller has no back-reference to its clips file, so an unresolved `ref:` into a clips `outDir` usually just means the clips file is uncompiled — read the failure that way before hunting a missing asset.
 
-External clips decompile as a path `ref:`, never re-inlined; the embedded/inline path is unchanged and the
-vrc-patterns gate stays green.
+External clips decompile as a path `ref:`, never re-inlined; the embedded/inline path is unchanged and the vrc-patterns gate stays green.
 
-**The round-trip reframes the owning tools above.** `Decompile→edit→Compile` emits a controller that is a
-pure function of the document — **graph node layout included, so a hand-arranged controller round-trips its
-positions** (`animator-schema.md` §layout). For any controller you are willing to **own** (decompile), orphan
-sub-assets, unwanted layers, and stale clip refs all vanish on recompile — subsuming the in-vocabulary use
-of `CleanController` and `OwnControllerClips`. Each is nonetheless **KEEP**, narrowed to
-the niche the round-trip can't reach: **vendor-lineage controllers we deliberately don't decompile**
-(Decompile refuses their out-of-vocabulary constructs). `CleanController` trims those by layer **name**
-without parsing contents; `OwnControllerClips` forks vendor `.anim`s the compiler holds outside its document
-scope.
+**The round-trip reframes the owning tools above.** `Decompile→edit→Compile` emits a controller that is a pure function of the document — **graph node layout included, so a hand-arranged controller round-trips its positions** (`animator-schema.md` §layout). For any controller you are willing to **own** (decompile), orphan sub-assets, unwanted layers, and stale clip refs all vanish on recompile — subsuming the in-vocabulary use of `CleanController` and `OwnControllerClips`. Each is nonetheless **KEEP**, narrowed to the niche the round-trip can't reach: **vendor-lineage controllers we deliberately don't decompile** (Decompile refuses their out-of-vocabulary constructs). `CleanController` trims those by layer **name** without parsing contents; `OwnControllerClips` forks vendor `.anim`s the compiler holds outside its document scope.
 
-`SchemaValidation` (pre-emit gate on the typed document — condition operator-vs-param-type legality,
-blend-axis param-type legality, reserved names, base-fx layer floor, dangling default/inline-clip refs)
-and `ControllerRules` (post-emit
-graph oracle on the built asset — missing motions, undeclared params, orphans, dead transitions) **stay
-separate**: two representations, not two copies of one check. They share the one rule library
-`ControllerRules.Run` (both `CheckAnimator` and `CompileController` call it); each pass catches what only its
-representation can express, and the lone overlap — parameter declaration — is partitioned by an explicit
-deferral, so there is no duplicated rule to merge.
+`SchemaValidation` (pre-emit gate on the typed document — condition operator-vs-param-type legality, blend-axis param-type legality, reserved names, base-fx layer floor, dangling default/inline-clip refs) and `ControllerRules` (post-emit graph oracle on the built asset — missing motions, undeclared params, orphans, dead transitions) **stay separate**: two representations, not two copies of one check. They share the one rule library `ControllerRules.Run` (both `CheckAnimator` and `CompileController` call it); each pass catches what only its representation can express, and the lone overlap — parameter declaration — is partitioned by an explicit deferral, so there is no duplicated rule to merge.
 
 ## The compiler's boundary is a fork, not a failure
 
-`CompileController`/`CompileClips` refuse fail-loud at a deliberate edge — a clip binding outside the §clips
-namespace allowlist, or a construct the schema can't express. The compiler's worth is legibility and
-round-trip fidelity, not universality, so that refusal is expected: author the clip **by hand** as a
-human-owned `.anim` — referenced by `ref:`, in no clips file, so no compile writes it (`animator-schema.md`
-§"external clips and ownership"). First-class, not a retreat.
+`CompileController`/`CompileClips` refuse fail-loud at a deliberate edge — a clip binding outside the §clips namespace allowlist, or a construct the schema can't express. The compiler's worth is legibility and round-trip fidelity, not universality, so that refusal is expected: author the clip **by hand** as a human-owned `.anim` — referenced by `ref:`, in no clips file, so no compile writes it (`animator-schema.md` §"external clips and ownership"). First-class, not a retreat.
 
-A default, not a wall: a one-off binding hand-owns the clip, but a *recurring class* of refusal is the
-signal to widen the compiler's vocabulary — as the §clips allowlist itself grew to cover VRC constraint and
-contact bindings.
+A default, not a wall: a one-off binding hand-owns the clip, but a *recurring class* of refusal is the signal to widen the compiler's vocabulary — as the §clips allowlist itself grew to cover VRC constraint and contact bindings.
 
 ## Owned = wired to its load path
 
-An owned controller (or params/menu) is not *owned* until something the build loads actually references it —
-the asset on disk is only half. `CleanController` wires the avatar descriptor as part of its job; the
-round-trip, `OwnControllerClips`, and `CompileClips` **only emit assets** — nothing repoints the descriptor,
-so a decompile→edit→compile that stops at a clean `.controller` leaves the avatar still playing the vendor FX
-— every asset-level check green while the owned set was never live. The load path is one of two
-— the same split `CheckAnimator`'s basis names: the **avatar descriptor's FX/params/menu slots**
-(descriptor-borne → `basis=explicit`) or an **MA Merge Animator / VRCFury Full Controller** component (merged
-→ `basis=auto`). Owning ends when the controller is reachable through one of them, and — per `LAYOUT.md` —
-filed in a subfolder, not loose in the top-level avatar folder. Wired *and* filed.
+An owned controller (or params/menu) is not *owned* until something the build loads actually references it — the asset on disk is only half. `CleanController` wires the avatar descriptor as part of its job; the round-trip, `OwnControllerClips`, and `CompileClips` **only emit assets** — nothing repoints the descriptor, so a decompile→edit→compile that stops at a clean `.controller` leaves the avatar still playing the vendor FX — every asset-level check green while the owned set was never live. The load path is one of two — the same split `CheckAnimator`'s basis names: the **avatar descriptor's FX/params/menu slots** (descriptor-borne → `basis=explicit`) or an **MA Merge Animator / VRCFury Full Controller** component (merged → `basis=auto`). Owning ends when the controller is reachable through one of them, and — per `LAYOUT.md` — filed in a subfolder, not loose in the top-level avatar folder. Wired *and* filed.
 
 ## Adding behavior: edit the owned FX, or merge a separate controller
 
-Additive behavior (a new toggle, slider, or gimmick layer) can go two ways: **edit it into the owned FX
-inline**, or **author a separate owned controller and merge it in** (MA Merge Animator — works on any avatar,
-NDMF-free included; `nondestructive.md`). No clean rule; weigh:
+Additive behavior (a new toggle, slider, or gimmick layer) can go two ways: **edit it into the owned FX inline**, or **author a separate owned controller and merge it in** (MA Merge Animator — works on any avatar, NDMF-free included; `nondestructive.md`). No clean rule; weigh:
 
-- **Is the FX already decompiled/editable?** If yes, inline is simplest — you're already in the substrate. If
-  not, a merged controller avoids force-decompiling the whole vendor FX to bolt on a layer (and sidesteps a
-  decompile that would refuse — spaced params, out-of-vocabulary constructs). This is why inline was right
-  *after* a round-trip.
-- **Is the behavior modular — something to take in and out?** A merged controller is a clean removable unit
-  (delete the component, it's gone); inline entangles it with the rest of the FX.
-- **Whose is it?** Behavior keyed to an outfit/accessory with no base dependency belongs *on that mergeable* —
-  a Merge Animator on the outfit prefab (relative `pathMode`, `nondestructive.md`) — so it composes and
-  decomposes with the outfit, not the base's FX.
-- **Does it modify existing FX logic?** Then inline is forced — merge is additive (appends layers, can't
-  rewrite one).
+- **Is the FX already decompiled/editable?** If yes, inline is simplest — you're already in the substrate. If not, a merged controller avoids force-decompiling the whole vendor FX to bolt on a layer (and sidesteps a decompile that would refuse — spaced params, out-of-vocabulary constructs). This is why inline was right *after* a round-trip.
+- **Is the behavior modular — something to take in and out?** A merged controller is a clean removable unit (delete the component, it's gone); inline entangles it with the rest of the FX.
+- **Whose is it?** Behavior keyed to an outfit/accessory with no base dependency belongs *on that mergeable* — a Merge Animator on the outfit prefab (relative `pathMode`, `nondestructive.md`) — so it composes and decomposes with the outfit, not the base's FX.
+- **Does it modify existing FX logic?** Then inline is forced — merge is additive (appends layers, can't rewrite one).
 
 ## Trap — the playable-layer enum
 
-Reading `VRCAvatarDescriptor.baseAnimationLayers` from YAML: the `type` field is the `AnimLayerType` enum
-*value*, and **array index ≠ enum value** — the enum skips `1` (`Deprecated0`), so FX is value 5 at a lower
-index. An off-by-one read that trusts position misattributes the FX slot as Sitting (a real past misread):
-read the `type`, not the array position. These slots are what `animator-schema.md`'s `role:` names.
+Reading `VRCAvatarDescriptor.baseAnimationLayers` from YAML: the `type` field is the `AnimLayerType` enum *value*, and **array index ≠ enum value** — the enum skips `1` (`Deprecated0`), so FX is value 5 at a lower index. An off-by-one read that trusts position misattributes the FX slot as Sitting (a real past misread): read the `type`, not the array position. These slots are what `animator-schema.md`'s `role:` names.
