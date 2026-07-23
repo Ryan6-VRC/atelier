@@ -1,11 +1,8 @@
 # references/ — routing table
 
-Open-source projects we learn from or replicate. **The CLONE folders below are already checked out
-on disk here** — gitignored (so `git`/`git ls-files` won't show them), but present: `ls references/`
-to confirm. Read them directly.
+Open-source projects we learn from or replicate. **The CLONE folders below are already checked out on disk here** — gitignored (so `git`/`git ls-files` won't show them), but present: `ls references/` to confirm. Read them directly.
 
-- **CLONE** — study to subsume/replace; present at `references/<name>/` (gitignored). Re-clone only if
-  a folder is missing: `git clone <url> references/<name>`.
+- **CLONE** — study to subsume/replace; present at `references/<name>/` (gitignored). Re-clone only if a folder is missing: `git clone <url> references/<name>`.
 - **POINT** — kept as imports; read in the active project's `Packages/<id>/` (`vrc-get resolve` if absent).
 
 `Pri`: H first · M reference · L niche/overlapped.

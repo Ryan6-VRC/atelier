@@ -1,341 +1,94 @@
 # Unity agent tools
 
-Per-tool contracts for the agent inspection harness (`agent-tools`) and the vendor→owned avatar kit
-(`avatar-tools`) — the static-method tools called via `execute_code`. The cross-cutting conventions
-(string-handle invocation, the namespace-vs-assembly split, the `whatIf`/`preflight` preview grammar)
-and the MCP/sharp-edges operating knowledge live in `unity.md`; read it alongside this. Controller and
-clip tooling contracts are in `animator.md`.
+Per-tool contracts for the agent inspection harness (`agent-tools`) and the vendor→owned avatar kit (`avatar-tools`) — the static-method tools called via `execute_code`. The cross-cutting conventions (string-handle invocation, the namespace-vs-assembly split, the `whatIf`/`preflight` preview grammar) and the MCP/sharp-edges operating knowledge live in `unity.md`; read it alongside this. Controller and clip tooling contracts are in `animator.md`.
 
 ## Inspection & reporting (agent-tools)
 
-Shipped as the `com.ryan6vrc.agent-tools` package (from `vrc-unity-tools`, consumed via a local `file:`
-ref); also home of the shared reporting conventions (`RunLogFormat`, the `[AgentTool]` marker).
-`RunLogFormat.WriteRunLog(dir, label, summary, body, ext)` is the body-agnostic writer every
-non-transplant emitter routes through: it owns the dir + timestamped filename and appends the in-band
+Shipped as the `com.ryan6vrc.agent-tools` package (from `vrc-unity-tools`, consumed via a local `file:` ref); also home of the shared reporting conventions (`RunLogFormat`, the `[AgentTool]` marker). `RunLogFormat.WriteRunLog(dir, label, summary, body, ext)` is the body-agnostic writer every non-transplant emitter routes through: it owns the dir + timestamped filename and appends the in-band
 `| log=<path>` trailer, or returns a bare-FAIL with no trailer when the write fails. `RunLogDir`
-(`Assets/Agent/RunLogs/`, verdict records) and `SnapshotDir` (`Assets/Agent/Snapshots/`, read-only
-captures) are the single declarations of the two output dirs.
+(`Assets/Agent/RunLogs/`, verdict records) and `SnapshotDir` (`Assets/Agent/Snapshots/`, read-only captures) are the single declarations of the two output dirs.
 
-**Invocation & preview grammar** — the string-handle invocation rule, the `Ryan6Vrc`/`Ryan6VRC`
-namespace-vs-assembly split, and the `whatIf`/`preflight` preview grammar every tool here (and in
-§Avatar tools) obeys live in `unity.md` §Agent-callable tools. `execute_code` compiles your snippet as a
-**method body**, so a `using` directive can't sit at the top (the proxy refuses it) — **fully-qualify each
-call**: `Ryan6Vrc.AgentTools.Editor.<Tool>.<Method>(…)` for the tools here,
-`Ryan6Vrc.AvatarTools.Editor.<Tool>.<Method>(…)` for §Avatar tools. The type namespace is `Ryan6Vrc`
-and the `.Editor` suffix is required — both are the recurring stumble.
+**Invocation & preview grammar** — the string-handle invocation rule, the `Ryan6Vrc`/`Ryan6VRC` namespace-vs-assembly split, and the `whatIf`/`preflight` preview grammar every tool here (and in §Avatar tools) obeys live in `unity.md` §Agent-callable tools. `execute_code` compiles your snippet as a **method body**, so a `using` directive can't sit at the top (the proxy refuses it) — **fully-qualify each call**: `Ryan6Vrc.AgentTools.Editor.<Tool>.<Method>(…)` for the tools here, `Ryan6Vrc.AvatarTools.Editor.<Tool>.<Method>(…)` for §Avatar tools. The type namespace is `Ryan6Vrc` and the `.Editor` suffix is required — both are the recurring stumble.
 
-`AgentInspector` walks selected/scene objects (incl. VRChat components,
-generically via `SerializedObject`) to JSON under `AvatarProject/Assets/Agent/Snapshots/`; the
+`AgentInspector` walks selected/scene objects (incl. VRChat components, generically via `SerializedObject`) to JSON under `AvatarProject/Assets/Agent/Snapshots/`; the
 written path is emitted in-band on the console line (`… => OK | log=<path>`). Agent door:
-`AgentInspector.Snapshot("Root/Child/Path", includeChildren, followAssets)` snapshots by hierarchy
-path and returns that summary. Any objectReference resolving to a saved asset carries `guid`/`fileId`
-(sub-asset-safe) **unconditionally**, so every ref is edit-addressable; a scene-object ref keeps its
-`scenePath` instead. `followAssets` additionally inlines a generic `SerializedObject` dump (`fields`,
-recursive) of each **ScriptableObject-asset** ref — a `VRCExpressionsMenu` `subMenu` chain or
-`VRCExpressionParameters` expands to the whole tree in one snapshot. Non-SO assets (meshes, clips,
-controllers) get identity only, not expansion (no overlap with `ReportController`/`ReportClip`). The
-expansion is bounded by asset-hop depth and a walk-wide budget, and every cut is signaled inline
-(`assetDepthCapped`/`budgetSkipped`/`alreadyDumped`) plus a top-level `assetsTruncated` count — it
-dumps raw values; decoding them stays yours.
+`AgentInspector.Snapshot("Root/Child/Path", includeChildren, followAssets)` snapshots by hierarchy path and returns that summary. Any objectReference resolving to a saved asset carries `guid`/`fileId` (sub-asset-safe) **unconditionally**, so every ref is edit-addressable; a scene-object ref keeps its `scenePath` instead. `followAssets` additionally inlines a generic `SerializedObject` dump (`fields`, recursive) of each **ScriptableObject-asset** ref — a `VRCExpressionsMenu` `subMenu` chain or `VRCExpressionParameters` expands to the whole tree in one snapshot. Non-SO assets (meshes, clips, controllers) get identity only, not expansion (no overlap with `ReportController`/`ReportClip`). The expansion is bounded by asset-hop depth and a walk-wide budget, and every cut is signaled inline (`assetDepthCapped`/`budgetSkipped`/`alreadyDumped`) plus a top-level `assetsTruncated` count — it dumps raw values; decoding them stays yours.
 
-`ReportGimmick` sits opposite `AgentInspector` on that axis: where `AgentInspector` dumps one object's
-raw fields and leaves decoding to you, `ReportGimmick` interprets a whole gimmick subtree into a
-compact digest — constraint edge-lists, physbone/contact tables, and mechanically-certain idioms — and
-is complete by construction: a generic tier-2 census names every component no table interpreted
-(Modular Avatar, custom scripts, broken scripts) with a one-struct-level scalar peek, so `other=0`
-genuinely means empty. This is also why you let the tool read the avatar rather than hand-grepping
-prefab YAML: Modular Avatar components serialize by script **GUID** (MergeArmature is `2df373bf…`), never
-the string `MergeArmature`/`nadena`, so a name grep of the YAML finds nothing. Reach for it to reason
-about a gimmick's topology; drop to
-`AgentInspector.Snapshot(<host path>)` only for what's past that shallow peek — a component's nested
-structs, arrays, or followed assets.
+`ReportGimmick` sits opposite `AgentInspector` on that axis: where `AgentInspector` dumps one object's raw fields and leaves decoding to you, `ReportGimmick` interprets a whole gimmick subtree into a compact digest — constraint edge-lists, physbone/contact tables, and mechanically-certain idioms — and is complete by construction: a generic tier-2 census names every component no table interpreted (Modular Avatar, custom scripts, broken scripts) with a one-struct-level scalar peek, so `other=0` genuinely means empty. This is also why you let the tool read the avatar rather than hand-grepping prefab YAML: Modular Avatar components serialize by script **GUID** (MergeArmature is `2df373bf…`), never the string `MergeArmature`/`nadena`, so a name grep of the YAML finds nothing. Reach for it to reason about a gimmick's topology; drop to `AgentInspector.Snapshot(<host path>)` only for what's past that shallow peek — a component's nested structs, arrays, or followed assets.
 
-`CheckPackage.VerifyFolder(path)` / `VerifySelection()` is the deterministic import
-health check — reports **missing** (not merely empty) material slots, meshes, and scripts, plus
-**stale FBX material remaps** (a model whose external-material remap resolves yet imports empty). Its
+`CheckPackage.VerifyFolder(path)` / `VerifySelection()` is the deterministic import health check — reports **missing** (not merely empty) material slots, meshes, and scripts, plus **stale FBX material remaps** (a model whose external-material remap resolves yet imports empty). Its
 one-line PASS/FAIL summary ends with the RunLog path in-band (`… => RESULT | log=<path>`); a bad-input
-early return is a bare `[CheckPackage] FAIL: …` with no trailer. Distinguishing missing from intentionally-empty submesh slots is the whole
-point; raw null counts false-alarm. Call it after every vendor import.
+early return is a bare `[CheckPackage] FAIL: …` with no trailer. Distinguishing missing from intentionally-empty submesh slots is the whole point; raw null counts false-alarm. Call it after every vendor import.
 
-`ImportPackage.Import(path)` / `ImportPackage.Verify(path, expectedRoot?)` is the heavy-import door, and
-is **two-phase** because `AssetDatabase.ImportPackage` is async and a 60–700MB import outlives the MCP
-transport window. `Import` validates, pre-writes a RunLog at a **stable, package-derived path**, starts
+`ImportPackage.Import(path)` / `ImportPackage.Verify(path, expectedRoot?)` is the heavy-import door, and is **two-phase** because `AssetDatabase.ImportPackage` is async and a 60–700MB import outlives the MCP transport window. `Import` validates, pre-writes a RunLog at a **stable, package-derived path**, starts
 the import, and returns immediately (`… => PENDING | log=<path>`); `whatIf` validates only and reports
-`wouldLog=`. A transport timeout on `Import` therefore loses nothing — the RunLog is already on disk, so
-re-read it with `Verify` rather than re-running the import. `Verify` re-reads that RunLog and walks the
-on-disk `expectedRoot`, emitting PASS / PENDING / FAIL; the on-disk walk is **authoritative over the
-callback-written status**, because an import that triggers script compilation reloads the domain and drops
-the in-flight callback (leaving the log stuck at `pending`). `Verify` routes deep import health
-(missing refs / stale remap) to `CheckPackage.VerifyFolder` rather than duplicating it.
+`wouldLog=`. A transport timeout on `Import` therefore loses nothing — the RunLog is already on disk, so re-read it with `Verify` rather than re-running the import. `Verify` re-reads that RunLog and walks the on-disk `expectedRoot`, emitting PASS / PENDING / FAIL; the on-disk walk is **authoritative over the callback-written status**, because an import that triggers script compilation reloads the domain and drops the in-flight callback (leaving the log stuck at `pending`). `Verify` routes deep import health (missing refs / stale remap) to `CheckPackage.VerifyFolder` rather than duplicating it.
 
-`.controller`/`.anim` files have their own read-only reporters — `ReportController`, `ReportClip`,
-`CheckAnimator` (whose binding-walk `CheckAvatar` below reuses) — contracted with the rest of the animator
-tooling in `docs/animator.md`. **Handle convention across the read/check family:** an **asset door**
-(these three) takes the asset it reports — the typed `AnimatorController`/`AnimationClip` *or* its
-**path/GUID** — while a **scene door** (`CheckAvatar`/`CheckSeam`/`ReportShapeOverlap` below) takes a
-**scene handle** (hierarchy path / instance-id / name). A wrong-family handle is a loud bare-`FAIL`, never
-a silent misread.
+`.controller`/`.anim` files have their own read-only reporters — `ReportController`, `ReportClip`, `CheckAnimator` (whose binding-walk `CheckAvatar` below reuses) — contracted with the rest of the animator tooling in `docs/animator.md`. **Handle convention across the read/check family:** an **asset door** (these three) takes the asset it reports — the typed `AnimatorController`/`AnimationClip` *or* its **path/GUID** — while a **scene door** (`CheckAvatar`/`CheckSeam`/`ReportShapeOverlap` below) takes a **scene handle** (hierarchy path / instance-id / name). A wrong-family handle is a loud bare-`FAIL`, never a silent misread.
 
-`CheckAvatar.Inspect(avatarRoot)` is the scene-scoped companion to those digests: on an instantiated
-in-scene avatar (descriptor) root it names the two path-encoded reference breaks a base rename leaves after
-a placement — **MA scene refs** (the `referencePath`+`targetObject` `AvatarObjectReference` signature:
-reactive family / BlendshapeSync / Mesh Settings) and **clip/controller bindings** (descriptor playable
-layers + every MA MergeAnimator / VRCFury FullController). It resolves every ref against the **placed
-scene** — a to-be-merged bone is present pre-bake and resolves now, a base-rename break does not — so it
-predicts nothing about what the build will move and never leans on the `Armature.<Name>` convention. Its
-verdict is **`CLASSIFY`** (unresolved refs found — a finding for the agent to route, not a tool failure),
-distinct from `PASS` and a bad-input bare `FAIL`. It computes **no** heuristic — it names each offender and
-its class, and a `clip-binding` offender carries a distinct `clipAssetPath` (the field the compose agent
+`CheckAvatar.Inspect(avatarRoot)` is the scene-scoped companion to those digests: on an instantiated in-scene avatar (descriptor) root it names the two path-encoded reference breaks a base rename leaves after a placement — **MA scene refs** (the `referencePath`+`targetObject` `AvatarObjectReference` signature: reactive family / BlendshapeSync / Mesh Settings) and **clip/controller bindings** (descriptor playable layers + every MA MergeAnimator / VRCFury FullController). It resolves every ref against the **placed scene** — a to-be-merged bone is present pre-bake and resolves now, a base-rename break does not — so it predicts nothing about what the build will move and never leans on the `Armature.<Name>` convention. Its verdict is **`CLASSIFY`** (unresolved refs found — a finding for the agent to route, not a tool failure), distinct from `PASS` and a bad-input bare `FAIL`. It computes **no** heuristic — it names each offender and its class, and a `clip-binding` offender carries a distinct `clipAssetPath` (the field the compose agent
 routes on: owned/writable ⇒ inline `UC2` clip-fix; `Assets/Vendor/`|`Packages/` ⇒ abort the compose and
-route to `own-mergeable`). It also names a **`merge-conflict`** class (also `CLASSIFY`): ≥2 dynamics
-components (physbone / collider / VRC-constraint, grouped within a category) that resolve to the **same
-post-merge transform** through `CheckSeam`'s reused merge map, ≥1 mergeable-sourced (the raw target being a
-map key excludes a pure base↔base duplicate — no baseline needed). MA build-prunes exact-duplicate
-physbones, so a flagged MA pair may already resolve; the residue (VRCFury physbones, all
-colliders/constraints, non-exact MA pairs) is where it earns its keep. Inspection-only — no scene dirty, no
-`.anim` write; the remedy lives in the skill, not the tool.
+route to `own-mergeable`). It also names a **`merge-conflict`** class (also `CLASSIFY`): ≥2 dynamics components (physbone / collider / VRC-constraint, grouped within a category) that resolve to the **same post-merge transform** through `CheckSeam`'s reused merge map, ≥1 mergeable-sourced (the raw target being a map key excludes a pure base↔base duplicate — no baseline needed). MA build-prunes exact-duplicate physbones, so a flagged MA pair may already resolve; the residue (VRCFury physbones, all colliders/constraints, non-exact MA pairs) is where it earns its keep. Inspection-only — no scene dirty, no `.anim` write; the remedy lives in the skill, not the tool.
 
-`CheckSeam.Check(baseRoot, mergeableRoot)` is the mechanical **fit** companion to `CheckAvatar`'s
-reference check — the pre-render fit gate `verify.md` calls for (a model can't read a ~5cm misfit off a
-sheet). It **reflects the seam's own mapping** (MA `GetBonesMapping()` ∪ VRCFury
-`ArmatureLinkService.GetLinks()`, never reimplements name-matching) and counts the **weighted humanoid
-bones** (a mapped bone whose base side is humanoid and whose merge side a mergeable mesh skins). The count
-branches the verdict: **≤1 → `REFUSE`**, naming which zero-bone case it is — a **BoneProxy**
-(offset-tolerant seam, operator-positioned — hair/earring/hat/tail; verify the bake) vs a **bare prop**
-(no seam; route to `own-mergeable`), which the skill routes oppositely on; **≥2 → gate** world-space
-coincidence at `ε = max(0.5mm, 0.2%·Hips→Head span)` → `PASS`, or `NOT-PASS` with worst-first offenders
-and `maxOffset=Nmm` (sub-mm noise vs wrong-base reads at a glance). Non-humanoid bones never gate —
-they legitimately deviate up to ~75mm (physbone tuning). Coincidence is one signal across both seam types:
-MA keeps the offset (a delta ships as the misfit), VRCFury snaps at bake (a delta means the edit-time view
-isn't what ships). `REFUSE` (bare line, no trailer, like `CheckAvatar`'s bad-input `FAIL`) also fires on a
-seam that won't resolve onto this base, seams that disagree, a non-humanoid base, or a VRCFury bake-time
-scale — abstain-class (proxy, unresolvable) at warning, reflection drift at error. Inspection-only; the
-same world-space mm-drift primitive as `MatchHumanoidRig`'s `poseDriftMm`, position-only.
+`CheckSeam.Check(baseRoot, mergeableRoot)` is the mechanical **fit** companion to `CheckAvatar`'s reference check — the pre-render fit gate `verify.md` calls for (a model can't read a ~5cm misfit off a sheet). It **reflects the seam's own mapping** (MA `GetBonesMapping()` ∪ VRCFury `ArmatureLinkService.GetLinks()`, never reimplements name-matching) and counts the **weighted humanoid bones** (a mapped bone whose base side is humanoid and whose merge side a mergeable mesh skins). The count branches the verdict: **≤1 → `REFUSE`**, naming which zero-bone case it is — a **BoneProxy** (offset-tolerant seam, operator-positioned — hair/earring/hat/tail; verify the bake) vs a **bare prop** (no seam; route to `own-mergeable`), which the skill routes oppositely on; **≥2 → gate** world-space coincidence at `ε = max(0.5mm, 0.2%·Hips→Head span)` → `PASS`, or `NOT-PASS` with worst-first offenders and `maxOffset=Nmm` (sub-mm noise vs wrong-base reads at a glance). Non-humanoid bones never gate — they legitimately deviate up to ~75mm (physbone tuning). Coincidence is one signal across both seam types: MA keeps the offset (a delta ships as the misfit), VRCFury snaps at bake (a delta means the edit-time view isn't what ships). `REFUSE` (bare line, no trailer, like `CheckAvatar`'s bad-input `FAIL`) also fires on a seam that won't resolve onto this base, seams that disagree, a non-humanoid base, or a VRCFury bake-time scale — abstain-class (proxy, unresolvable) at warning, reflection drift at error. Inspection-only; the same world-space mm-drift primitive as `MatchHumanoidRig`'s `poseDriftMm`, position-only.
 
-`ReportShapeOverlap.Report(meshObject, shapeNames = null, outfitRoot = null)` fills the coupling blind
-spot `CheckSeam`/`CheckAvatar` leave — neither reads blendshapes. Over **one** mesh it emits per-shape
+`ReportShapeOverlap.Report(meshObject, shapeNames = null, outfitRoot = null)` fills the coupling blind spot `CheckSeam`/`CheckAvatar` leave — neither reads blendshapes. Over **one** mesh it emits per-shape
 touched-vertex footprints with pairwise **containment** (`|A∩B| / min(|A|,|B|)`) — the locator for the
-double-subtraction `outfits.md` warns of, a base `Shrink_*` left worn while an outfit `ShapeChanger`
-shrinks the **same vertices**, invisible to the render sheet and the fit gates — plus a per-shape
-**resolution table** (reaction, current weight, resolved-target, and the `MISMATCH` / `CONFLICT` /
-`UNKNOWN` / `MISSING` cells).
+double-subtraction `outfits.md` warns of, a base `Shrink_*` left worn while an outfit `ShapeChanger` shrinks the **same vertices**, invisible to the render sheet and the fit gates — plus a per-shape **resolution table** (reaction, current weight, resolved-target, and the `MISMATCH` / `CONFLICT` / `UNKNOWN` / `MISSING` cells).
 
-Both arguments are optional because it assembles its own co-active set: caller-passed ∪ worn-nonzero ∪
-every MA `ShapeChanger` row under `outfitRoot` resolving to **this** mesh. **The third source is the point
-of the tool and is gated on `outfitRoot`** — those reactions sit at weight 0 at edit time, exactly what the
-caller's own scan cannot see — so omitting the root silently narrows the set to the first two; `reacted=0`
-is the tell.
+Both arguments are optional because it assembles its own co-active set: caller-passed ∪ worn-nonzero ∪ every MA `ShapeChanger` row under `outfitRoot` resolving to **this** mesh. **The third source is the point of the tool and is gated on `outfitRoot`** — those reactions sit at weight 0 at edit time, exactly what the caller's own scan cannot see — so omitting the root silently narrows the set to the first two; `reacted=0` is the tell.
 
-A **`Report`, not a verdict** — a deliberately un-asset-tuned containment floor flags pairs as places to
-look. **`map-outfit-shapes` drives it and owns the disposition doctrine**: what each cell means and how to
-rule on a row live there, not here. Drift is loud in one direction only — MA absent is a silent no-op, MA
-installed with the type or member unresolved warns and yields zero reactions.
+A **`Report`, not a verdict** — a deliberately un-asset-tuned containment floor flags pairs as places to look. **`map-outfit-shapes` drives it and owns the disposition doctrine**: what each cell means and how to rule on a row live there, not here. Drift is loud in one direction only — MA absent is a silent no-op, MA installed with the type or member unresolved warns and yields zero reactions.
 
-`RenderAvatar.Capture(target, angles, hide, margin, showGizmos, resolution)` renders **one** avatar
-subtree in isolation, through the operator's **Scene View**, to a temp contact-sheet PNG with the
-**NDMF/MA preview resolved** (reactive fit applied). Read-only: restores the view, leaves the scene
-un-dirtied. Two framing traps — angles are the six **world** axes, so a rotated target shows the scene's
-front rather than the avatar's; and it renders the avatar **as the operator has it**, so an eye-hidden
-child is silently absent from the sheet.
+`RenderAvatar.Capture(target, angles, hide, margin, showGizmos, resolution)` renders **one** avatar subtree in isolation, through the operator's **Scene View**, to a temp contact-sheet PNG with the **NDMF/MA preview resolved** (reactive fit applied). Read-only: restores the view, leaves the scene un-dirtied. Two framing traps — angles are the six **world** axes, so a rotated target shows the scene's front rather than the avatar's; and it renders the avatar **as the operator has it**, so an eye-hidden child is silently absent from the sheet.
 
-**Its ceiling is the point.** A model-read of the sheet is **not** an agent gate — not for fit
-(quantified `CheckSeam` decides that) and not for clipping. It is operator-eye evidence, the visual
-companion to `verify.md`; what it shows is the editor *preview*, not the baked upload clone
-(`nondestructive.md`), and headlight shading is truthful for geometry and silhouette, not
-matcap/rim/fresnel.
+**Its ceiling is the point.** A model-read of the sheet is **not** an agent gate — not for fit (quantified `CheckSeam` decides that) and not for clipping. It is operator-eye evidence, the visual companion to `verify.md`; what it shows is the editor *preview*, not the baked upload clone (`nondestructive.md`), and headlight shading is truthful for geometry and silhouette, not matcap/rim/fresnel.
 
-**Freshness.** **Grab in a separate call from any edit** — a same-call grab shows the pre-edit proxy. The
-summary's `gate=` token reads `armed` (a probe ran and NDMF's settle predicate read clean) or `exempt`
-(nothing to certify); `armed` is *probed and settled*, **never a guarantee the pixels are current**, so
-**byte-identical pixels around a verified edit mean assume stale**. A transient settle miss logs a
-`Warning`, not an `Error` — re-grab. Mechanism and residuals:
-`Tests/Editor/RenderAvatarFreshnessGate.md`. **Grab driven state while still in play** — exiting reverts
-to authoring state, so a post-exit grab verifies only the static baseline.
+**Freshness.** **Grab in a separate call from any edit** — a same-call grab shows the pre-edit proxy. The summary's `gate=` token reads `armed` (a probe ran and NDMF's settle predicate read clean) or `exempt` (nothing to certify); `armed` is *probed and settled*, **never a guarantee the pixels are current**, so **byte-identical pixels around a verified edit mean assume stale**. A transient settle miss logs a `Warning`, not an `Error` — re-grab. Mechanism and residuals: `Tests/Editor/RenderAvatarFreshnessGate.md`. **Grab driven state while still in play** — exiting reverts to authoring state, so a post-exit grab verifies only the static baseline.
 
-**`CaptureDiff(target, against)` — the door that settles decisions.** `against` is a prior grab's PNG; it
-pins that grab's framing from the `<png>.cam.json` sidecar, then compares B to A **exactly**, per angle —
-no tunable tolerance, so no threshold to creep against one avatar. Reports counts and bboxes, never a
-verdict; FAILs loud rather than compare mismatched framing. Trap: `_Time`-driven shading (emission
-scroll, rim, dissolve) advances between grabs into a phantom diff — trust it only for time-static
-shading. `map-outfit-shapes` argues keep/hide calls from these, so unlike `Capture` its caveats are
-load-bearing.
+**`CaptureDiff(target, against)` — the door that settles decisions.** `against` is a prior grab's PNG; it pins that grab's framing from the `<png>.cam.json` sidecar, then compares B to A **exactly**, per angle — no tunable tolerance, so no threshold to creep against one avatar. Reports counts and bboxes, never a verdict; FAILs loud rather than compare mismatched framing. Trap: `_Time`-driven shading (emission scroll, rim, dissolve) advances between grabs into a phantom diff — trust it only for time-static shading. `map-outfit-shapes` argues keep/hide calls from these, so unlike `Capture` its caveats are load-bearing.
 
 ## Avatar tools
 
-`com.ryan6vrc.avatar-tools` (from `vrc-unity-tools`, local `file:` ref) is the agent-callable kit for
-turning a vendor avatar into our own normalized avatar. (The package split is by domain, not
-read-vs-write: `agent-tools` holds generic Unity inspection/reporting plus the shared conventions;
-`avatar-tools` holds the avatar-owning kit, including its own read-only reporters like
-`ReportPackage` — and depends on `agent-tools`, never the reverse.) Each tool is a static method invoked via
-`execute_code`, emits a one-line summary that ends with its JSON RunLog path in-band
+`com.ryan6vrc.avatar-tools` (from `vrc-unity-tools`, local `file:` ref) is the agent-callable kit for turning a vendor avatar into our own normalized avatar. (The package split is by domain, not read-vs-write: `agent-tools` holds generic Unity inspection/reporting plus the shared conventions; `avatar-tools` holds the avatar-owning kit, including its own read-only reporters like `ReportPackage` — and depends on `agent-tools`, never the reverse.) Each tool is a static method invoked via `execute_code`, emits a one-line summary that ends with its JSON RunLog path in-band
 (`… => RESULT | log=<path>`, written under `Assets/Agent/RunLogs/`; omitted only when the write
-failed), and is **idempotent** (safe to re-run on the same instance). Per the tool-design grammar a
-`Check` carries a `PASS/FAIL` verdict; a `Report` (e.g. `ReportPackage`) is a verdict-free descriptive
-digest that ends `=> OK` (or `=> ERROR` only on bad input / a mid-scan exception — never a content verdict). They share `RemapReferencesByPath`, a
-path-based remapper that rebinds scene references from the vendor hierarchy to ours, duplicate-sibling
-safe.
+failed), and is **idempotent** (safe to re-run on the same instance). Per the tool-design grammar a `Check` carries a `PASS/FAIL` verdict; a `Report` (e.g. `ReportPackage`) is a verdict-free descriptive digest that ends `=> OK` (or `=> ERROR` only on bad input / a mid-scan exception — never a content verdict). They share `RemapReferencesByPath`, a path-based remapper that rebinds scene references from the vendor hierarchy to ours, duplicate-sibling safe.
 
-Avatar assembly here is non-destructive (NDMF / Modular Avatar / VRCFury); see `nondestructive.md` for the
-reference-hardening model that governs what these path-based tools can rebind and what they must preserve.
+Avatar assembly here is non-destructive (NDMF / Modular Avatar / VRCFury); see `nondestructive.md` for the reference-hardening model that governs what these path-based tools can rebind and what they must preserve.
 
-- `ReportPackage.Report(vendorFolder)` — read-only: per-FBX mesh inventory, a head/body **guess**
-  (`headGuess`/`bodyGuess`, a most-blendshapes heuristic — verify), the superset FBX (or "none"),
-  toggle membership (renderers a clip drives via `m_IsActive` — GameObject-active — not a name
-  convention), constraint count, MA/VRCFury/NDMF detection.
-- `MatchHumanoidRig` — builds a fresh humanoid from our own model's skeleton (the bind, so it survives
-  reproportioning) and conforms the vendor's bone mapping + muscle settings onto it (copying a rig
-  wholesale is unreliable). `poseDriftMm` is informational only — a raw max world-space drift of the
-  humanoid bones vs the vendor, in mm; expected nonzero after reproportion, never gates. `Preflight`
-  reports the pre-reimport preconditions go/no-go without reimporting (the reimport is the operation, so
-  there is no `whatIf`).
-- `CheckHumanoidRig` — read-only guard: asserts each humanoid bone's stored bind (frozen in the
-  `.meta`) still matches the current model's local position, FAILing (named) on drift — catches a
-  re-export that skipped re-running `MatchHumanoidRig`. Position-only: Unity stores a thumb-corrected
-  bind rotation that legitimately differs even on a healthy rig.
-- `ConformRenderers` — assigns vendor materials by renderer name from any source hierarchy (by reference,
-  no `.mat` copies; an optional `ownedToSource` override map covers meshes renamed during normalization,
-  its direction the reverse of the transplant kit's — see below) and applies the
-  renderer-normalization standard below. `whatIf` previews the full match/verdict and mutates nothing. A
-  **mergeable** (no humanoid rig / no `Hips`) **PASSes with a note** on the missing anchor rather than
-  FAILing — that missing `Hips` is exactly the input `own-mergeable` prescribes it for; an avatar base
-  still resolves its anchor via `Hips`.
-- `CopyDescriptor` — gates on scale + face-blendshape parity, transplants the VRCAvatarDescriptor with
-  refs remapped, and installs a **fresh PipelineManager** (never the vendor blueprint ID). Post-copy it
-  recomputes `ViewPosition` via `FixViewpoint` (non-fatal — a viewpoint miss never flips the transplant
-  verdict). `whatIf` runs the gates + critical-ref snapshot and reports the predicted outcome (remap counts
-  land only on execute).
-- `FixViewpoint(ownedRoot, referenceRoot, whatIf=false)` — recomputes the owned descriptor's `ViewPosition`
-  from a **required** known-good `referenceRoot` (vendor source, or the pre-reshape prior version) plus both
-  rigs' Head + eyes, re-seating the creator's eye→viewpoint offset on the moved eyes rather than snapping to
-  them. **Named FAIL (no guess)** on a non-humanoid rig, unmapped eyes, or coincident eyes. Idempotent. The
-  `reproportion` skill drives the in-place case; `CopyDescriptor` calls it post-copy.
+- `ReportPackage.Report(vendorFolder)` — read-only: per-FBX mesh inventory, a head/body **guess** (`headGuess`/`bodyGuess`, a most-blendshapes heuristic — verify), the superset FBX (or "none"), toggle membership (renderers a clip drives via `m_IsActive` — GameObject-active — not a name convention), constraint count, MA/VRCFury/NDMF detection.
+- `MatchHumanoidRig` — builds a fresh humanoid from our own model's skeleton (the bind, so it survives reproportioning) and conforms the vendor's bone mapping + muscle settings onto it (copying a rig wholesale is unreliable). `poseDriftMm` is informational only — a raw max world-space drift of the humanoid bones vs the vendor, in mm; expected nonzero after reproportion, never gates. `Preflight` reports the pre-reimport preconditions go/no-go without reimporting (the reimport is the operation, so there is no `whatIf`).
+- `CheckHumanoidRig` — read-only guard: asserts each humanoid bone's stored bind (frozen in the `.meta`) still matches the current model's local position, FAILing (named) on drift — catches a re-export that skipped re-running `MatchHumanoidRig`. Position-only: Unity stores a thumb-corrected bind rotation that legitimately differs even on a healthy rig.
+- `ConformRenderers` — assigns vendor materials by renderer name from any source hierarchy (by reference, no `.mat` copies; an optional `ownedToSource` override map covers meshes renamed during normalization, its direction the reverse of the transplant kit's — see below) and applies the renderer-normalization standard below. `whatIf` previews the full match/verdict and mutates nothing. A **mergeable** (no humanoid rig / no `Hips`) **PASSes with a note** on the missing anchor rather than FAILing — that missing `Hips` is exactly the input `own-mergeable` prescribes it for; an avatar base still resolves its anchor via `Hips`.
+- `CopyDescriptor` — gates on scale + face-blendshape parity, transplants the VRCAvatarDescriptor with refs remapped, and installs a **fresh PipelineManager** (never the vendor blueprint ID). Post-copy it recomputes `ViewPosition` via `FixViewpoint` (non-fatal — a viewpoint miss never flips the transplant verdict). `whatIf` runs the gates + critical-ref snapshot and reports the predicted outcome (remap counts land only on execute).
+- `FixViewpoint(ownedRoot, referenceRoot, whatIf=false)` — recomputes the owned descriptor's `ViewPosition` from a **required** known-good `referenceRoot` (vendor source, or the pre-reshape prior version) plus both rigs' Head + eyes, re-seating the creator's eye→viewpoint offset on the moved eyes rather than snapping to them. **Named FAIL (no guess)** on a non-humanoid rig, unmapped eyes, or coincident eyes. Idempotent. The `reproportion` skill drives the in-place case; `CopyDescriptor` calls it post-copy.
 
-The **component-transplant kit** — `CopyComponents`, `MoveComponents`, `GraftHierarchy` over a shared
-transplant core — is **component-agnostic**: selection is a list of **type-name strings** (resolved via
-`TypeCache`, matched by assignability, fail-loud on ambiguity), so the same tools serve VRC dynamics on a
-base body and MA/VRCFury/NDMF on an outfit without the package referencing those assemblies (stays
-VRC-SDK-only). Two tiers: a **deep** tier for the closed, owned VRC set (physbone / collider / contact /
-VRC-constraint — dependency-follow, `Col_*` leaf-anchor recreate, hard/soft criticality, `force`/scaffold,
-from a typed table) and a **conservative** tier for everything else (MA / VRCFury / NDMF / unknown / Unity
-built-in constraints — `CopySerialized` + generic object-ref remap, leave-missing-missing). The **reach
-root** `(vendorSource, ownedRoot)` bounds the remap: refs to objects under the vendor source rebind to
-our counterparts; out-of-reach refs (assets, other-avatar objects) are left for placement-repair.
+The **component-transplant kit** — `CopyComponents`, `MoveComponents`, `GraftHierarchy` over a shared transplant core — is **component-agnostic**: selection is a list of **type-name strings** (resolved via `TypeCache`, matched by assignability, fail-loud on ambiguity), so the same tools serve VRC dynamics on a base body and MA/VRCFury/NDMF on an outfit without the package referencing those assemblies (stays VRC-SDK-only). Two tiers: a **deep** tier for the closed, owned VRC set (physbone / collider / contact / VRC-constraint — dependency-follow, `Col_*` leaf-anchor recreate, hard/soft criticality, `force`/scaffold, from a typed table) and a **conservative** tier for everything else (MA / VRCFury / NDMF / unknown / Unity built-in constraints — `CopySerialized` + generic object-ref remap, leave-missing-missing). The **reach root** `(vendorSource, ownedRoot)` bounds the remap: refs to objects under the vendor source rebind to our counterparts; out-of-reach refs (assets, other-avatar objects) are left for placement-repair.
 
-A **differently-named armature-root GO** (owned `Armature.1` vs vendor `Armature`) nulls every ref through
-it under the name-based matching above. `CopyComponents` / `GraftHierarchy` take an optional `vendorToOwned`
-map (injective, **case-sensitive**) that reconciles it — one entry (`"Armature" ⇒ "Armature.1"`) covers hosts
-and relocated-outside-armature anchor refs alike. An absent map is a no-op; a non-injective or ambiguous map
-(one that can't address a unique dest sibling) is a **named FAIL in both `whatIf` and execute**, never a
-silent mis-bind.
+A **differently-named armature-root GO** (owned `Armature.1` vs vendor `Armature`) nulls every ref through it under the name-based matching above. `CopyComponents` / `GraftHierarchy` take an optional `vendorToOwned` map (injective, **case-sensitive**) that reconciles it — one entry (`"Armature" ⇒ "Armature.1"`) covers hosts and relocated-outside-armature anchor refs alike. An absent map is a no-op; a non-injective or ambiguous map (one that can't address a unique dest sibling) is a **named FAIL in both `whatIf` and execute**, never a silent mis-bind.
 
-**Rename-map direction — the kit runs two, pointing opposite ways.** A rename map's **key** names the
-hierarchy its tool **walks**; its **value** the hierarchy that tool **resolves into**. Direction follows
-traversal and is not a style choice, a dictionary being unindexable by its values. So the transplant tools
-(walking vendor, resolving into ours) take `vendorToOwned`, while `ConformRenderers` (walking our renderers,
-resolving into the source) takes `ownedToSource` — and holding "one map" across both gets one backwards.
-Two consequences follow: `vendorToOwned` **must be injective** to address a unique dest sibling (enforced),
-where `ownedToSource` is legitimately **many-to-one** (two owned meshes taking one source renderer's
-materials — inverting it would make that inexpressible); and `vendorToOwned` matches **Ordinal** where
-`ownedToSource` matches **case-insensitively**. Trust the parameter names over the shape of your map.
+**Rename-map direction — the kit runs two, pointing opposite ways.** A rename map's **key** names the hierarchy its tool **walks**; its **value** the hierarchy that tool **resolves into**. Direction follows traversal and is not a style choice, a dictionary being unindexable by its values. So the transplant tools (walking vendor, resolving into ours) take `vendorToOwned`, while `ConformRenderers` (walking our renderers, resolving into the source) takes `ownedToSource` — and holding "one map" across both gets one backwards. Two consequences follow: `vendorToOwned` **must be injective** to address a unique dest sibling (enforced), where `ownedToSource` is legitimately **many-to-one** (two owned meshes taking one source renderer's materials — inverting it would make that inexpressible); and `vendorToOwned` matches **Ordinal** where `ownedToSource` matches **case-insensitively**. Trust the parameter names over the shape of your map.
 
-- `CopyComponents(ownedRoot, vendorSource, typeNames, force=null, vendorToOwned=null, whatIf=false)` — reproduce all
-  components of the named types onto our rig, **additive + idempotent** (count-parity skip per
-  `(host, type)`; never destroys; a re-run is a no-op). `whatIf` reports the full plan and mutates nothing;
-  a real run replays that same plan (preview == execute). A **flagged-missing host is PASS** — the named
-  prune-backstop list to triage (`force` it via `vendorRelativePath :: ComponentType`, re-prune, or
-  accept). A **null ref on a copied component** is surfaced separately as "verify — may block build"
-  (non-fatal but can abort the downstream VRCF/SDK build). **FAIL** only on a vendor-source leak,
-  `AddComponent`/scaffold failure, or unresolved type. Copy from the **standalone** vendor source, not an
-  outfit already placed in an avatar.
-  Flagged-missing hosts are classified in the RunLog note: **`[bone]`** — a skeleton bone absent on our
-  rig, a genuine prune/rename divergence to investigate; **`[holder]`** — a non-bone GO the source parked
-  the component on (deep-tier only; conservative hosts are untagged, having no scaffold path). When the
-  source parked dynamics on holder GOs (a consolidated/grouped avatar), the holder paths are absent on a
-  **faithfully re-exported** target and flag `[holder]` — physbones/constraints always, and
-  colliders/contacts too **when their holder's parent is also absent** (holders under an `AvatarDynamics/…`
-  container). A collider/contact whose holder sits directly under a **surviving bone** is instead
-  auto-recreated (`RecreateLeaf`, no force key needed) and never appears in the `[holder]` set. Forcing the
-  `[holder]` keys scaffolds those holders back — anchors path-remap to our bones, collider refs resolve by
-  topo order — which **reconstructs the grouping, so a following `MoveComponents` is redundant**.
-  Force-all-`[holder]` is safe **only** when the target is a faithful re-export (no bones pruned, no
-  content dropped — the reproportion twin/copy case); on the vendor→owned path a `[holder]` may be a
-  deliberately-pruned accessory, so the flagged-missing default (force / re-prune / accept) stands.
-- `MoveComponents(ownedRoot, targetRoot, typeNames, destPath, whatIf=false)` — relocation primitive
-  (the type-name list replaces the old `mode`). Matches components whose effective anchor descends from
-  `targetRoot`, mints a holder under `destPath`, pins each anchor to its original transform, and rewires
-  inbound serialized refs to each re-created component (a physbone's `colliders[]` entry to a relocated
-  collider; `inboundRefsRewired`, whatIf-predicted) — behavior-neutral, **never moves a bone**. Matching
-  is by **anchor, not current location**: a later call with a broader `targetRoot` re-captures components
-  an earlier narrower call already grouped, leaving stale empty holders — order the calls broad→narrow.
-  Anchor field per type comes from the VRC table; a targeted type with **no table
-  anchor FAILs loud** (refuses MA/VRCF/NDMF *and* Unity built-in constraints). Idempotent (skips a holder
-  already placed under `destPath`); run **pre-prefab**. Called N times at operator discretion; echoes matches for closed-accounting.
-- `GraftHierarchy(ownedRoot, vendorSource, subtreeRoots, vendorToOwned=null, whatIf=false)` — copies named GO **subtrees
-  wholesale**: scaffold the full structure (vendor verbatim local TRS) + copy **all** components on every
-  GO (type-blind), remapped against the reach root. For pulling an outfit's authoring/menu subtree without
-  listing every GameObject. Inverted contract vs CopyComponents: a missing host is **expected/normal**
-  (you are scaffolding), never flagged. Count-parity + reuse-by-path idempotent.
+- `CopyComponents(ownedRoot, vendorSource, typeNames, force=null, vendorToOwned=null, whatIf=false)` — reproduce all components of the named types onto our rig, **additive + idempotent** (count-parity skip per `(host, type)`; never destroys; a re-run is a no-op). `whatIf` reports the full plan and mutates nothing; a real run replays that same plan (preview == execute). A **flagged-missing host is PASS** — the named prune-backstop list to triage (`force` it via `vendorRelativePath :: ComponentType`, re-prune, or accept). A **null ref on a copied component** is surfaced separately as "verify — may block build" (non-fatal but can abort the downstream VRCF/SDK build). **FAIL** only on a vendor-source leak, `AddComponent`/scaffold failure, or unresolved type. Copy from the **standalone** vendor source, not an outfit already placed in an avatar. Flagged-missing hosts are classified in the RunLog note: **`[bone]`** — a skeleton bone absent on our rig, a genuine prune/rename divergence to investigate; **`[holder]`** — a non-bone GO the source parked the component on (deep-tier only; conservative hosts are untagged, having no scaffold path). When the source parked dynamics on holder GOs (a consolidated/grouped avatar), the holder paths are absent on a **faithfully re-exported** target and flag `[holder]` — physbones/constraints always, and colliders/contacts too **when their holder's parent is also absent** (holders under an `AvatarDynamics/…` container). A collider/contact whose holder sits directly under a **surviving bone** is instead auto-recreated (`RecreateLeaf`, no force key needed) and never appears in the `[holder]` set. Forcing the `[holder]` keys scaffolds those holders back — anchors path-remap to our bones, collider refs resolve by topo order — which **reconstructs the grouping, so a following `MoveComponents` is redundant**. Force-all-`[holder]` is safe **only** when the target is a faithful re-export (no bones pruned, no content dropped — the reproportion twin/copy case); on the vendor→owned path a `[holder]` may be a deliberately-pruned accessory, so the flagged-missing default (force / re-prune / accept) stands.
+- `MoveComponents(ownedRoot, targetRoot, typeNames, destPath, whatIf=false)` — relocation primitive (the type-name list replaces the old `mode`). Matches components whose effective anchor descends from `targetRoot`, mints a holder under `destPath`, pins each anchor to its original transform, and rewires inbound serialized refs to each re-created component (a physbone's `colliders[]` entry to a relocated collider; `inboundRefsRewired`, whatIf-predicted) — behavior-neutral, **never moves a bone**. Matching is by **anchor, not current location**: a later call with a broader `targetRoot` re-captures components an earlier narrower call already grouped, leaving stale empty holders — order the calls broad→narrow. Anchor field per type comes from the VRC table; a targeted type with **no table anchor FAILs loud** (refuses MA/VRCF/NDMF *and* Unity built-in constraints). Idempotent (skips a holder already placed under `destPath`); run **pre-prefab**. Called N times at operator discretion; echoes matches for closed-accounting.
+- `GraftHierarchy(ownedRoot, vendorSource, subtreeRoots, vendorToOwned=null, whatIf=false)` — copies named GO **subtrees wholesale**: scaffold the full structure (vendor verbatim local TRS) + copy **all** components on every GO (type-blind), remapped against the reach root. For pulling an outfit's authoring/menu subtree without listing every GameObject. Inverted contract vs CopyComponents: a missing host is **expected/normal** (you are scaffolding), never flagged. Count-parity + reuse-by-path idempotent.
 
-The **controller owning/consolidation kit and the compile/decompile substrate** — `CleanController`, the
-clip-repathing pair (`RepathClips`/`OwnControllerClips`), `CompileController`/
-`DecompileController`, and the `SchemaValidation`↔`ControllerRules` split — are `avatar-tools` members
-obeying the same static-method + `whatIf` + RunLog conventions as the tools above. Their contracts, the
-`Decompile→Compile` round-trip that reframes the owning tools, and the YAML authoring language are in
-`docs/animator.md` (schema: `docs/animator-schema.md`).
+The **controller owning/consolidation kit and the compile/decompile substrate** — `CleanController`, the clip-repathing pair (`RepathClips`/`OwnControllerClips`), `CompileController`/ `DecompileController`, and the `SchemaValidation`↔`ControllerRules` split — are `avatar-tools` members obeying the same static-method + `whatIf` + RunLog conventions as the tools above. Their contracts, the `Decompile→Compile` round-trip that reframes the owning tools, and the YAML authoring language are in `docs/animator.md` (schema: `docs/animator-schema.md`).
 
-Two standalone **scene utilities** round out the kit, simple enough that the signature is the contract
-(open the tool): `RemapMaterials` — swap materials by **asset path** across a hierarchy, in place (no
-source hierarchy, no name matching — a different operation from `ConformRenderers`' copy-by-renderer-name);
-`ConstrainedDuplicate` — clone a hierarchy and wire VRC constraints between original and duplicate bones.
+Two standalone **scene utilities** round out the kit, simple enough that the signature is the contract (open the tool): `RemapMaterials` — swap materials by **asset path** across a hierarchy, in place (no source hierarchy, no name matching — a different operation from `ConformRenderers`' copy-by-renderer-name); `ConstrainedDuplicate` — clone a hierarchy and wire VRC constraints between original and duplicate bones.
 
-The **`own-base` skill** (in `vrc-skills`) orchestrates these — it holds the judgment, gates, and
-sequencing; the tools hold the mechanics. In a transplant diagnostic, read what each count *means*: a
-**flagged-missing host is PASS** (expected subset — triage the named list), while a **vendor-source leak**
-or a **null ref on a copied component** stays stop-and-investigate (almost always a name/path mismatch).
+The **`own-base` skill** (in `vrc-skills`) orchestrates these — it holds the judgment, gates, and sequencing; the tools hold the mechanics. In a transplant diagnostic, read what each count *means*: a **flagged-missing host is PASS** (expected subset — triage the named list), while a **vendor-source leak** or a **null ref on a copied component** stays stop-and-investigate (almost always a name/path mismatch).
 
-**Renderer-normalization standard:** every renderer's bounds are **ensured ≥** center (0,0,0)/extents
-(1,1,1) — grown to that anti-cull floor, never shrunk, so a deliberately larger box survives — the
-Anchor Override is set to **Hips** only when invalid (null or not a child of `ownedRoot`); a valid
-internal anchor is preserved, and a null Root Bone is filled with Hips. Not copied from the vendor (creators get these wrong). On a *composed*
-avatar, Modular Avatar `Mesh Settings` can own bounds/anchor at build — there the tool's writes are
-authoring-only, so its PASS is not a runtime guarantee.
+**Renderer-normalization standard:** every renderer's bounds are **ensured ≥** center (0,0,0)/extents (1,1,1) — grown to that anti-cull floor, never shrunk, so a deliberately larger box survives — the Anchor Override is set to **Hips** only when invalid (null or not a child of `ownedRoot`); a valid internal anchor is preserved, and a null Root Bone is filled with Hips. Not copied from the vendor (creators get these wrong). On a *composed* avatar, Modular Avatar `Mesh Settings` can own bounds/anchor at build — there the tool's writes are authoring-only, so its PASS is not a runtime guarantee.
 
-`OwnMaterial(materialPath, outDir=null, forkTextureSlots=null, newName=null, force=false, whatIf=false)` brings a
-vendor material into ownership and forks the **named** texture slots into the owned copy's own namespace —
-every unforked slot keeps its source-GUID reference, and the `slots[]` provenance table it returns is the
-caller's gate. Routing is target-identity: `outDir` given ⇒ own a vendor source (or branch an owned one) into
-a NEW `.mat` (named `newName`, default the source's name); `outDir` omitted ⇒ augment the already-owned source
-in place (fork more slots). A locked-Poiyomi copy is unlocked via Thry's ShaderOptimizer — it **refuses**
-rather than risk Thry's blocking dialog when the original-shader tag can't resolve, and leaves the vendor
-source untouched. The `own-material` skill holds the judgment of which slots to fork; the tool executes it
-deterministically and returns a one-line PASS/FAIL + RunLog path.
+`OwnMaterial(materialPath, outDir=null, forkTextureSlots=null, newName=null, force=false, whatIf=false)` brings a vendor material into ownership and forks the **named** texture slots into the owned copy's own namespace — every unforked slot keeps its source-GUID reference, and the `slots[]` provenance table it returns is the caller's gate. Routing is target-identity: `outDir` given ⇒ own a vendor source (or branch an owned one) into a NEW `.mat` (named `newName`, default the source's name); `outDir` omitted ⇒ augment the already-owned source in place (fork more slots). A locked-Poiyomi copy is unlocked via Thry's ShaderOptimizer — it **refuses** rather than risk Thry's blocking dialog when the original-shader tag can't resolve, and leaves the vendor source untouched. The `own-material` skill holds the judgment of which slots to fork; the tool executes it deterministically and returns a one-line PASS/FAIL + RunLog path.
 
 ## Thumbnails
 
-`RenderThumbnail` (edit mode, the default) and `RenderThumbnailPlay` (play mode) are two front-ends over
-one camera/capture spine (`RenderThumbnailCore`) — same caller vocabulary, a 1200×900 `png=` that feeds
-`UploadAvatar`. Edit mode is one synchronous baked call. Reach for play mode only when dynamics or FX must
-be truthful: it renders with hair/cloth **settled** by the real physbone solver and FX toggles/materials
-**resolved**.
+`RenderThumbnail` (edit mode, the default) and `RenderThumbnailPlay` (play mode) are two front-ends over one camera/capture spine (`RenderThumbnailCore`) — same caller vocabulary, a 1200×900 `png=` that feeds `UploadAvatar`. Edit mode is one synchronous baked call. Reach for play mode only when dynamics or FX must be truthful: it renders with hair/cloth **settled** by the real physbone solver and FX toggles/materials **resolved**.
 
-Play is a **session**, not a call (physbones need the player loop, and the tool can't flip play itself):
-`Begin(target)` → `manage_editor play` → `Shoot(...)` (async — returns a tag, poll `Status()`) →
-`manage_editor stop` → `End()`. One `Begin` serves many `Shoot`s. Toggle/menu-param state set in play
-survives a `Shoot` (the swapped-in FX playable is seeded from the outgoing one; the toggled states
-re-resolve during settle) — but layer state a param does not imply, e.g. trigger-latched, does not.
-Settle is never asserted — the verdict
-**names any chain still moving** at capture. The venue is a loaded scene lit by its own lights (not edit
-mode's fixed rig); `End` reopens it from disk, discarding the pose and emulator edits. The `shoot-thumbnail`
-skill picks the mode; play-mode capture mechanics (graph-wins, local-layer cull, param drive) are in
-`verify.md`.
+Play is a **session**, not a call (physbones need the player loop, and the tool can't flip play itself): `Begin(target)` → `manage_editor play` → `Shoot(...)` (async — returns a tag, poll `Status()`) → `manage_editor stop` → `End()`. One `Begin` serves many `Shoot`s. Toggle/menu-param state set in play survives a `Shoot` (the swapped-in FX playable is seeded from the outgoing one; the toggled states re-resolve during settle) — but layer state a param does not imply, e.g. trigger-latched, does not. Settle is never asserted — the verdict **names any chain still moving** at capture. The venue is a loaded scene lit by its own lights (not edit mode's fixed rig); `End` reopens it from disk, discarding the pose and emulator edits. The `shoot-thumbnail` skill picks the mode; play-mode capture mechanics (graph-wins, local-layer cull, param drive) are in `verify.md`.
 
 ## Publish
 
-`UploadAvatar` batch-uploads composed avatars live to VRChat, driving Continuous Avatar Uploader (CAU) by
-reflection (CAU absent ⇒ **REFUSE** with the fix). **Operator-gated** — the `upload-avatar` skill's explicit
-"upload now" is the only trigger, never autonomous — and fail-loud: verdicts are **PASS / REFUSE / FAIL**,
-where REFUSE means the environment isn't ready (CAU absent, not logged in, panel closed, wrong build target)
-and FAIL is a genuine upload rejection. It runs async — `Run` fires and returns while the editor update loop
-pumps CAU's continuations, so poll `Status()` until it stops reporting "running". A per-handle attempt ceiling
-counts *consecutive* failures (cleared on each success) so account safety doesn't lean on skill prose, and
-**no blueprint id ever enters output** (public-repo safety). `whatIf` previews readiness without uploading.
+`UploadAvatar` batch-uploads composed avatars live to VRChat, driving Continuous Avatar Uploader (CAU) by reflection (CAU absent ⇒ **REFUSE** with the fix). **Operator-gated** — the `upload-avatar` skill's explicit "upload now" is the only trigger, never autonomous — and fail-loud: verdicts are **PASS / REFUSE / FAIL**, where REFUSE means the environment isn't ready (CAU absent, not logged in, panel closed, wrong build target) and FAIL is a genuine upload rejection. It runs async — `Run` fires and returns while the editor update loop pumps CAU's continuations, so poll `Status()` until it stops reporting "running". A per-handle attempt ceiling counts *consecutive* failures (cleared on each success) so account safety doesn't lean on skill prose, and **no blueprint id ever enters output** (public-repo safety). `whatIf` previews readiness without uploading.

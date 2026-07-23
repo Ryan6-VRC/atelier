@@ -1,39 +1,11 @@
 # Adding a Unity project to the workspace
 
-Ordered procedure for standing up a **new** Unity working venue under an already-working workspace.
-A Unity project is an **untracked** working folder (CLAUDE.md §Layout) — none of the steps below touch
-git. From-zero bring-up of the workspace itself (installs, MCP wiring, package
-restore) is `bootstrap.md`. Folder conventions live in [`LAYOUT.md`](LAYOUT.md); hard constraints
-(Unity pin, package reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not restates.
+Ordered procedure for standing up a **new** Unity working venue under an already-working workspace. A Unity project is an **untracked** working folder (CLAUDE.md §Layout) — none of the steps below touch git. From-zero bring-up of the workspace itself (installs, MCP wiring, package restore) is `bootstrap.md`. Folder conventions live in [`LAYOUT.md`](LAYOUT.md); hard constraints (Unity pin, package reproducibility) live in [`../CLAUDE.md`](../CLAUDE.md) — this doc links, not restates.
 
-1. **Seed the project folder.** Clone the `AvatarProject` sample skeleton (README §Repos) as the
-   starting point, or copy an existing venue, then **remove the `.git`** — the venue is a working
-   folder, not a repo. Add the folder to the meta-repo's **local** ignore, `.git/info/exclude`, so the
-   meta-repo never surfaces it (project names stay out of the public `.gitignore`). The skeleton already
-   carries the Unity `.gitignore`/`.gitattributes`; they're inert in the venue but record the
-   durable-vs-not-kept split (LAYOUT.md).
-2. **Seed the Agent-I/O tree** the tooling assumes — `Assets/Agent/` with `Snapshots/` (durable) and
-   `RunLogs/`+`Scratch/` (disposable). Create the folders so the first `Check*`/tool write lands
-   cleanly. See [`LAYOUT.md`](LAYOUT.md) for the why.
-3. **Set up packages / VPM** per the CLAUDE.md hard constraints (`vpm-manifest.json` is the source of
-   truth, SDK payloads reproduced from it); `vrc-get resolve -p <ProjectDir>` restores. VPM mechanics:
-   `bootstrap.md`. If the avatar skills will run here, the hard floor — copy from `AvatarProject`'s
-   manifests and trim the rest — is the Avatars SDK + Modular Avatar (NDMF rides along) + VRCFury +
-   av3emulator in `vpm-manifest.json`, plus the `com.ryan6vrc.*` `file:` refs in `Packages/manifest.json`;
-   everything else there is convenience, and vendor assets bring their own shader needs (lilToon/Poiyomi).
-4. **Wire this Editor for the agent** (if one will drive it) — install the in-Editor MCP package and
-   Roslyn so `execute_code` gets modern C#; both are per-Editor (mechanics + the mark-Editor-only Roslyn
-   gotcha: `bootstrap.md`). **Do not add a `.mcp.json` server for the project.** The workspace's one
-   `UnityMCP` server reaches every local Editor; sessions route explicitly (`set_active_instance`, full
-   `Name@hash` — `unity.md`). A per-project server name is a false promise — any server can connect to
-   any instance — and each extra server duplicates the whole tool surface and its deny list. A separate
-   server is earned only by a different trust posture, not a different project. `run_tests` needs no
-   per-project action — the `vrc-mcp-proxy` allowlist hides it for every Editor the one server reaches
-   (run the EditMode suite headless — see docs/verify.md).
-5. **Seed a known-noise ledger.** Some projects emit benign console lines on every domain reload (a
-   package firing a harmless `[MACS]` / Mecanim exception, say). Record each — line + source package +
-   why benign — in a short per-project ledger workers can find, so every agent doesn't pay the same
-   rule-out detour.
+1. **Seed the project folder.** Clone the `AvatarProject` sample skeleton (README §Repos) as the starting point, or copy an existing venue, then **remove the `.git`** — the venue is a working folder, not a repo. Add the folder to the meta-repo's **local** ignore, `.git/info/exclude`, so the meta-repo never surfaces it (project names stay out of the public `.gitignore`). The skeleton already carries the Unity `.gitignore`/`.gitattributes`; they're inert in the venue but record the durable-vs-not-kept split (LAYOUT.md).
+2. **Seed the Agent-I/O tree** the tooling assumes — `Assets/Agent/` with `Snapshots/` (durable) and `RunLogs/`+`Scratch/` (disposable). Create the folders so the first `Check*`/tool write lands cleanly. See [`LAYOUT.md`](LAYOUT.md) for the why.
+3. **Set up packages / VPM** per the CLAUDE.md hard constraints (`vpm-manifest.json` is the source of truth, SDK payloads reproduced from it); `vrc-get resolve -p <ProjectDir>` restores. VPM mechanics: `bootstrap.md`. If the avatar skills will run here, the hard floor — copy from `AvatarProject`'s manifests and trim the rest — is the Avatars SDK + Modular Avatar (NDMF rides along) + VRCFury + av3emulator in `vpm-manifest.json`, plus the `com.ryan6vrc.*` `file:` refs in `Packages/manifest.json`; everything else there is convenience, and vendor assets bring their own shader needs (lilToon/Poiyomi).
+4. **Wire this Editor for the agent** (if one will drive it) — install the in-Editor MCP package and Roslyn so `execute_code` gets modern C#; both are per-Editor (mechanics + the mark-Editor-only Roslyn gotcha: `bootstrap.md`). **Do not add a `.mcp.json` server for the project.** The workspace's one `UnityMCP` server reaches every local Editor; sessions route explicitly (`set_active_instance`, full `Name@hash` — `unity.md`). A per-project server name is a false promise — any server can connect to any instance — and each extra server duplicates the whole tool surface and its deny list. A separate server is earned only by a different trust posture, not a different project. `run_tests` needs no per-project action — the `vrc-mcp-proxy` allowlist hides it for every Editor the one server reaches (run the EditMode suite headless — see docs/verify.md).
+5. **Seed a known-noise ledger.** Some projects emit benign console lines on every domain reload (a package firing a harmless `[MACS]` / Mecanim exception, say). Record each — line + source package + why benign — in a short per-project ledger workers can find, so every agent doesn't pay the same rule-out detour.
 
-A new **tool** sub-repo (a `vrc-*` package) is a different thing entirely: its own git repo, added to
-the bootstrap clone list and the meta-repo ignore, versioned normally. That's not this runbook.
+A new **tool** sub-repo (a `vrc-*` package) is a different thing entirely: its own git repo, added to the bootstrap clone list and the meta-repo ignore, versioned normally. That's not this runbook.
