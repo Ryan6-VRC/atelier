@@ -20,6 +20,14 @@ reordered/altered), AND the result must be a fixed point of reflow (reflow(res)
 == res) — either failing aborts loud, naming the file, rather than writing a
 corrupted or non-canonical result.
 
+These guards make word loss impossible and non-canonical output impossible; they
+do NOT prove no *structural* mis-join. Joining lines is token-invariant, so an
+unusual construct the classifier below doesn't recognize could in principle be
+joined wrongly while both guards pass — a change that alters rendering, never
+content, and so shows up in the reflow's diff. `--check` is therefore a strong
+gate, not a proof: review the one-time repo-wide reflow diff; trust the gate for
+steady-state edits.
+
 Byte-preserved: fenced code (any delimiter run length; an inner shorter run does
 not close an outer longer one) and indented (4-space) code; raw-text HTML
 elements (<pre>/<script>/<style>/<textarea>) and any line opening an HTML block;
