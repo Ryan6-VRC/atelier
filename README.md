@@ -1,13 +1,27 @@
 # Atelier
 
-Atelier is a workspace where a coding agent (Claude Code) does VRChat avatar work end-to-end: it observes the live Unity scene and Blender armature, modifies them through reviewed scripts and purpose-built tools, and verifies the result. It can self-drive most of my process with the same organization and rigor I would use if I had unlimited time. It uses a mix of:
+Atelier is a workspace where a coding agent (Claude Code) does VRChat avatar work end-to-end: it observes the live Unity scene and Blender armature, modifies them through reviewed scripts and purpose-built tools, and verifies the result. It self-drives most of my process with the organization and rigor I'd use given unlimited time. It uses a mix of:
 
-- Carefully constructed knowledge `.md` files to inject Unity/VRChat conventions and tooling.
-- Full control of Blender and Unity via MCP, although models generally prefer to run Blender headless.
-- A set of chainable and legible Blender and Unity tools.
-- Claude Code skills that package each workflow's judgment calls (own a base, compose an outfit, author a menu) into repeatable units.
+- Carefully constructed knowledge and routing surfaces to ensure the model reaches the Unity/VRChat information it needs as efficiently as possible.
+- Control of Blender and Unity via MCP, with an additional set of generic chainable tools.
+- Skills that package each workflow's judgment calls into repeatable units.
 
-The project is opinionated. Vendor assets are never modified, only *owned*: deep-copied exactly as far as a change requires, while the avatar in the scene stays a non-destructive recipe until upload. The agent is fluent in the workflows this implies; it can split an avatar across FBXs and merge it back with Modular Avatar or VRCFury, physbone/constraint/contact topology intact, authoring FX controllers and menus as needed.
+The project enforces a strict non-destructive workflow and the agent is fluent in every technique this implies. Vendor assets are never modified, only *owned*: deep-copied exactly as far as a change requires. Avatars remain a modular hierarchy of non-destructive components until upload.
+
+## Showcase
+
+https://github.com/user-attachments/assets/f5242415-4c47-4bdc-81f2-6b9be8ca3516
+
+> Put MidnightReverie on Airi and take six thumbnail shots in play mode. Use a different pose, expression, and background for each one and insert them in the captured footage.
+
+Each run is one uninterrupted session — a single plain-language request in, an avatar out. Titles link to the full one-to-two-minute cut.
+
+| Run | Prompt |
+| --- | --- |
+| [Shinano × SweetEdgeKnit](https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-14-shinano-sweetedgeknit/cut.mp4) | Please import Shinano and SweetEdgeKnit, then assemble them in the scene. Author one or two outfit toggles, enter play mode, and capture screenshots before and after. |
+| [Manuka × StitchedHeart + Sio × Peridot](https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-manuka-stitchedheart-sio-peridot/cut.mp4) | I have placed a Sio and Manuka in the scene. Please put StitchedHeart in white on Manuka and Peridot in black and red on Sio, and make sure there is no clipping. |
+| [Plum × Chiffon](https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-plum-chiffon-swap/cut.mp4) | Make clean copies of Plum and Chiffon, then extract their outfits as modular prefabs and swap them. Finally, pick one and bring it into play mode to test. |
+| [Shinano × NoirLace](https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-shinano-noirlace-tallmodel/cut.mp4) | Bring Shinano into Blender and reproportion her into a tall fashion model. Apply the same adjustment to NoirLace, assemble them in the scene, and build a menu. Organize any dynamics components as you go. Finally, take it into play mode for testing. |
 
 ## Skills
 
@@ -32,11 +46,17 @@ These skills are how you use the workshop: invoke one by name, or just say what 
 
 ## Controller authoring
 
-The fluency above forms the baseline "common sense" layer required to do useful VRChat work, but is not the ultimate objective of the project. A full set of tools is included to enable full use of frontier model coding aptitude for controller and gimmick work.
+The fluency above forms the common-sense layer required to do useful VRChat work, but is not the ultimate objective of the project. Atelier includes all the tooling needed to apply **frontier model coding aptitude** to controller and gimmick authoring.
 
 - **Decoded structure.** Animator, constraint, physbone, and contact topology arrive as read-only graph digests (`ReportController`, `ReportGimmick`, `CheckAnimator`), so the model reasons over decoded structure instead of raw unity files.
 - **Controllers as code.** `DecompileController` and `CompileController` round-trip a built `.controller` to declarative YAML: reviewable, diffable text, the representation coding models are strongest in. Study a vendor controller, modify it, or author a new system from scratch.
 - **A closed validation loop.** The emulator lets the agent drive parameters, frame-step, induce physbone grabs, fake another player's contacts, and spawn remote clones; so it can self-test its work in play mode and iterate instead of asserting.
+
+## Pattern library
+
+The [`vrc-patterns`](https://github.com/Ryan6-VRC/vrc-patterns) library is both evidence of the system's capabilities and a resource agents can draw on. It contains a mix of known systems normalized into documented NDMF modules as well as new creations, with a lot more to come. When asked to understand, modify, or author a gimmick the patterns library provides deep domain knowledge and tested working designs to copy or compare against. Browse by [what you want to build](https://github.com/Ryan6-VRC/vrc-patterns#find-by-what-you-want-to-build).
+
+![anchor-prop animator controller](docs/assets/anchor-prop-controller.png)
 
 ## Tools for AI
 
