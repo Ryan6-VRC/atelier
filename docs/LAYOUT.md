@@ -17,7 +17,7 @@ Where things go in the Unity sandbox. The act of importing a vendor package — 
 - **`Assets/Vendor/` and `Packages/` are read-only to our tooling.** A tool that would mutate an asset there must **materialize an owned copy first**; writability is judged **per-asset, by path** (an owned controller may still reference a vendor clip — that clip stays read-only). This is a **policy** guard on *deliberate* edits, not a byte contract: it means fork-before-you-change (a `force` override records any breach loudly), not that vendor bytes never move — VPM restores and importer migrations rewrite `Vendor/`/`Packages/` on disk with no agent and no breach (see *Vendor mutation*).
 - **`Assets/Materials/<Avatars|Outfits>/<Name>/`** — owned materials and their exported textures,
   mirroring `Photoshop/` by name. Base-independent like the PSD art (texture work doesn't change with proportions), so one bucket serves every base wearing the outfit — but when the geometry is *also* owned, materials file with it (`Assets/Outfits/<Base>/<Outfit>/Materials/`) instead: one logical asset, one home. Copy semantics (selective slot forking, shader handling) are the `own-material` skill's.
-- **Non-Unity source files live outside `Assets/`** at the project root, so editing them never triggers an editor refresh:
+- **Non-Unity source files live at the Unity project root** (`AvatarProject/`, outside `Assets/` so editing them never triggers a refresh) — inside the untracked venue, never the meta-repo:
   - **`Blender/Avatars/<Name>/`** — the `<Name>.blend` source (a binary: not kept, externally backed
     up), namespaced like `Assets/`; it also holds the **proportion-edge JSONs** the reproportion
     skill reads/writes, which *are* kept (diffable recovery artifacts — see below).

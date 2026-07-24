@@ -24,11 +24,6 @@
 # Curated showcase runs (showcase-record keepers) — local media only, like docs/assay/
 /showcases/
 
-# Blender source binaries are local-only + externally backed up (LAYOUT.md: git tracks
-# diffable text, not large binaries). The reproportion-edge JSONs co-located beside them
-# in Blender/Avatars/<Name>/ ARE tracked (diffable recovery artifacts), so ignore only the .blend*.
-Blender/**/*.blend*
-
 # Python bytecode (from tools/)
 __pycache__/
 *.pyc
