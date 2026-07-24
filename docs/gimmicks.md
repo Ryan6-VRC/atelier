@@ -21,9 +21,9 @@ Building avatar systems — state machines, constraints, contacts, network sync 
 | Object world position, late-sync, exact | bit-multiplexed absolute sync (Custom-Object-Sync pattern, `references/`) | ~30 bits + seconds of latency |
 | Object world position, approximate | physbone drop (grab is the sync) | 0 bits; per-client drift; **no late-sync** |
 | Local-only input (hardware, apps) | OSC → unsynced params (+ encode if remotes need it) | 0 bits local |
-| World-geometry point (aim, attach-at-distance) | `VRCRaycast`: bone-origin ray → hit lands in a result transform (usable as constraint source) + a param | 0 bits; local; **(~)** recent SDK — emulator/culling semantics unpinned |
+| World-geometry point (aim, attach-at-distance) | `VRCRaycast`: bone-origin ray → result transform (usable as constraint source) + `_Hit`/`_Ratio`/`_Distance` params | 0 bits; **per-client, not local** — every copy runs its own ray, and only the target's own client carries a player capsule to hit (`runtime.md`) |
 | Inter-avatar contact without receivers | DPS/SPS shader-space (light *range* encodes channel; SPS ships in VRCFury) | 0 bits; both ends need the shader |
-| Perpetual decorative motion (spinning gears) | plain `Animator` on a child GO — no FX layer, no params | 0 bits; **(~)** optimizer interaction unpinned |
+| Perpetual decorative motion (spinning gears) | plain `Animator` on a child GO — no FX layer, no params | 0 bits; optimizer interaction unpinned |
 
 **PhysBone drop/carry — what actually crosses the wire** (pick by whether the drop must persist for a late joiner, and by what you can verify without two clients):
 
