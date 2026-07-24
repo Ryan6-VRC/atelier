@@ -35,4 +35,4 @@ Blender owns mesh/armature work (FBX import + observe, drop/rename, prune, rest-
 
 ## Validate with a play-mode build
 
-Entering play mode runs the full non-destructive stack on the transient play copy — the one bake path and the universal comprehensive check (`unity.md`; the play-entry gate is enforced — `verify.md`).
+Entering play mode runs the full non-destructive stack on the transient play copy — the one bake path and the universal comprehensive check (`nondestructive.md`; the play-entry gate is enforced — `verify.md`).

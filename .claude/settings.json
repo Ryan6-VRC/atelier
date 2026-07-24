@@ -45,6 +45,19 @@
     ]
   },
   "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/tools/prose-hook.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking governed prose"
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [

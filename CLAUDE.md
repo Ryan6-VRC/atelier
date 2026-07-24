@@ -24,11 +24,6 @@ Atelier/                        (this folder = session cwd; workspace docs + lau
 
 **Run-output never lands in a tracked tooling dir.** A script that writes results or logs writes them to `test-output/`, not beside itself: a disposable pile inside `tools/` is invisible to `git status` and grows unbounded.
 
-## Hard constraints
-
-- **Unity 2022.3.22f1** — VRChat-pinned. **Never upgrade** (breaks uploaded content). Already installed.
-- **Packages are reproducible**: `vpm-manifest.json` is the source of truth; the VPM SDK payloads (`Packages/com.vrchat.*`) are reproduced from it, not kept. Restore with `vrc-get resolve`. Start **newest + trimmed**; add VRCFury/Modular Avatar/NDMF/etc. deliberately via ALCOM, not in bulk.
-
 ## Tooling stack
 
 Per-system operating details and domain knowledge — install paths, MCP wiring, build commands, runtime behavior — live in `docs/`. Read the relevant file before operating in that domain:
@@ -39,9 +34,10 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 - **`docs/animator.md`** + **`docs/animator-schema.md`** — animator-controller work: the tool doors (report/lint, clean/sweep/repath/own, compile/decompile + the round-trip) and the `CompileController` YAML authoring language. Read for any controller build, inspection, or round-trip.
 - **`docs/blender.md`** — Blender operating knowledge: headless batch + Blender MCP usage, the `avatarprep` extension.
 - **`docs/workflow.md`** — cross-system orchestration above any one tool: goals, sequencing, Unity↔Blender handoffs.
-- **`docs/tool-design.md`** — the interface lens for agent-facing tools; read before adding or changing tools in `vrc-unity-tools`, `vrc-blender-tools`, or skills that drive them.
+- **`docs/tool-design.md`** — the design constitution for everything agent-facing: tool interfaces, and where knowledge lives (routing ladder, managed echoes, trap-lifting, governed diagnostics). Read before adding or changing tools, skills, or any agent-directed prose.
 - **`TOOLS.md`** (repo root) — the system tool index: every callable across `vrc-unity-tools` / `vrc-blender-tools`. Read it to see the whole tool surface at once. (Skills aren't listed there — their descriptions are already injected into your context.)
-- **`docs/runtime.md`** + **`docs/gimmicks.md`** + **`docs/verify.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns) then verify (how to prove a claim); skip for other work.
+- **`docs/runtime.md`** + **`docs/gimmicks.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns); skip for other work.
+- **`docs/verify.md`** — how to prove a claim about an avatar: the enforced play-mode gate, render evidence, emulator observation, what needs two clients or a headset. Read before verifying anything, not just gimmick work.
 - **`docs/menus.md`** — expression-menu authoring on composed avatars: where menus live, the control vocabulary, toggles as dependency closures, MA-first substrate choice. Read for any menu/toggle work.
 - **`docs/outfits.md`** — base-body (kisekae) clothing conventions: layered toggleable clothing meshes, the clothing↔body-blendshape coupling, and the FX controller as its authoritative map. Read before de-conflicting a base under a composed outfit (the `map-outfit-shapes` skill executes it).
 - **`docs/LAYOUT.md`** — AvatarProject folder conventions: untouched-`Vendor/` vs. our-work split, non-Unity files outside `Assets/`.
@@ -59,16 +55,17 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 5. **Verify intent, not just output.** Tests, scene checks, import checks, and diagnostics should prove the reason the behavior matters. A check that still passes after breaking the business or asset logic is wrong.
 6. **Checkpoint after significant steps.** Summarize what changed, what was verified, and what remains. Do not continue from a state you cannot describe back.
 7. **Fail loud.** "Done" is wrong if anything was skipped silently. "Verified" is wrong if checks were skipped. Surface uncertainty, missing inputs, and named offenders.
-8. **Package source is the authority on package behavior.** Everything we build on ships its source on disk under `Packages/` — Modular Avatar, VRCFury, NDMF, the optimizers (d4rk / Limitex), the shaders (lilToon / Poiyomi). When you need precision about what one *does* — a mechanism, an edge case, an exact name — read that source and assert from it or a live measurement, never from a doc summary or your prior. Our docs orient you to where to look and the traps; they do not adjudicate your specific case.
+8. **Everything here is live public.** Credit commercial and open-source ancestors by name; refer to personal projects, personas, and private avatars generically (`vrc-patterns/CONVENTIONS.md` §Provenance has the mechanics).
+9. **Package source is the authority on package behavior.** Everything we build on ships its source on disk under `Packages/` — Modular Avatar, VRCFury, NDMF, the optimizers (d4rk / Limitex), the shaders (lilToon / Poiyomi). When you need precision about what one *does* — a mechanism, an edge case, an exact name — read that source and assert from it or a live measurement, never from a doc summary or your prior. Our docs orient you to where to look and the traps; they do not adjudicate your specific case.
 
 ## Writing for agents (docs, runbooks, skills, comments, handoffs)
 
-Everything written in this workspace is read by another agent.
+Everything written in this workspace is read by another agent. *Where* a fact lives — the routing ladder, echoes, trap-lifting — is `docs/tool-design.md`'s to own; this section is the resident echo of the craft, whose full form is the `write-for-agents` skill.
 
 - **The reader is you** — a model at your own capability level with the repo open. Keep only what it can't derive: decisions made, invisible constraints, traps. If a capable agent would know or do it anyway, the line dilutes the ones that matter.
 - **After drafting, make a deletion pass** — remove every sentence the reader could regenerate from the artifacts. Draft-then-delete binds; "be concise" doesn't.
 - **Specifics rot.** Bias version-agnostic, outcome-based instructions — point at the enforcement mechanism, not a copied value that will drift. **Update documents, don't add to them**: growing line count should reflect a larger underlying system, not accumulated amendments.
-- **One line per paragraph.** No hard-wrapping — a mid-paragraph edit then diffs as one line, not a reflowed block. `tools/reflow_md.py --check` gates the form; a per-repo `.editorconfig` records it.
+- **One line per paragraph.** No hard-wrapping — a mid-paragraph edit then diffs as one line, not a reflowed block. `tools/reflow_md.py --check` is the form meter (advisory — pre-commit reports drift, never blocks); a per-repo `.editorconfig` records the rule.
 - **Omit, don't litigate.** Say what a thing *is*; frame the general rule so edge cases fall out, and simply don't build what you don't want.
 - **Litigate only discipline junctures.** At a delegation seam or an irreversible act, explicit loophole closure and rationalization rebuttals earn their lines — skipped-step defects cluster exactly there; everywhere else, omit-don't-litigate stands.
 - **Favor clean domain separation.** Duplicated knowledge multiplies rot surface; refactor and reorganize rather than restate.

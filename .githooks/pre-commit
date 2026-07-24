@@ -19,6 +19,7 @@ if command -v python >/dev/null 2>&1; then
   else
     echo "pre-commit: tool-inventory drift or error (see above); committing without refresh" >&2
   fi
+  python "$top/tools/check_prose.py" || echo "pre-commit: prose-governance findings (see above); committing anyway" >&2
 else
   echo "pre-commit: python missing; skipping tool-inventory sync" >&2
 fi

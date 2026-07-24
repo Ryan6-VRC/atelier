@@ -191,7 +191,7 @@ Tree `kind` (case-sensitive): `1d`, `simpleDirectional2d`, `freeformDirectional2
 
 Trees nest (a child with `tree:`) and refs chain across `.asset` files. A **bare** `ref: { guid }` that doesn't resolve fails the compile. Marking it `ref: { guid: …, unresolved: true }` instead **tolerates** a genuinely-missing asset: the motion slot emits null (a clean-empty state) and the compile writes a RunLog advisory naming the owning state + the verbatim GUID. This is the round-trip's one lossy step (a dangling vendor ref decompiles back with the same marker) — not a license to author against an asset you could fix.
 
-A **path** `ref:` to a project `.anim` may resolve to a hand-owned clip or to one a clips file authored via `CompileClips` — the controller cannot tell them apart, which is exactly what lets a clip be *promoted* from YAML to human ownership with no controller edit (§clips). Compile a clips file **before** the controller that refs into its `outDir`: a controller has no back-reference to its clips file, so an unresolved path ref there usually just means the clips file is uncompiled, not that the asset is missing (`animator.md`).
+A **path** `ref:` to a project `.anim` may resolve to a hand-owned clip or to one a clips file authored via `CompileClips` — the controller cannot tell them apart, which is exactly what lets a clip be *promoted* from YAML to human ownership with no controller edit (§clips; compile the clips file first — `animator.md`).
 
 ## clips
 
@@ -230,7 +230,7 @@ The decidable proxy: *if editing the YAML would beat editing the clip for every 
 - **Authored in a clips file** → agent/YAML-owned. An out-of-band edit to the `.anim` (a hand-tweak, a `RepathClips` pass) makes it diverge from its stamp, so the next compile **refuses to clobber it** rather than silently overwriting; a forced recompile reverts to the YAML, which is the source. Promote the clip before a human needs those edits to persist.
 - **A standalone `.anim` referenced by `ref:` and in no clips file** → human-owned. No compile ever writes it. The plain "hand-edit one pose" case is this from the start: make the `.anim`, ref it by path, no clips file needed.
 
-**Promotion — handing a clip to a human — is deleting it from the clips file.** The controller's `ref:` path keeps resolving and `CompileClips` (emit-only, never pruning) leaves the `.anim` untouched forever after. It is clean *because the controller refs by path, not by a name that would go unresolved once the file stops authoring it* — so no controller edit is needed. One-way, no sync-back; promote a YAML clip before a human needs to own edits to it.
+**Promotion — handing a clip to a human — is deleting it from the clips file** (the emit-only mechanism that makes this a no-op: `animator.md`). It is clean *because the controller refs by path, not by a name that would go unresolved once the file stops authoring it* — so no controller edit is needed. One-way, no sync-back; promote a YAML clip before a human needs to own edits to it.
 
 ## behaviours (state-machine behaviours)
 
