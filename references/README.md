@@ -31,6 +31,7 @@ Match your task → project (`file`).
 
 **Constraints**
 - Convert/bake Unity↔VRC constraints; weld to a skinned mesh → `constraint-tools` (`SkinnedMeshConstraintBuilderEditor.cs`)
+- Secondary motion (bounce, positional/rotational lag) from constraints alone, no PhysBone → `spring-constraint` / `damping-constraints` (the self-referencing-source rigs and their tuned weights; reproduced as `vrc-patterns/spring-damping`)
 
 **Network sync & contacts**
 - Sync an object's world position/rotation across the network (contacts+drivers, float→bool packing for cheap params) → `Custom-Object-Sync` (`CustomObjectSyncCreator.cs`, `ControllerGenerationMethods.cs`)
@@ -71,6 +72,8 @@ Match your task → project (`file`).
 | [AvatarFork](https://github.com/fkrisi11/AvatarFork) | H | MIT |
 | [Cats-Blender-Plugin](https://github.com/teamneoneko/Cats-Blender-Plugin) | H | **GPL-3.0 — clean-room only** |
 | [constraint-tools](https://github.com/hai-vr/constraint-tools) | M | MIT |
+| [Spring-Constraint](https://github.com/VRLabs/Spring-Constraint) | M | MIT |
+| [Damping-Constraints](https://github.com/VRLabs/Damping-Constraints) | M | MIT |
 | [Instancer](https://github.com/VRLabs/Instancer) | M | MIT |
 | [Custom-Object-Sync](https://github.com/Ryan6-VRC/Custom-Object-Sync) | M | MIT |
 | [Contact-Tracker](https://github.com/VRLabs/Contact-Tracker) | M | MIT |
