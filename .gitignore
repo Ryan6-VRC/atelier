@@ -8,20 +8,15 @@
 /vrc-patterns/
 /vrc-mcp-proxy/
 
-# Temporary files the user is providing for context or to help understand a task
-/docs/samples/
-
-# Brainstorming/design specs — local working artifacts, not workspace docs
-/docs/superpowers/
-
-# Fitting-session assay records (ledger + run reports) — machine-local, like the vendor library they index
-/docs/assay/
+# All untracked working scratch: dispatch board, coordinator state, briefs, specs, samples.
+# Not the repo root — an unignored root .md lands inside the governed-prose fence.
+/docs/local/
 
 # Reference clones are reproducible from references/README.md; track only the routing doc
 /references/*
 !/references/README.md
 
-# Curated showcase runs (showcase-record keepers) — local media only, like docs/assay/
+# Curated showcase runs (showcase-record keepers) — local media only, like docs/local/
 /showcases/
 
 # Python bytecode (from tools/)
@@ -38,8 +33,7 @@ desktop.ini
 # local scope — bootstrap.md; the tracked .mcp.json carries only universal ones)
 CLAUDE.local.md
 
-# Internal working scratch — not for the public repo (kept locally, untracked)
-kickoffs.md
+# Transient repro files an agent creates mid-task; durable scratch goes in /docs/local/
 fixups.md
 *-staleness-repro.md
 

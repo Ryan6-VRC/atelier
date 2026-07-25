@@ -49,6 +49,6 @@ governed_fence:
   roots: [".", "vrc-*"]          # the meta-repo and every vrc-* sibling
   not_ignored: true              # would-be-tracked: check-ignore, so files still being authored count
   glob: "**/*.md"
-  exclude: [test-output/, references/, docs/superpowers/, docs/samples/]
+  exclude: [test-output/, references/, docs/local/]
 docs_max_hops_from_claude_md: 1  # core knowledge sits at most one hop out
 ```

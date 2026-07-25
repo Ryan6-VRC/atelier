@@ -18,6 +18,7 @@ Atelier/                        (this folder = session cwd; workspace docs + lau
 ├─ vrc-patterns/                reusable pattern/gimmick example library (YAML-sourced VPM package; own repo)
 ├─ vrc-mcp-proxy/               owned stdio MCP proxy wrapping the pinned MCP-for-Unity server (allowlist + per-tool transforms)
 ├─ test-output/                 disposable: headless-run results/logs, gitignored + self-pruned at 30d
+├─ docs/local/                  untracked working artifacts: dispatch board, coordinator state, transient briefs
 └─ references/                  open-source projects we study/replicate; routing in references/README.md
 ```
 **Two classes of sub-folder.** The `vrc-*` tool sub-repos are independent git repos (gitignored here, cloned in as siblings); `references/` holds reproducible reference clones. The **Unity projects** (`AvatarProject`, and local venues such as `Sandbox`) are **untracked working venues** — not git repos, reproducible from `vpm-manifest.json` (`vrc-get resolve`), backed up externally. Folder structure is **intentionally grown interactively** — do not impose a rigid tree.
