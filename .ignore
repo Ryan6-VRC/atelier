@@ -1,8 +1,21 @@
-# ripgrep-only (not git): re-include the sibling sub-repos so agent Grep/Glob
-# can see their source. Each sub-repo's own .gitignore still prunes its junk
-# (e.g. AvatarProject/Library/, PackageCache/).
+# ripgrep-only (not git): re-include what .gitignore hides but agent Grep/Glob must still
+# reach. Nested .gitignore files sit deeper and still win, so each sub-repo prunes its own
+# junk (AvatarProject/Library/, PackageCache/).
 !/AvatarProject/
 !/vrc-unity-tools/
 !/vrc-blender-tools/
 !/vrc-skills/
 !/vrc-bridge/
+!/vrc-patterns/
+!/vrc-mcp-proxy/
+
+# Local scratch: dispatch board, coordinator state, briefs, specs. Agent-authored, so
+# agent-searchable — the governed-prose fence excludes it separately, by path.
+!/docs/local/
+
+# Left hidden on purpose, not drift — each swamps or pollutes a workspace-wide grep, and each
+# is still readable by explicit path: /references/* (third-party clones, some license-encumbered;
+# README.md is un-ignored in .gitignore and stays greppable as their pointer), /Sandbox/
+# (measured 11.7k files even with Library/ pruned — 13x the rest of the workspace; AvatarProject
+# is the sandbox agents search), /showcases/ (media + raw transcripts), /test-output/ and
+# /TestEditor*/ (disposable, regenerated).

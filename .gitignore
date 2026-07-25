@@ -1,3 +1,6 @@
+# Editing this file? `.ignore` is its ripgrep-side twin — a rule added here also hides the path
+# from agent Grep/Glob, and only `.ignore` can re-include it. Decide there in the same edit.
+
 # Ignored siblings, not tracked here: the vrc-* tool repos are versioned separately (their
 # own git repos); AvatarProject is an untracked working venue (see CLAUDE.md §Layout).
 /AvatarProject/
