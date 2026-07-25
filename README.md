@@ -14,14 +14,27 @@ https://github.com/user-attachments/assets/f5242415-4c47-4bdc-81f2-6b9be8ca3516
 
 > Put MidnightReverie on Airi and take six thumbnail shots in play mode. Use a different pose, expression, and background for each one and insert them in the captured footage.
 
-Each run is one uninterrupted session — a single plain-language request in, an avatar out. Titles link to the full one-to-two-minute cut.
+Each run is one uninterrupted session — a single plain-language request in, an avatar out. Every thumbnail links to that run's full cut.
 
-| Run | Prompt |
-| --- | --- |
-| [Shinano × SweetEdgeKnit](https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-14-shinano-sweetedgeknit/cut.mp4) | Please import Shinano and SweetEdgeKnit, then assemble them in the scene. Author one or two outfit toggles, enter play mode, and capture screenshots before and after. |
-| [Manuka × StitchedHeart + Sio × Peridot](https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-manuka-stitchedheart-sio-peridot/cut.mp4) | I have placed a Sio and Manuka in the scene. Please put StitchedHeart in white on Manuka and Peridot in black and red on Sio, and make sure there is no clipping. |
-| [Plum × Chiffon](https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-plum-chiffon-swap/cut.mp4) | Make clean copies of Plum and Chiffon, then extract their outfits as modular prefabs and swap them. Finally, pick one and bring it into play mode to test. |
-| [Shinano × NoirLace](https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-shinano-noirlace-tallmodel/cut.mp4) | Bring Shinano into Blender and reproportion her into a tall fashion model. Apply the same adjustment to NoirLace, assemble them in the scene, and build a menu. Organize any dynamics components as you go. Finally, take it into play mode for testing. |
+<table width="100%">
+<tr><th width="33%">Cut</th><th>Prompt</th></tr>
+<tr>
+<td align="center"><a href="https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-14-shinano-sweetedgeknit/cut.mp4"><img src="docs/assets/showcase/2026-07-14-shinano-sweetedgeknit.jpg" alt="Shinano × SweetEdgeKnit" width="400"></a><br><a href="https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-14-shinano-sweetedgeknit/cut.mp4"><ins>Watch 1:15</ins></a></td>
+<td>Please import Shinano and SweetEdgeKnit, then assemble them in the scene. Author one or two outfit toggles, enter play mode, and capture screenshots before and after.</td>
+</tr>
+<tr>
+<td align="center"><a href="https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-manuka-stitchedheart-sio-peridot/cut.mp4"><img src="docs/assets/showcase/2026-07-18-manuka-stitchedheart-sio-peridot.jpg" alt="Manuka × StitchedHeart + Sio × Peridot" width="400"></a><br><a href="https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-manuka-stitchedheart-sio-peridot/cut.mp4"><ins>Watch 1:15</ins></a></td>
+<td>I have placed a Sio and Manuka in the scene. Please put StitchedHeart in white on Manuka and Peridot in black and red on Sio, and make sure there is no clipping.</td>
+</tr>
+<tr>
+<td align="center"><a href="https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-plum-chiffon-swap/cut.mp4"><img src="docs/assets/showcase/2026-07-18-plum-chiffon-swap.jpg" alt="Plum × Chiffon" width="400"></a><br><a href="https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-plum-chiffon-swap/cut.mp4"><ins>Watch 2:00</ins></a></td>
+<td>Make clean copies of Plum and Chiffon, then extract their outfits as modular prefabs and swap them. Finally, pick one and bring it into play mode to test.</td>
+</tr>
+<tr>
+<td align="center"><a href="https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-shinano-noirlace-tallmodel/cut.mp4"><img src="docs/assets/showcase/2026-07-18-shinano-noirlace-tallmodel.jpg" alt="Shinano × NoirLace" width="400"></a><br><a href="https://pub-9682660324c24dc7be664b3245e10a3e.r2.dev/2026-07-18-shinano-noirlace-tallmodel/cut.mp4"><ins>Watch 1:40</ins></a></td>
+<td>Bring Shinano into Blender and reproportion her into a tall fashion model. Apply the same adjustment to NoirLace, assemble them in the scene, and build a menu. Organize any dynamics components as you go. Finally, take it into play mode for testing.</td>
+</tr>
+</table>
 
 ## Skills
 
