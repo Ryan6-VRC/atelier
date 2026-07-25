@@ -15,7 +15,7 @@
 
 # Left hidden on purpose, not drift — each swamps or pollutes a workspace-wide grep, and each
 # is still readable by explicit path: /references/* (third-party clones, some license-encumbered;
-# README.md is un-ignored in .gitignore and stays greppable as their pointer), /Sandbox/
-# (measured 11.7k files even with Library/ pruned — 13x the rest of the workspace; AvatarProject
-# is the sandbox agents search), /showcases/ (media + raw transcripts), /test-output/ and
-# /TestEditor*/ (disposable, regenerated).
+# README.md is un-ignored in .gitignore and stays greppable as their pointer), any local Unity
+# venue you add (one here measured 11.7k files even with Library/ pruned — 13x the rest of the
+# workspace; AvatarProject is the small venue agents search), /showcases/ (media + raw
+# transcripts), /test-output/ and /TestEditor*/ (disposable, regenerated).

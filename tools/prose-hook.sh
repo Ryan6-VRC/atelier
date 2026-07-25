@@ -24,14 +24,16 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." 2>/dev/null && pwd) || exit 0
 case "$path" in "$root"/*) ;; *) exit 0 ;; esac
 rel=${path#"$root"/}
 
-# Skip non-governed paths. The first three mirror governed_fence.exclude in
+# Skip non-governed paths. These mirror governed_fence.exclude in
 # docs/tool-design.md (canon); this shell echo can't parse the YAML, so
 # check_prose.py's hook-echo pass fails loud if they drift. references/ is the
 # load-bearing one — its clones carry their own .git and slip the check-ignore
-# below; the gitignored entries are belt-and-suspenders. AvatarProject/Sandbox
-# are the untracked Unity venues (not fence entries — venues, not docs).
+# below; the gitignored entries are belt-and-suspenders. Unity venues need no
+# entry: they are not git repos, so check-ignore resolves them against this
+# repo, and a venue kept here is one the operator must already ignore (Library/
+# alone forbids tracking it). Never name a venue here — every operator's differ.
 case "$rel" in
-  test-output/*|references/*|docs/local/*|AvatarProject/*|Sandbox/*) exit 0 ;;
+  test-output/*|references/*|docs/local/*) exit 0 ;;
 esac
 
 command -v git >/dev/null 2>&1 || exit 0
