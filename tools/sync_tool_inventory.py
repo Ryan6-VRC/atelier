@@ -26,6 +26,14 @@ TOOLS_MD_SURFACES = ("vrc-unity-tools", "vrc-blender-tools")
 SKILLS_HEADING = "Skills"
 DOC_SOURCE = {"vrc-unity-tools": "TOOLS.md", "vrc-blender-tools": "TOOLS.md",
               "vrc-skills": f"README.md (## {SKILLS_HEADING})"}
+# Each skills row links its key to the skill's SKILL.md in the plugin repo. The URL is
+# a pure function of the key, so requiring it here catches a *renamed* skill: the old
+# key fails the drift check against skills/*/SKILL.md, taking its stale link with it.
+# It does NOT catch a *new* skill — keys come from the local working tree, while the
+# URL points at pushed `main`, so a roster row committed ahead of the vrc-skills merge
+# ships a live 404 until that merge lands. Push the skill first (vrc-skills/README.md
+# states the ordering); verifying it here would put a network read in a warn-only hook.
+SKILL_URL = "https://github.com/Ryan6-VRC/vrc-skills/blob/main/skills/{key}/SKILL.md"
 BEGIN = "<!-- BEGIN tools -->"
 END = "<!-- END tools -->"
 
@@ -121,14 +129,25 @@ def extract_code_keys() -> dict:
     }
 
 
+LINK_RE = re.compile(r"^\[(?P<text>.+?)\]\((?P<url>\S+)\)$")
+
+
+def _first_cell(line: str) -> str:
+    return line.strip("|").split("|")[0].strip()
+
+
 def _row_key(line: str, seen_delim: bool):
     """Interpret one `|`-prefixed table line: (key_or_None, new_seen_delim).
-    The header row precedes the GFM delimiter row and yields no key."""
-    first = line.strip("|").split("|")[0].strip()
+    The header row precedes the GFM delimiter row and yields no key. A key cell may
+    be wrapped in a markdown link — the link text carries the key."""
+    first = _first_cell(line)
     if re.fullmatch(r":?-{1,}:?", first.replace(" ", "")):
         return None, True                  # GFM delimiter row
     if not seen_delim:
         return None, False                 # header row
+    m = LINK_RE.match(first)
+    if m:
+        first = m.group("text").strip()
     return first.strip("`").strip() or None, True
 
 
@@ -166,7 +185,8 @@ def parse_tools_md(path: Path) -> dict:
 
 def parse_readme_skills(path: Path) -> set:
     """Keys from README.md's hand-maintained `## {SKILLS_HEADING}` table; the
-    section ends at the next heading of any level."""
+    section ends at the next heading of any level. Each row must link its key to the
+    skill's SKILL.md (SKILL_URL)."""
     keys = set()
     in_section = False
     found = False
@@ -182,8 +202,20 @@ def parse_readme_skills(path: Path) -> set:
         if not in_section:
             continue
         if line.startswith("|"):
+            cell = _first_cell(line)
             key, seen_delim = _row_key(line, seen_delim)
             if key:
+                # Diagnose a malformed cell as such: on no match `key` is the whole raw
+                # cell, so folding both cases into one message would name a nonsense
+                # offender and interpolate the broken cell into the URL it demands.
+                m = LINK_RE.match(cell)
+                if not m:
+                    raise InventoryError(
+                        f"{path}: skills row key cell is not a plain markdown link: {cell}")
+                want = SKILL_URL.format(key=key)
+                if m.group("url") != want:
+                    raise InventoryError(
+                        f"{path}: skills row `{key}` must link its key to {want}")
                 keys.add(key)
         else:
             seen_delim = False

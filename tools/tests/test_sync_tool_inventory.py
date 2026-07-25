@@ -149,11 +149,34 @@ class TestReadmeSkills(unittest.TestCase):
         p.write_text(body, encoding="utf-8")
         return p
 
+    def _row(self, key: str, linked_key: str = None) -> str:
+        """A skills row, key cell linked to SKILL_URL — of `linked_key` when given, to
+        fabricate a stale link."""
+        return f"| [`{key}`]({s.SKILL_URL.format(key=linked_key or key)}) | purpose |\n"
+
     def test_parses_only_the_skills_section(self):
-        body = ("# Repo\n\nintro\n\n## Skills\n\nprose\n\n"
-                "| Key | Purpose |\n| --- | --- |\n| `own-base` | z |\n| author-menu | m |\n\n"
+        # The key comes out of the link wrapper; the Tools table (unlinked, and outside
+        # the section) is not read as a skills row.
+        body = ("# Repo\n\nintro\n\n## Skills\n\nprose\n\n| Key | Purpose |\n| --- | --- |\n"
+                + self._row("own-base") + self._row("author-menu") + "\n"
                 "## Tools\n\n| Key | Purpose |\n| --- | --- |\n| `CopyComponents` | x |\n")
         self.assertEqual(s.parse_readme_skills(self._readme(body)), {"own-base", "author-menu"})
+
+    def test_unlinked_row_raises_as_a_formatting_error(self):
+        # A cell that is not a plain link (bare key, or a styled/typo'd link) is named as
+        # such: the key is then the whole raw cell, so the "must link to" message would
+        # demand a URL with the broken cell embedded in it.
+        body = "# Repo\n\n## Skills\n\n| Key | Purpose |\n| --- | --- |\n| `own-base` | z |\n"
+        with self.assertRaisesRegex(s.InventoryError, "not a plain markdown link"):
+            s.parse_readme_skills(self._readme(body))
+
+    def test_link_to_another_skill_raises(self):
+        # A copy-pasted row, or a renamed skill whose link went unupdated, fails loud
+        # instead of shipping a 404 in the public README.
+        body = ("# Repo\n\n## Skills\n\n| Key | Purpose |\n| --- | --- |\n"
+                + self._row("own-base", linked_key="own-mergeable"))
+        with self.assertRaises(s.InventoryError):
+            s.parse_readme_skills(self._readme(body))
 
     def test_missing_section_raises(self):
         with self.assertRaises(s.InventoryError):
