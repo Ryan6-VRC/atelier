@@ -1,6 +1,6 @@
 # Blender
 
-Blender drives armature/mesh prep and the outfit-fitting pipeline. Two front doors to the same logic: an **interactive** MCP session (collaborate live) and **headless** batch scripts (deterministic, reproducible).
+Blender drives armature/mesh prep and the outfit-fitting pipeline. **Headless batch scripts are the door** — deterministic, reproducible, and running current repo source. An optional MCP session reaches an open Blender for live observation; it earns its setup only when a human is at the screen with you.
 
 Blender **5.1.2 portable** is the pipeline target — invoke by explicit path; config/addons live under `%APPDATA%\Blender Foundation\Blender\5.1\`. **4.5.4 LTS** (Microsoft Store) is a legacy fallback only — never `winget upgrade` it (replaces in place). **5.2 LTS** is expected to become the standard; re-validate the pipeline when it lands. Install + MCP wiring: `bootstrap.md`.
 
@@ -16,14 +16,15 @@ Run scripts against a clean baseline, enabling only the addons the script needs 
 
 Each launch on a full-avatar `.blend` (startup + open + save) nears the 120 s tool-timeout ceiling, so two sequential CLI calls in one command get killed mid-write. Chain multi-step work into one `--python` script (single launch), or background each launch.
 
-## Interactive (collaborative) — Blender MCP
+## Interactive (optional) — Blender MCP
 
-Preferred path: Blender open on a second screen with the MCP add-on enabled and its bridge started (the `BlenderMCP` server reaches it over localhost:9876; wiring/updates: `bootstrap.md`).
+The workspace ships **no `BlenderMCP` entry** — registration is per-machine and optional (`bootstrap.md`), so absent tools are the resting state, not a fault. Wired but still absent: Blender isn't open/connected, or Claude Code needs a restart.
+
+What it buys over headless is **live observation of an open session** — `get_screenshot_of_window_as_image` on the human's actual viewport and UI. The rest overlaps a headless equivalent that runs current source, so prefer that; *Code freshness* below is why an MCP session can silently execute stale `avatarprep`.
 
 - Read-only/observe: `get_objects_summary`, `get_object_detail_summary`, `get_blendfile_summary_*`, `search_api_docs`, `get_screenshot_of_window_as_image`.
 - Mutate: `execute_blender_code` (permission-gated — prefer `bpy.ops`/`bpy.data` over raw edits, and inspect the scene before changing it).
 - The `_for_cli` MCP variants are deny-hidden (they time out at the server's 120s limit on this setup) — headless work uses the `--background` invocation above.
-- If `BlenderMCP` tools are absent: Blender isn't open/connected, or Claude Code needs a restart.
 
 ## avatarprep — our Blender extension
 
