@@ -36,6 +36,7 @@ Match your task → project (`file`).
 **Network sync & contacts**
 - Sync an object's world position/rotation across the network (contacts+drivers, float→bool packing for cheap params) → `Custom-Object-Sync` (`CustomObjectSyncCreator.cs`, `ControllerGenerationMethods.cs`)
 - Attach an object to another player's contact (6 proximity contacts + parent constraint) → `Contact-Tracker` (`Contact Tracker.prefab`, `Contact Tracker FX.controller`)
+- Play an animation for one targeted player only, pre-`VRCRaycast` (two offset FinalIK raycasts plus a contact pair standing in for a hit flag) → `Selective-Animation` (`Selective Animation.prefab`)
 
 **Blender prep (headless bpy)**
 - Shape-key-safe rest-pose bake → `Cats` (`tools/armature_manual.py` `PoseToRest`); FBX export `tools/importer.py`; visemes `tools/viseme.py`; eyes `tools/eyetracking.py`; fix model `tools/armature.py`
@@ -77,6 +78,7 @@ Match your task → project (`file`).
 | [Instancer](https://github.com/VRLabs/Instancer) | M | MIT |
 | [Custom-Object-Sync](https://github.com/Ryan6-VRC/Custom-Object-Sync) | M | MIT |
 | [Contact-Tracker](https://github.com/VRLabs/Contact-Tracker) | M | MIT |
+| [Selective-Animation](https://github.com/VRLabs/Selective-Animation) | M | MIT |
 | [VRCSchool](https://github.com/VRLabs/VRCSchool) | M | MIT — prose knowledge base, read `docs/*.md` |
 
 ## POINT
