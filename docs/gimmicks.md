@@ -18,7 +18,6 @@ Building avatar systems — state machines, constraints, contacts, network sync 
 | Continuous value, sloppy | physbone `_Stretch`/`_Angle` (native sync) | 0 bits; IK-delayed |
 | Continuous value, exact | synced float (8-bit) or float→bool binary encode | 8 bits / n bits |
 | Position of another player's part | contact latching + trilateration or crawler | 0 bits; their IK delay |
-| Object world position, late-sync, exact | bit-multiplexed absolute sync (Custom-Object-Sync pattern, `references/`) | ~30 bits + seconds of latency |
 | Object world position, approximate | physbone drop (grab is the sync) | 0 bits; per-client drift; **no late-sync** |
 | Local-only input (hardware, apps) | OSC → unsynced params (+ encode if remotes need it) | 0 bits local |
 | World-geometry point (aim, attach-at-distance) | `VRCRaycast`: bone-origin ray → result transform (usable as constraint source) + `_Hit`/`_Ratio`/`_Distance` params | 0 bits; **per-client, not local** — every copy runs its own ray, and only the target's own client carries a player capsule to hit (`runtime.md`) |
@@ -32,7 +31,7 @@ Building avatar systems — state machines, constraints, contacts, network sync 
 | Live grab | grabber world point + `_IsGrabbed` | n/a (held) | local grab only |
 | Released **pose** | bone rotation vs root | yes in-game | **no** — not reproduced |
 | Constraint **sample-and-hold** (GrabProp) | nothing — each client re-derives off `_IsGrabbed` | no (re-run per client) | local behaviour only |
-| Absolute (Custom-Object-Sync) | quantized position bits | yes | write/read split visible |
+| Absolute (bit-multiplexed position) | quantized position bits | yes | write/read split visible |
 
 ## State machine patterns
 
@@ -104,7 +103,7 @@ The **vrc-patterns** library is the catalog of worked, gated examples for these 
     only a *few* exclusive states, skip the int: a couple of synced **bools read directly** (the state
     machine gates transitions on the pair, `both-false = off`) cost fewer bits and need no decode —
     reserve the banded int for legibility when bands are many, and a decode-ladder codec for real
-    bit-pressure (COS-scale), which the Parameter Compressor makes rarely necessary otherwise.
+    bit-pressure (tens of bits), which the Parameter Compressor makes rarely necessary otherwise.
   - **Options** — the tunable surface; `saved` per-param by preference-vs-transient.
   - **Failsafe** — an explicit control only when state persists beyond the avatar (world-placed
     props): a *recall* value distinct from *off*, so the user can summon without resetting.
