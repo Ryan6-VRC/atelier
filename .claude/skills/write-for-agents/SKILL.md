@@ -1,11 +1,11 @@
 ---
 name: write-for-agents
-description: Use when writing or tightening prose an agent will read — docs, skills, runbooks, READMEs, CONVENTIONS, handoffs, memory files, diagnostic message text — or when the governed-prose hook fires on an .md edit. Not the routing decision of where a fact lives (docs/tool-design.md owns that); not human-only prose (end-user READMEs, release notes), though step 1 here is choosing that register.
+description: Use when writing or tightening prose an agent will read — docs, skills, runbooks, CONVENTIONS, handoffs, memory files, diagnostic message text — or when the prose hook fires on an .md edit. Not where a fact lives (docs/tool-design.md owns that); not human-only prose — though choosing that register is step 1 here.
 ---
 
 # Write for agents
 
-Declare the reader, then carve. `docs/tool-design.md` owns *where* facts live — the routing ladder, echoes, trap-lifts; settle placement against it first. This skill owns how the sentences get made once the home is chosen.
+Declare the reader, then carve. Settle a fact's placement against `docs/tool-design.md` first; this skill is how the sentences get made once the home is chosen.
 
 ## 1. Declare the reader
 
@@ -23,6 +23,7 @@ Verbosity is audience miscalibration: the default imagined reader is a nervous j
 - **Selection, not compression.** Full precise sentences, fewer of them. Fragments, arrow-chains, and abbreviations are lossy; the reader pays the decompression cost, possibly wrongly.
 - **Every instruction is a delta from default behavior.** Before keeping a line: what wrong thing happens without it? No answer, no line.
 - **Precision buys concision.** One exact term replaces a paragraph of approximation; most of the work is naming things correctly — speak the substrate's names.
+- **An example earns its lines only where the rule under-determines the output.** One example at the trickiest juncture, not one per rule; an example the reader would produce from the rule is the derivability test failing in miniature.
 - **Draft, then delete.** Models don't write tight in one pass; they edit tight well. When the piece matters, set a budget first ("one screen") — a cap forces selection where guidance merely suggests it.
 - **Specifics rot.** Bias version-agnostic, outcome-based instructions — point at the enforcement mechanism, not a copied value that will drift. When a specific is load-bearing, say why.
 - **Update documents, don't add to them.** Edit the line that is now wrong rather than appending a correction beside it; growing length should reflect a larger system, not accumulated amendments.

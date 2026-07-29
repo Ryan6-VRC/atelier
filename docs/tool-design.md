@@ -43,6 +43,8 @@ Audience defines governance, not file type: a check's emitted text is agent-dire
 
 Governed prose = tracked `.md` under the fence below, plus agent-facing diagnostics. The fence is a predicate, not a path list; binding prose found outside it is a finding to surface, not a new tier. Mechanical checks read these constants — they never embed copies:
 
+The fence bounds *enforcement*, not advice. `tools/prose-hook.sh` nudges on any markdown the agent authors in the workspace — ignored and untracked files included, since a file does not stop being worth writing well because git declines to store it — and reads no constant here. A wider write-time reach than commit-time gate is the intent, not drift to reconcile.
+
 ```yaml
 # prose-policy constants — read by the workspace prose checks
 governed_fence:

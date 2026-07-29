@@ -1,7 +1,7 @@
 # tools/check_prose.py
 """Workspace prose-governance check, run from the meta-repo root.
 
-Five passes over the assembled workspace; a pass whose sibling repo is absent
+Four passes over the assembled workspace; a pass whose sibling repo is absent
 skips with a printed NOTE (absence is a valid workspace state, never a failure):
 
   1. vrc-skills' own gate, tools/validate_skills.py (subprocess) — skill
@@ -15,9 +15,10 @@ skips with a printed NOTE (absence is a valid workspace state, never a failure):
      enumerated from the governed_fence constants in docs/tool-design.md
      (roots, glob, exclude, check-ignore). ERROR on drift: the form gate is
      already the declared convention.
-  5. Hook echo: tools/prose-hook.sh's skip list carries every governed_fence
-     exclude (a /bin/sh hook can't read the YAML, so it echoes it). ERROR on
-     drift — an out-of-sync hook silently un-governs a file class.
+
+The fence bounds this gate only. tools/prose-hook.sh's write-time nudge fires
+on any markdown the agent authors in the workspace and reads no fence constant,
+so there is no echo of these constants left to keep in sync.
 
 Skills in CONVENTIONS.md's exempt list are held to frontmatter checks only, so
 passes 2-3 skip them (their doc references include run-time artifacts by design).
@@ -382,29 +383,6 @@ def pass_form(out):
     print(f'form: {len(set(files))} governed file(s) checked')
 
 
-# ---- pass 5: the prose hook's fence-mirror stays in sync (managed echo) ----
-
-def pass_hook_echo(out):
-    """tools/prose-hook.sh embeds a copy of governed_fence.exclude (a /bin/sh hook
-    can't parse the YAML). §Duplication permits that as a managed echo only if its
-    drift is checkable — this is the check: every fence-exclude path must appear in
-    the hook's skip list, or the hook silently un-governs a file class."""
-    out.start('hook-echo')
-    hook = ROOT / 'tools' / 'prose-hook.sh'
-    if not hook.is_file():
-        print('NOTE  pass 5 (hook-echo): tools/prose-hook.sh absent — skipped')
-        return
-    fence = read_constants(ROOT / 'docs' / 'tool-design.md', 'governed_fence')['governed_fence']
-    # Match the case-glob form (`references/*`), not a bare path — else a mention
-    # of the path in a comment would satisfy the check while the skip list dropped it.
-    text = hook.read_text(encoding='utf-8')
-    for e in fence.get('exclude', []):
-        glob = str(e).rstrip('/') + '/*'
-        if glob not in text:
-            out.error(_display(hook), f"skip list omits governed_fence path '{glob}' "
-                                      '(echo of docs/tool-design.md — keep them in sync)')
-
-
 def main(argv=None):
     argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(argv)
     if hasattr(sys.stdout, 'reconfigure'):
@@ -422,7 +400,6 @@ def main(argv=None):
     pass_doc_pointers(out, exempt)
     pass_tool_names(out, exempt, terminal)
     pass_form(out)
-    pass_hook_echo(out)
 
     per = ', '.join(f'{name} {e}/{w}' for name, (e, w) in out.per_pass.items())
     print(f'check_prose: {out.errors} error(s), {out.warnings} warning(s) [{per} (errors/warnings)]')
