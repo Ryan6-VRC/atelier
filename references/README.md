@@ -36,6 +36,8 @@ Match your task → project (`file`).
 **Network sync & contacts**
 - Sync an object's world position/rotation across the network (contacts+drivers, float→bool packing for cheap params) → `Custom-Object-Sync` (`CustomObjectSyncCreator.cs`, `ControllerGenerationMethods.cs`)
 - Attach an object to another player's contact (6 proximity contacts + parent constraint) → `Contact-Tracker` (`Contact Tracker.prefab`, `Contact Tracker FX.controller`)
+- Read another player's **hand pose** from contacts — per-finger proximity cages plus a self-shrinking calibration pass that normalizes hand-size variation into a motion-time float → `Gesture-Tracker` (`Gesture Tracker.prefab`, `FX.controller`, `Resources/Animations/{L,R}{hand,index,middle,ring,pinky}/`)
+- Let a **remote** player grab, rotate, and world-drop a prop off *your* avatar — two finger-contact trackers, one physbone, FinalIK `AimIK` for the held orientation → `Avatar-Prop` (`Modular avatar prefab/Avatar Prop.prefab`, `!Resources/Controllers/Avatar prop FX*.controller`)
 - Play an animation for one targeted player only, pre-`VRCRaycast` (two offset FinalIK raycasts plus a contact pair standing in for a hit flag) → `Selective-Animation` (`Selective Animation.prefab`)
 
 **Blender prep (headless bpy)**
@@ -79,6 +81,8 @@ Match your task → project (`file`).
 | [Custom-Object-Sync](https://github.com/Ryan6-VRC/Custom-Object-Sync) | M | MIT |
 | [Contact-Tracker](https://github.com/VRLabs/Contact-Tracker) | M | MIT |
 | [Selective-Animation](https://github.com/VRLabs/Selective-Animation) | M | MIT |
+| [Gesture-Tracker](https://github.com/ThatFatKidsMom/Gesture-Tracker) | M | MIT |
+| [Avatar-Prop](https://github.com/ThatFatKidsMom/Avatar-Prop) | M | MIT (needs FinalIK or the VRLabs stub to open) |
 | [VRCSchool](https://github.com/VRLabs/VRCSchool) | M | MIT — prose knowledge base, read `docs/*.md` |
 
 ## POINT
