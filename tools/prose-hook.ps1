@@ -1,4 +1,4 @@
-# PostToolUse hook on Write|Edit. One job: when the agent authors markdown in this workspace or one
+﻿# PostToolUse hook on Write|Edit. One job: when the agent authors markdown in this workspace or one
 # of its worktrees, inject one line routing to the write-for-agents skill and the constitution.
 # Scope is everything the agent writes — tracked or not, ignored or not. A file does not stop
 # being worth writing well because git declines to store it, and this nudge is advice, not
