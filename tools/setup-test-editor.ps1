@@ -57,12 +57,22 @@ foreach ($p in $sdk) {
 
 # Fixture payload — copy when present, say so when not, never remove. Reported either way so a venue's
 # fixture coverage is visible at provision time rather than inferred from a skip later.
+#
+# Staged to a temp sibling then swapped, for the same reason the runner's Copy-PackageIn is: a mid-copy
+# failure (and $ErrorActionPreference is Stop) must not leave a PARTIAL fixture behind. A partial one is
+# worse than none, because package.json lands early — so the tree is incomplete while the version reads
+# correct, the runner's version check then sees no mismatch and never repairs it, and the acceptance case
+# self-Ignores. That is a green run with the theorem silently withdrawn: the failure this tier exists to
+# make impossible.
 foreach ($p in $fixtures) {
   $src  = Join-Path $SourceProject "Packages/$p"
   $dstp = Join-Path $Dest "Packages/$p"
   if (Test-Path $src) {
+    $tmp = "$dstp.tmp"
+    if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp }
+    Copy-Item -Recurse $src $tmp
     if (Test-Path $dstp) { Remove-Item -Recurse -Force $dstp }
-    Copy-Item -Recurse $src $dstp
+    Rename-Item $tmp (Split-Path $dstp -Leaf)
     Write-Host "[setup] fixture $p present"
   } elseif (Test-Path $dstp) {
     Write-Host "[setup] fixture $p absent from $SourceProject — KEEPING the copy already in this venue"

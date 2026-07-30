@@ -36,16 +36,30 @@ function Get-SdkVersion($proj, $pkg) {
   return (Get-Content $pj -Raw | ConvertFrom-Json).version
 }
 
-# Stage to a temp sibling then atomic-swap, so an interrupted or blocked copy can never leave a
-# version-matching-but-partial $dst that a version check would then skip repairing.
-function Copy-PackageIn($pkg) {
-  $src = Join-Path $SourceProject "Packages/$pkg"; $dst = Join-Path $Project "Packages/$pkg"; $tmp = "$dst.tmp"
+# Stage to a temp sibling then swap, so an interrupted or blocked copy can never leave a
+# version-matching-but-partial $dst that a version check would then skip repairing. The outgoing copy is
+# moved aside rather than deleted first: a failed Rename-Item would otherwise leave the venue with NO copy,
+# which for a fixture breaks the tier's promise never to remove one it already had.
+#
+# -Soft is for the fixture tier: a copy hiccup on an OPTIONAL package (locked file, AV scan, open handle)
+# must not take down a 638-case suite. Absence is soft, so a failed refresh of it has to be soft too — the
+# venue keeps whatever it had and the affected case self-Ignores, named in the OUTCOME block.
+function Copy-PackageIn($pkg, [switch]$Soft) {
+  $src = Join-Path $SourceProject "Packages/$pkg"; $dst = Join-Path $Project "Packages/$pkg"
+  $tmp = "$dst.tmp"; $old = "$dst.old"
   try {
-    if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp -ErrorAction Stop }
+    foreach ($stale in @($tmp, $old)) { if (Test-Path $stale) { Remove-Item -Recurse -Force $stale -ErrorAction Stop } }
     Copy-Item -Recurse $src $tmp -ErrorAction Stop
-    if (Test-Path $dst) { Remove-Item -Recurse -Force $dst -ErrorAction Stop }
+    if (Test-Path $dst) { Rename-Item $dst (Split-Path $old -Leaf) -ErrorAction Stop }
     Rename-Item $tmp (Split-Path $dst -Leaf) -ErrorAction Stop
+    if (Test-Path $old) { Remove-Item -Recurse -Force $old -ErrorAction SilentlyContinue }
   } catch {
+    # Restore the copy we moved aside before reporting, so a failure mid-swap is not also a removal.
+    if (-not (Test-Path $dst) -and (Test-Path $old)) { Rename-Item $old (Split-Path $dst -Leaf) -ErrorAction SilentlyContinue }
+    if ($Soft) {
+      Write-Host "[runner] fixture $pkg sync failed: $($_.Exception.Message) — proceeding on the venue's existing copy"
+      return
+    }
     Write-Host "OUTCOME=RUN_ERROR sync $pkg failed: $($_.Exception.Message)"; exit 5
   }
 }
@@ -88,7 +102,7 @@ foreach ($pkg in @("gogoloco")) {
     else { Write-Host "[runner] fixture $pkg absent from source — keeping this venue's copy ($t)" }
     continue
   }
-  if ($a -ne $t) { Write-Host "[runner] fixture sync $pkg  source=$a TestEditor=$t"; Copy-PackageIn $pkg }
+  if ($a -ne $t) { Write-Host "[runner] fixture sync $pkg  source=$a TestEditor=$t"; Copy-PackageIn $pkg -Soft }
 }
 
 function Invoke-Run([string]$tag) {
