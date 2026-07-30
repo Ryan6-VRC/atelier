@@ -1,4 +1,4 @@
-<#
+﻿<#
   unity-dialog.ps1 — see and press Unity's blocking modal dialogs from OUTSIDE the editor process.
 
   While a modal is up Unity's main thread sits in the dialog's own message loop: EditorApplication.update
