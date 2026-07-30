@@ -61,14 +61,10 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 
 ## Writing for agents (docs, runbooks, skills, comments, handoffs)
 
-Everything written in this workspace is read by another agent. *Where* a fact lives — the routing ladder, echoes, trap-lifting — is `docs/tool-design.md`'s to own; this section is the resident echo of the craft, whose full form is the `write-for-agents` skill.
+Everything written in this workspace — docs, skills, comments, handoffs, diagnostic strings — is read by another agent: a model at your own capability level with the repo open.
 
-- **The reader is you** — a model at your own capability level with the repo open. Keep only what it can't derive: decisions made, invisible constraints, traps. If a capable agent would know or do it anyway, the line dilutes the ones that matter.
-- **After drafting, make a deletion pass** — remove every sentence the reader could regenerate from the artifacts. Draft-then-delete binds; "be concise" doesn't.
-- **Specifics rot.** Bias version-agnostic, outcome-based instructions — point at the enforcement mechanism, not a copied value that will drift. **Update documents, don't add to them**: growing line count should reflect a larger underlying system, not accumulated amendments.
-- **One line per paragraph.** No hard-wrapping — a mid-paragraph edit then diffs as one line, not a reflowed block. `tools/reflow_md.py --check` is the form meter (advisory — pre-commit reports drift, never blocks); a per-repo `.editorconfig` records the rule.
-- **Omit, don't litigate.** Say what a thing *is*; frame the general rule so edge cases fall out, and simply don't build what you don't want.
-- **Litigate only discipline junctures.** At a delegation seam or an irreversible act, explicit loophole closure and rationalization rebuttals earn their lines — skipped-step defects cluster exactly there; everywhere else, omit-don't-litigate stands.
-- **Favor clean domain separation.** Duplicated knowledge multiplies rot surface; refactor and reorganize rather than restate.
-- Capable models do their best work when given **tools and discretion** — give the outcome and the constraints, not the procedure.
-- **Legibility over edge-case cleverness.** Tools are read and driven by frontier models — a tool that's intuitive to use and whose diagnostic you can *trust* beats one that silently handles a rare case but is hard to reason about.
+*Where* a fact lives — the routing ladder, echoes, trap-lifting, the governed fence — is `docs/tool-design.md`'s to own.
+
+*How* the sentences get made is the `write-for-agents` skill (`.claude/skills/`) — invoke it for any agent-read prose, including diagnostics in code and markdown the hook can't see (Bash-written files); the hook routes you on Write/Edit of `.md`.
+
+Form: one line per paragraph, no hard wrap — `tools/reflow_md.py --check` is the meter (advisory), and a per-repo `.editorconfig` records the rule.

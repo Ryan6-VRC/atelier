@@ -75,6 +75,8 @@ The [`vrc-patterns`](https://github.com/Ryan6-VRC/vrc-patterns) library is both 
 
 Most Unity plugins and Blender scripts are designed for humans, so they hide complexity behind clever defaults. Tooling built for an AI operator inverts that: legibility beats edge-case cleverness. If a tool cannot do exactly what was asked, it refuses and explains why, so the driving model can understand and adapt. This makes the system robust to the enormous variety of creator assets; there are no brittle hard-coded workarounds to outgrow.
 
+The same philosophy governs the workspace's own prose: a project skill, [`write-for-agents`](.claude/skills/write-for-agents/SKILL.md), sets the writing craft for every doc, skill, and diagnostic message an agent will read. (It lives in this repo, not the plugin — the skills table above is the workshop's avatar workflows.)
+
 ## Repos
 
 Cloning this meta-repo gets you the docs + launcher, **not** the tools; each **tool** repo below is its own independent git repo, gitignored here as a sibling you clone into place. `AvatarProject` (last) is different — an untracked Unity working venue, not a tracked repo.
