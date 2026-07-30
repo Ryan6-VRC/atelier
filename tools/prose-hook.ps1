@@ -1,5 +1,5 @@
-# PostToolUse hook on Write|Edit. One job: when the agent authors markdown in this workspace,
-# inject one line routing to the write-for-agents skill and the constitution.
+# PostToolUse hook on Write|Edit. One job: when the agent authors markdown in this workspace or one
+# of its worktrees, inject one line routing to the write-for-agents skill and the constitution.
 # Scope is everything the agent writes — tracked or not, ignored or not. A file does not stop
 # being worth writing well because git declines to store it, and this nudge is advice, not
 # enforcement: the governed fence still decides what the commit-time form gate checks, and the
@@ -35,15 +35,24 @@ try {
     $full = [System.IO.Path]::GetFullPath($path)
 
     # --- scope gate ---
-    # This workspace only, resolved from $PSScriptRoot — the hook lives inside the one tree it
-    # governs, so the root needs no configuration and a global install is not a case to handle.
-    # The predecessor derived the root from $0 and needed `pwd -P` plus a self-check to catch a
-    # path-flavor mismatch that silently un-governed everything; PowerShell has no such failure,
-    # so that report is gone with the machinery that needed it. Trailing separator so a sibling
-    # named AtelierOther cannot prefix-match.
-    $root = Split-Path -Parent $PSScriptRoot
-    $rootPrefix = $root.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
-    if (-not $full.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) { exit 0 }
+    # This workspace and its worktree siblings, resolved from $PSScriptRoot — the hook lives inside
+    # the one tree it governs, so neither root needs configuration and a global install is not a
+    # case to handle. The predecessor derived the root from $0 and needed `pwd -P` plus a self-check
+    # to catch a path-flavor mismatch that silently un-governed everything; PowerShell has no such
+    # failure, so that report is gone with the machinery that needed it.
+    # `<root>-worktrees/` is the second base because a session rooted in the main tree does most of
+    # its authoring inside a worktree there, and worktree prose is this workspace's prose. Both
+    # bases demand the trailing separator, so a sibling named AtelierOther still cannot prefix-match
+    # — that guard is what excluded the worktrees, not an accident of it.
+    # The remaining unrouted prose is not a scope problem and cannot be fixed here: a session whose
+    # project dir is a sibling `vrc-*` repo registers no hook at all, since none of them carries a
+    # `.claude/settings.json`.
+    $root = (Split-Path -Parent $PSScriptRoot).TrimEnd('\', '/')
+    $sep = [System.IO.Path]::DirectorySeparatorChar
+    $base = @($root, "$root-worktrees") | Where-Object {
+        $full.StartsWith("$_$sep", [System.StringComparison]::OrdinalIgnoreCase)
+    } | Select-Object -First 1
+    if (-not $base) { exit 0 }
 
     $sid = if ($ev.session_id) { $ev.session_id } else { 'nosession' }
     $scope = if ($ev.agent_id) { "$sid-$($ev.agent_id)" } else { $sid }
@@ -84,8 +93,9 @@ try {
     } catch { }
 
     # --- the message ---
-    # Labelled from the workspace root, so the line names the file as well as the rule.
-    $rel = $full.Substring($root.Length).TrimStart('\', '/')
+    # Labelled from the base that matched, so the line names the file as well as the rule and a
+    # worktree path reads as its own tree rather than as a sibling of the main one.
+    $rel = $full.Substring($base.Length).TrimStart('\', '/')
     $msg = "Markdown authored ($rel) — apply the write-for-agents skill (declare the reader, " +
            "then carve); where facts live is docs/tool-design.md (routing ladder, echoes, lifts)."
     @{
