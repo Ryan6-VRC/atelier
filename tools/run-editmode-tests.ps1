@@ -11,7 +11,9 @@
 param(
   # TestEditor is beside this script's repo root → worktree-local by default (matches the generator).
   [string]$Project    = (Join-Path $PSScriptRoot "../TestEditor"),
-  [string]$Avatar     = "C:/Users/Ryan/Documents/Atelier/AvatarProject",
+  # The Unity project this venue's packages are kept in step with — the version baseline for the parity
+  # guard below, NOT an avatar. Must match whatever was passed to setup-test-editor.ps1 -SourceProject.
+  [string]$SourceProject = "C:/Users/Ryan/Documents/Atelier/AvatarProject",
   [string]$Assemblies = "Ryan6VRC.AvatarTools.Tests;Ryan6VRC.AgentTools.Tests",
   [string]$Filter     = "",
   [Parameter(Mandatory=$true)][string]$Tag,
@@ -34,38 +36,73 @@ function Get-SdkVersion($proj, $pkg) {
   return (Get-Content $pj -Raw | ConvertFrom-Json).version
 }
 
+# Stage to a temp sibling then swap, so an interrupted or blocked copy can never leave a
+# version-matching-but-partial $dst that a version check would then skip repairing. The outgoing copy is
+# moved aside rather than deleted first: a failed Rename-Item would otherwise leave the venue with NO copy,
+# which for a fixture breaks the tier's promise never to remove one it already had.
+#
+# -Soft is for the fixture tier: a copy hiccup on an OPTIONAL package (locked file, AV scan, open handle)
+# must not take down a 638-case suite. Absence is soft, so a failed refresh of it has to be soft too — the
+# venue keeps whatever it had and the affected case self-Ignores, named in the OUTCOME block.
+function Copy-PackageIn($pkg, [switch]$Soft) {
+  $src = Join-Path $SourceProject "Packages/$pkg"; $dst = Join-Path $Project "Packages/$pkg"
+  $tmp = "$dst.tmp"; $old = "$dst.old"
+  try {
+    foreach ($stale in @($tmp, $old)) { if (Test-Path $stale) { Remove-Item -Recurse -Force $stale -ErrorAction Stop } }
+    Copy-Item -Recurse $src $tmp -ErrorAction Stop
+    if (Test-Path $dst) { Rename-Item $dst (Split-Path $old -Leaf) -ErrorAction Stop }
+    Rename-Item $tmp (Split-Path $dst -Leaf) -ErrorAction Stop
+    if (Test-Path $old) { Remove-Item -Recurse -Force $old -ErrorAction SilentlyContinue }
+  } catch {
+    # Restore the copy we moved aside before reporting, so a failure mid-swap is not also a removal.
+    if (-not (Test-Path $dst) -and (Test-Path $old)) { Rename-Item $old (Split-Path $dst -Leaf) -ErrorAction SilentlyContinue }
+    if ($Soft) {
+      Write-Host "[runner] fixture $pkg sync failed: $($_.Exception.Message) — proceeding on the venue's existing copy"
+      return
+    }
+    Write-Host "OUTCOME=RUN_ERROR sync $pkg failed: $($_.Exception.Message)"; exit 5
+  }
+}
+
 # --- SDK parity guard (hard block) --- SDK trio is VRChat-pinned; a drift is a real problem.
 foreach ($pkg in @("com.vrchat.base", "com.vrchat.avatars", "com.vrchat.core.bootstrap")) {
-  $a = Get-SdkVersion $Avatar $pkg
+  $a = Get-SdkVersion $SourceProject $pkg
   $t = Get-SdkVersion $Project $pkg
   if ($a -ne $t) {
-    Write-Host "OUTCOME=SDK_DRIFT $pkg AvatarProject=$a TestEditor=$t — re-sync: tools/setup-test-editor.ps1 -Sync"
+    Write-Host "OUTCOME=SDK_DRIFT $pkg source=$a TestEditor=$t — re-sync: tools/setup-test-editor.ps1 -Sync"
     exit 4
   }
 }
 # --- Community packages (auto-sync, don't block) --- these bump on ALCOM's cadence; a hard block
 # would train reflexive re-sync. Re-copy on mismatch so TestEditor always tests current. The compose
 # trio is what CheckSeam reflects; emulator/GestureManager are the real types PlayGateCoreTests builds.
+# Absence IS fatal here: the test assemblies compile against these types, so the venue is broken.
 foreach ($pkg in @("nadena.dev.ndmf", "nadena.dev.modular-avatar", "com.vrcfury.vrcfury",
                    "lyuma.av3emulator", "vrchat.blackstartx.gesture-manager")) {
-  $a = Get-SdkVersion $Avatar $pkg
+  $a = Get-SdkVersion $SourceProject $pkg
   $t = Get-SdkVersion $Project $pkg
-  if ($null -eq $a) { Write-Host "OUTCOME=RUN_ERROR AvatarProject missing $pkg — run 'vrc-get resolve' there"; exit 5 }
+  if ($null -eq $a) { Write-Host "OUTCOME=RUN_ERROR $SourceProject missing $pkg — run 'vrc-get resolve' there"; exit 5 }
   if ($a -ne $t) {
-    Write-Host "[runner] auto-sync $pkg  AvatarProject=$a TestEditor=$t"
-    $src = Join-Path $Avatar "Packages/$pkg"; $dst = Join-Path $Project "Packages/$pkg"; $tmp = "$dst.tmp"
-    # Stage to a temp sibling then atomic-swap, so an interrupted or blocked copy can never leave a
-    # version-matching-but-partial $dst that the version check above would then skip repairing.
-    try {
-      if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp -ErrorAction Stop }
-      Copy-Item -Recurse $src $tmp -ErrorAction Stop
-      if (Test-Path $dst) { Remove-Item -Recurse -Force $dst -ErrorAction Stop }
-      Rename-Item $tmp (Split-Path $dst -Leaf) -ErrorAction Stop
-    } catch {
-      Write-Host "OUTCOME=RUN_ERROR auto-sync $pkg failed: $($_.Exception.Message)"; exit 5
-    }
+    Write-Host "[runner] auto-sync $pkg  source=$a TestEditor=$t"
+    Copy-PackageIn $pkg
     if ((Get-SdkVersion $Project $pkg) -ne $a) { Write-Host "OUTCOME=RUN_ERROR $pkg post-sync version mismatch"; exit 5 }
   }
+}
+# --- Fixture packages (soft) --- keep in step with setup-test-editor.ps1's $fixtures. A test READS an
+# asset out of these rather than compiling against their types, so absence degrades ONE case instead of
+# breaking the venue: that case self-Ignores and the skip is named in the OUTCOME block below. Never
+# fatal — a single non-redistributable vendor package must not be able to stop the whole suite — and
+# never DELETES a copy this venue already has, so a venue provisioned from a project carrying the
+# fixture survives a later run whose $SourceProject does not.
+foreach ($pkg in @("gogoloco")) {
+  $a = Get-SdkVersion $SourceProject $pkg
+  $t = Get-SdkVersion $Project $pkg
+  if ($null -eq $a) {
+    if ($null -eq $t) { Write-Host "[runner] fixture $pkg absent both sides — its cases self-Ignore" }
+    else { Write-Host "[runner] fixture $pkg absent from source — keeping this venue's copy ($t)" }
+    continue
+  }
+  if ($a -ne $t) { Write-Host "[runner] fixture sync $pkg  source=$a TestEditor=$t"; Copy-PackageIn $pkg -Soft }
 }
 
 function Invoke-Run([string]$tag) {
@@ -110,6 +147,17 @@ if ($crashed) {
 } elseif ($haveXml) {
   [xml]$x = Get-Content $r.xml; $tr = $x.'test-run'
   Write-Host ("OUTCOME=COMPLETED exit={0} total={1} passed={2} failed={3} skipped={4}" -f $r.code,$tr.total,$tr.passed,$tr.failed,$tr.skipped)
+  # A skip is not a pass, and a bare `skipped=N` reads as green. The suite carries deliberate
+  # not-fabricable gaps (documented in their reasons) alongside cases that self-Ignore when an EXTERNAL
+  # vendor fixture is absent — the latter silently withdraw an acceptance theorem, which is the rule-7
+  # failure a count alone hides. Name each one and its reason so the withdrawal is legible in the log.
+  if ([int]$tr.skipped -gt 0) {
+    foreach ($tc in $x.SelectNodes("//test-case[@result='Skipped']")) {
+      $why = $tc.SelectSingleNode("reason/message")
+      $txt = if ($why) { " -- " + (($why.InnerText -replace '\s+', ' ').Trim()) } else { "" }
+      Write-Host ("[runner] SKIPPED {0}{1}" -f $tc.fullname, $txt)
+    }
+  }
   # exit 0 only when truly green; failures get a distinct nonzero so a CI/wrapper keying on exit status
   # isn't fooled (the OUTCOME= line is authoritative either way).
   if ([int]$tr.failed -gt 0) { exit 6 }
