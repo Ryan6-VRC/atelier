@@ -1,4 +1,4 @@
-<#
+﻿<#
   Throwaway batchmode EditMode test runner. Launches a separate Unity process (crash-tolerant:
   a crash kills this process, never a live editor) against TestEditor, and classifies the outcome.
   Default target is TestEditor; the SDK-parity guard blocks a run when TestEditor's VRChat SDK has

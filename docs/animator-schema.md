@@ -300,6 +300,8 @@ Each is a flat field map; the enum fields use the tokens shown (fail-loud on an 
 
 A compile rejects these — listed so an "unknown field" error reads as deferred, not a syntax slip:
 
-- **AvatarMask emission.** A layer's `mask:` references an existing `AvatarMask` by path; the compiler never **emits** one (external refs only). This bites only a **vendor-local** `.mask`: an SDK/`Packages/` mask round-trips GUID-identical through the path ref, so emitting a project-local mask is the only untested part.
+- **AvatarMask emission.** A layer's `mask:` references an existing `AvatarMask` by path; the compiler never **emits** one (external refs only). *Referencing* one is fully covered — a project-local `.mask` round-trips GUID-identical through the path ref, exactly as an SDK/`Packages/` one does — so what is deferred is authoring a mask from the document, not masked layers.
 - **CustomObjectSync-scale parameterized codegen** — its own future slice.
 - **An NDMF build-time pass** — the compiler writes assets, not a build hook.
+
+Three constructs that used to sit here have moved, and it is worth knowing *where* each landed, because two are now authorable and the third never will be. A destination-state playback offset is the schema field **`offset:`** on a state or AnyState transition (refused on entry ladders and `onExit` lists, which are `AnimatorTransition`-backed and hold no timing). A sub-machine's outgoing edges are **`onExit:`**, authored inside the machine's own body under `machines:` — never on a layer root, which has no parent to exit to. A **driver repeating an operation on one parameter** is a *named decompile refusal*, not a widen: the schema holds one entry per parameter, so a recompile could not reproduce it as authored, and a repeat is usually a mistyped parameter name — check it against sibling states rather than looking for the field.

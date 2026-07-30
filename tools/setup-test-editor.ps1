@@ -1,4 +1,4 @@
-<#
+﻿<#
   Generate (or -Sync refresh) a local, gitignored TestEditor carrying the VRChat SDK plus the
   community packages the EditMode tests build as real types (Modular Avatar / VRCFury / NDMF,
   Av3Emulator, Gesture Manager).
