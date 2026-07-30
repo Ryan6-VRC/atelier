@@ -9,34 +9,28 @@
 #>
 param(
   # The Unity project whose Packages/ payload is copied in, and the version baseline the runner's
-  # SDK-parity guard compares against — NOT an avatar. Any real project works; the default is the
-  # venue tracked config names (AvatarProject), which is the main checkout's sibling and therefore
-  # absent from a meta-repo worktree, so this default is absolute rather than script-relative.
-  [string]$SourceProject = "C:/Users/Ryan/Documents/Atelier/AvatarProject",
+  # SDK-parity guard compares against — NOT an avatar. Any real project works. Empty means "the
+  # AvatarProject beside the main checkout", resolved below rather than written out here: it is a
+  # sibling of the MAIN checkout, not of this script, so a worktree cannot reach it script-relative.
+  [string]$SourceProject = "",
   # TestEditor lives beside this script's repo root → worktree-local by default.
   [string]$Dest      = (Join-Path $PSScriptRoot "../TestEditor"),
   # Where the com.ryan6vrc.* packages under test live. Pass a worktree to verify its edits; the
   # generated manifest repoints the file: refs at this root (absolute), so TestEditor is never tied
-  # to the main checkout's sibling layout.
-  [string]$ToolsRoot = "C:/Users/Ryan/Documents/Atelier/vrc-unity-tools",
+  # to the main checkout's sibling layout. Empty resolves the same way as $SourceProject.
+  [string]$ToolsRoot = "",
   [switch]$Sync
 )
 $ErrorActionPreference = "Stop"
-# Packages copied verbatim from $SourceProject as embedded folders (Unity auto-loads any Packages/<f>
-# with a package.json; no manifest entry needed). SDK trio is VRChat-pinned; the community packages
-# (compose trio CheckSeam reflects + emulator/GestureManager PlayGateCoreTests builds as real types)
-# are auto-synced by run-editmode-tests.ps1 (not manifest-pinned here).
-$sdk = @("com.vrchat.base", "com.vrchat.avatars", "com.vrchat.core.bootstrap",
-         "nadena.dev.ndmf", "nadena.dev.modular-avatar", "com.vrcfury.vrcfury",
-         "lyuma.av3emulator", "vrchat.blackstartx.gesture-manager")
+. (Join-Path $PSScriptRoot "test-venue-common.ps1")
+if ([string]::IsNullOrWhiteSpace($SourceProject)) { $SourceProject = Resolve-AtelierSibling "AvatarProject" "SourceProject" }
+if ([string]::IsNullOrWhiteSpace($ToolsRoot))     { $ToolsRoot     = Resolve-AtelierSibling "vrc-unity-tools" "ToolsRoot" }
 
-# FIXTURE packages: a test READS an asset out of these, rather than compiling against their types, so
-# a venue without one is degraded, not broken — the affected case self-Ignores and the runner names the
-# skip. Required-tier treatment (hard error) would make one non-redistributable vendor package able to
-# stop the whole suite, which is strictly worse than an honest skip. Absence therefore never fails and
-# never DELETES an already-present copy: a venue provisioned from a project that has the fixture must
-# survive a later run whose $SourceProject does not.
-$fixtures = @("gogoloco")
+# Provisioned once from $SourceProject: the VRChat-pinned SDK plus the community packages the test
+# assemblies compile against. Both lists, and the fixture list below, live in test-venue-common.ps1
+# because run-editmode-tests.ps1 version-syncs the same sets on every run.
+$sdk = $TestVenueSdk + $TestVenueCommunity
+$fixtures = $TestVenueFixtures
 
 if ((Test-Path $Dest) -and -not $Sync) {
   Write-Host "TestEditor already exists at $Dest. Use -Sync to refresh its SDK + manifest."

@@ -243,8 +243,10 @@ behaviours:
       set:  { bit0: 1, Debounced: 0 }                 # ChangeType.Set  — name: value
       add:  { Work: -0.5 }                            # ChangeType.Add
       copy: { Work: OscFloat }                        # ChangeType.Copy — dest: source
-      random: { Roll: { min: 0, max: 1, chance: 0.5 } }
+      random: { Roll: { min: 0, max: 1, chance: 0.5, preventRepeats: false } }
 ```
+
+`random`'s four fields are the SDK's, and the SDK draws them by DESTINATION type: `min`/`max` plus `preventRepeats` for an Int, `chance` alone for a Bool or Trigger, `min`/`max` for a Float. The schema accepts all four on any entry rather than resolving the destination's type here, so an entry the SDK would ignore is yours to get right. `preventRepeats` defaults false and is emitted only when true.
 
 `copy` takes either a source-name string, or a range map to remap while copying:
 
