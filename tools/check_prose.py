@@ -16,7 +16,7 @@ skips with a printed NOTE (absence is a valid workspace state, never a failure):
      (roots, glob, exclude, check-ignore). ERROR on drift: the form gate is
      already the declared convention.
 
-The fence bounds this gate only. tools/prose-hook.sh's write-time nudge fires
+The fence bounds this gate only. tools/prose-hook.ps1's write-time nudge fires
 on any markdown the agent authors in the workspace and reads no fence constant,
 so there is no echo of these constants left to keep in sync.
 
