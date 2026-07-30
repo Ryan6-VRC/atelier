@@ -7,3 +7,12 @@ root = true
 [*.md]
 max_line_length = off
 insert_final_newline = true
+
+# PowerShell scripts carry a UTF-8 BOM. Windows PowerShell 5.1 decodes a BOM-less file
+# as the ANSI code page, where a non-ASCII character in a diagnostic string (an em-dash
+# is enough) can terminate the string early and cascade into parse errors — the script
+# dies before #Requires is ever honoured, so a version pragma cannot fix it. pwsh 7
+# defaults to UTF-8, which is why the breakage is invisible to whoever authored it.
+[*.ps1]
+charset = utf-8-bom
+insert_final_newline = true

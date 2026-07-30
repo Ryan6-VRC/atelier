@@ -44,7 +44,10 @@ Install per your host; all must exist before wiring:
 vrc-get resolve  -p .\AvatarProject      # restore packages from the manifest
 vrc-get outdated -p .\AvatarProject      # list updatable
 vrc-get upgrade  -p .\AvatarProject <id> # bump one
+vrc-get install  -p .\AvatarProject <id> # ADD a package — the verb is install; there is no `add`
 ```
+
+Two shapes to recognize before reading output as failure: `install` prints a scary-but-benign `error reading directory … (os error 3)` **on success**, and `resolve` reinstalls every locked package rather than no-op'ing when they are already in place — so it churns `Packages/` under a live Editor and is not a free health check.
 
 `vrc-get` resolves/upgrades but **cannot create** a project — `AvatarProject`'s seed skeleton already ships it, so the seed clone is enough.
 
@@ -60,7 +63,7 @@ The workspace keeps **one `UnityMCP` entry** in `.mcp.json`; route with `set_act
 
 **Running the EditMode suite headless.** Run `tools/setup-test-editor.ps1` once per machine — it needs AvatarProject's VRChat SDK and the community packages the tests build as real types (Modular Avatar, VRCFury, NDMF, Av3Emulator, Gesture Manager) already resolved (via ALCOM / `vrc-get resolve`) — to generate the local, gitignored `TestEditor`; then `tools/run-editmode-tests.ps1` runs the suite against it. See `docs/verify.md` for why this split exists (the venue rule and the root cause it's built on).
 
-**Blender MCP — optional, not part of a working bring-up.** The pipeline runs headless; MCP only adds live observation of an open Blender for the human-at-the-screen case (`blender.md`), so a workspace without it is complete, and §4 does not check for it. To wire it anyway: `uv tool install blender-mcp` installs the MCP **server**, registered at local scope with your machine's paths — `claude mcp add BlenderMCP -s local -e "BLENDER_PATH=<blender.exe>" -- <blender-mcp.exe>`. Separately, install the **blender-mcp add-on** into Blender — this is *not* the `avatarprep`/`vrc-blender-tools` extension — enable it, turn on **Allow Online Access**, and start its bridge on localhost:9876. Neither half auto-updates: bump the server with `uv tool upgrade blender-mcp`, re-install the add-on when it changes.
+**Blender MCP — optional, not part of a working bring-up.** The pipeline runs headless; MCP only adds live observation of an open Blender for the human-at-the-screen case (`blender.md`), so a workspace without it is complete, and §4 does not check for it. To wire it anyway: `uv tool install blender-mcp` installs the MCP **server**, registered at local scope with your machine's paths — `claude mcp add BlenderMCP -s local -e "BLENDER_PATH=<blender.exe>" -- <blender-mcp.exe>`. That `BLENDER_PATH` **pins a Blender version**, so a version bump means re-registering; otherwise MCP keeps launching the old binary whatever `blender.md` names as the target. Separately, install the **blender-mcp add-on** into Blender — this is *not* the `avatarprep`/`vrc-blender-tools` extension — enable it, turn on **Allow Online Access**, and start its bridge on localhost:9876. Neither half auto-updates: bump the server with `uv tool upgrade blender-mcp`, re-install the add-on when it changes.
 
 ## 4. Verify
 
