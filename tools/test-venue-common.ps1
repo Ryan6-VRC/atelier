@@ -48,14 +48,20 @@ $TestVenueFixtures = @("gogoloco")
   refuse in its own vocabulary and name the parameter the operator should pass instead.
 #>
 function Get-AtelierMainCheckout {
-  # Both callers set $ErrorActionPreference = "Stop" before dot-sourcing this, and PowerShell 7.4+
-  # can promote a native command's nonzero exit into a terminating error under it
-  # ($PSNativeCommandUseErrorActionPreference, whose default has moved between releases and can be
-  # set in a profile). Pin both locally so "git said no" reaches the $LASTEXITCODE check below as a
-  # value to test rather than an exception, on any host.
+  # setup-test-editor.ps1 sets $ErrorActionPreference = "Stop" before dot-sourcing this, a host profile
+  # can set it anywhere, and PowerShell 7.4+ can then promote a native command's nonzero exit into a
+  # terminating error ($PSNativeCommandUseErrorActionPreference, whose default has moved between
+  # releases). Pin both locally so "git said no" reaches the $LASTEXITCODE check as a value to test.
+  #
+  # The try/catch is a SEPARATE failure mode, not belt-and-braces: if git is not on PATH at all, the
+  # failure is command DISCOVERY (CommandNotFoundException), which is terminating regardless of either
+  # preference — measured. Without the catch this function throws where its contract promises $null,
+  # setup-test-editor.ps1 dies on a raw exception instead of naming -SourceProject, and
+  # run-editmode-tests.ps1 reports RUN_ERROR with the actionable half of the message missing.
   $ErrorActionPreference = "Continue"
   $PSNativeCommandUseErrorActionPreference = $false
-  $common = & git -C $PSScriptRoot rev-parse --path-format=absolute --git-common-dir 2>$null
+  try { $common = & git -C $PSScriptRoot rev-parse --path-format=absolute --git-common-dir 2>$null }
+  catch { return $null }
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($common)) { return $null }
   $root = Join-Path $common ".."
   if (-not (Test-Path $root)) { return $null }
