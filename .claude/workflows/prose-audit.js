@@ -1,7 +1,7 @@
 export const meta = {
   name: 'prose-audit',
   description: 'Corpus audit of governed prose against docs/tool-design.md: domain-batched conformance, claims-index reduce, primary-text verification, adversarial refute, funnel report',
-  whenToUse: 'Operator-run meter for the prose-governance system. Enumerate governed files first (git ls-files + untracked-not-ignored .md across the meta-repo and vrc-* siblings, minus the fence exclusions in tool-design.md) and pass as args: {files: [...]}. For re-runs after a full pass, pass only files changed since the last audit (git log) plus the files they cite — the meter is differential by construction. Intermediates land in test-output/prose-audit/ (disposable). Report the funnel with a git-log denominator of governed-prose commits since the last run. A run with failed_units is INCOMPLETE, never a clean bill.',
+  whenToUse: 'Operator-run meter for the prose-governance system. Enumerate governed files first (git ls-files + untracked-not-ignored .md across the meta-repo and vrc-* siblings, minus the fence exclusions in tool-design.md) and pass as args: {files: [...]}, repo-relative. They resolve against the checkout you invoke from, so running this in a worktree audits that worktree; {root: "<path>"} pins a different one. For re-runs after a full pass, pass only files changed since the last audit (git log) plus the files they cite — the meter is differential by construction. Intermediates land in test-output/prose-audit/ (disposable). Report the funnel with a git-log denominator of governed-prose commits since the last run. A run with failed_units is INCOMPLETE, never a clean bill.',
   phases: [
     { title: 'Conformance', detail: 'one auditor per domain cluster; policy and neighborhoods amortized' },
     { title: 'Reduce', detail: 'mechanical claim grouping, then LLM judgment on collision buckets' },
@@ -9,8 +9,6 @@ export const meta = {
   ],
 }
 
-const ROOT = 'C:/Users/Ryan/Documents/Atelier'
-const POLICY = `${ROOT}/docs/tool-design.md`
 const CLAIMS = 'test-output/prose-audit/claims'
 
 // args may arrive as a JSON-encoded string depending on the caller — accept both.
@@ -20,6 +18,15 @@ if (!files.length) throw new Error('pass args {files: [...]} — enumerate the g
 // Model for every subagent. Omitted → inherits the session model; pass {model: "opus"}
 // to run the audit a tier down — the judgment here survives that fine.
 const MODEL = (a && a.model) || undefined
+// Prefix for every path handed to a subagent. RELATIVE by default: a workflow subagent
+// inherits the session's cwd (measured — its pwd is the session cwd, and a repo-relative
+// Read resolves against it), so the audit follows the checkout it was invoked from. An
+// absolute root here would silently audit that one instead: run from a worktree, it would
+// report a confident funnel about the main checkout's prose rather than the edits under
+// review, which is the failure this meter exists to catch in other people's work.
+// {root: "<path>"} pins a specific checkout when that is what you actually want.
+const ROOT = (a && a.root) || '.'
+const POLICY = `${ROOT}/docs/tool-design.md`
 
 // ---- group into domain clusters (token amortization: shared policy + neighborhoods) ----
 // Fixed doc clusters mirror the corpus's own citation clusters; files not claimed
@@ -68,7 +75,7 @@ const VERDICTS = { type: 'object', properties: { verdicts: { type: 'array', item
 
 // ---- phase 1: conformance (also writes the claims digests) -------------------------
 phase('Conformance')
-const conformPrompt = (u) => `Prose-governance conformance auditor, Atelier workspace (${ROOT}).
+const conformPrompt = (u) => `Prose-governance conformance auditor, Atelier workspace.
 Policy first: read ${POLICY} — the sections from "Where knowledge lives" onward are the rules; cite the section in every finding.
 Your unit "${u.id}" (read every file fully): ${u.files.map(f => `${ROOT}/${f}`).join(', ')}.
 Neighborhood discipline (token budget is real): judge within your batch first — most citation neighbors are IN it. Open a file outside the batch only to verify a specific suspicion (a route you think dangles, a passage you think is duplicated), never for general orientation. No workspace-wide grepping.
@@ -94,7 +101,7 @@ if (failedUnits.length > units.length / 4) {
 
 // ---- phase 2: reduce (barrier is genuine: grouping needs every digest) ---------------
 phase('Reduce')
-const grouper = await agent(`In ${ROOT}, run a Python one-off (script in test-output/prose-audit/ if needed, never tools/) that reads every file in ${ROOT}/${CLAIMS}/, parses "subject-key | claim | location" lines, normalizes keys (lowercase, strip plurals/punctuation), groups by key, and writes ${ROOT}/test-output/prose-audit/buckets.json as a JSON array of {subject, entries: [{claim, location, digest}]} keeping ONLY subjects spanning more than one digest file. Return the bucket count and path.`, { label: 'reduce:group', phase: 'Reduce', schema: BUCKETS, effort: 'low', model: MODEL })
+const grouper = await agent(`Run a Python one-off (script in test-output/prose-audit/ if needed, never tools/) that reads every file in ${ROOT}/${CLAIMS}/, parses "subject-key | claim | location" lines, normalizes keys (lowercase, strip plurals/punctuation), groups by key, and writes ${ROOT}/test-output/prose-audit/buckets.json as a JSON array of {subject, entries: [{claim, location, digest}]} keeping ONLY subjects spanning more than one digest file. Return the bucket count and path.`, { label: 'reduce:group', phase: 'Reduce', schema: BUCKETS, effort: 'low', model: MODEL })
 
 let candidates = []
 let reduceIncomplete = false
@@ -111,7 +118,7 @@ log(`reduce: ${grouper ? grouper.bucket_count : 0} buckets → ${candidates.leng
 // ---- phase 3: verify — candidates at the sources; findings refereed per unit ---------
 phase('Verify')
 const verifiedCandidates = await pipeline(candidates, c =>
-  agent(`Verify a cross-file candidate in ${ROOT}. Subject: ${c.subject}. Class: ${c.klass}. Locations: ${c.locations.join('; ')}. Note: ${c.note || 'none'}.
+  agent(`Verify a cross-file candidate. Subject: ${c.subject}. Class: ${c.klass}. Locations: ${c.locations.join('; ')}. Note: ${c.note || 'none'}.
 Read the ACTUAL passages at every location (digests flatten nuance — the sources decide). Confirm only a real unmanaged duplication, drifted declared echo, or genuine contradiction per ${POLICY} §Duplication. Managed echoes in agreement, topical overlap, or route+guard pairs are refutations.`,
     { phase: 'Verify', label: `verify:${c.subject.slice(0, 30)}`, schema: VERDICT, model: MODEL })
     .then(v => ({ ...c, verdict: v })))
@@ -119,7 +126,7 @@ Read the ACTUAL passages at every location (digests flatten nuance — the sourc
 const byUnit = {}
 rawFindings.forEach((f, i) => { (byUnit[f.unit] = byUnit[f.unit] || []).push({ ...f, index: i }) })
 const refereed = await pipeline(Object.entries(byUnit), ([unit, fs]) =>
-  agent(`Adversarial referee for ${fs.length} prose-governance finding(s) in ${ROOT}, unit "${unit}". For EACH, read the primary source and the cited policy section in ${POLICY}, then verdict by index:
+  agent(`Adversarial referee for ${fs.length} prose-governance finding(s) in unit "${unit}". For EACH, read the primary source and the cited policy section in ${POLICY}, then verdict by index:
 ${fs.map(f => `[${f.index}] (${f.kind}) at ${f.where}: ${f.claim} — evidence: ${f.evidence} — policy: ${f.policy_section}`).join('\n')}
 Honest verdicts — confirm real violations; refute misreadings, register mismatches with the policy's actual words, or defects the policy tolerates (declared echoes, routes with guards, human-facing register). Neither killing nor keeping is the goal; being right is.`,
     { phase: 'Verify', label: `referee:${unit}`, schema: VERDICTS, model: MODEL }))
