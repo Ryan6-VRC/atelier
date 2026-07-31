@@ -1,0 +1,44 @@
+---
+name: dispatch
+description: Use when launching a body of kickoff blocks onto worker sessions and coordinating them to reviewable PRs ("dispatch these", "run the wave") — the downstream half of `kickoff`. A single block is pasted into a fresh session directly — no skill.
+---
+
+# Dispatch
+
+You are the coordinator: author each launch prompt, sequence workers around the physical singletons, track the wave, reclaim state as workers finish. The campaign tracker is `docs/local/dispatch-plan.md`: this skill holds the process, the tracker holds the workspace state (standing constraints, venue roster, tried-and-rejected, handoffs) — adopt and update it, never re-author it per session. You run in the **main working tree** — `docs/local/` is gitignored and exists only there, which is why you, and not a worktree worker, can edit the tracker.
+
+## The launch prompt
+
+2–4 sentences wrapped around a pointer: workers run at the workspace root, so reference the block by file + ID and don't paste it; paste only a block the worker genuinely cannot reach.
+
+Four invariants, each a real failure compressed — check every assembled prompt, and every mid-wave resume message, against all four:
+
+1. **Skeptical start.** A block sounds authoritative however thin its research was — do not relay that confidence. The worker first verifies the stated problem holds (from the backing anchor when one exists — a transcript shows the problem was *seen*, not that it was characterized right or still holds), brainstorms real alternatives, posts its plan, and WAITS for explicit operator sign-off; "no questions" is not sign-off. Scale the demanded skepticism to provenance: an auto-triaged finding gets the full verify-the-premise pass, an operator directive gets little — don't make a worker re-litigate a ruling.
+2. **Reads are proven, not trusted.** The plan quotes one load-bearing line from each doc the block names under "Read before planning"; no quotes, no sign-off. Workers have cited doc sections verbatim-unread — reconstructed from the block's own description of them — and then edited the exact invariant the unread doc stated. The receipt rides the plan gate that already exists, so it costs one sentence in the prompt and one check at sign-off.
+3. **Edits before sign-off.** State the gate as "no edit intended to survive into the PR", never "no edits" — probes, measurements, and reverted spikes are sanctioned and expected before sign-off, because a recommendation that could only be reasoned about is worth little; the spike is disclosed in the plan as evidence. Venue pointers are reference for the build phase after sign-off, not a go-order.
+4. **Terminal state (hard).** The session ends at an OPEN PR; the worker never pushes or merges to main. A downstream PR waiting on it is your sequencing, not its license to self-merge. No handback to the coordinator either — coordinator context is the wave's scarcest resource: board-bound findings go to the **main tree's** `docs/local/inbox/<block>.md` (the worker writes "nothing" when there is nothing; `docs/local/` is gitignored, so a copy written inside a worktree is destroyed at reclaim and reads as silence), gate questions go to the operator, and the PR body is for review only. Gates follow `docs/workflow.md` §No operator to ask? — for a dispatched session the operator is the channel; that protocol's dispatcher-as-channel fallback is for background jobs and is deliberately not taken here.
+
+Scan the full prompt, block included, for merge-permission phrasing ("land it", "ship when ready", and kin) — a casual resume message mid-wave re-triggers the self-merge failure.
+
+## Coordinating
+
+- Parallelism is bounded by the physical singletons (live Editors, the one machine, a serial test runner), not the dependency graph. Same repo + disjoint files runs concurrently for free; overlapping files is a merge you own.
+- Assigning singletons is your job, not the worker's — hosts of the same kind carry different state and capabilities. Name the assignment in the launch prompt; keep the roster's distinguishing traits in the tracker, and cite them rather than restating them.
+- After presenting launch prompts, present the **singleton board**: each singleton and venue, who holds it, what's free, what launches now versus waits. The operator sequences from that board, not from prose above it.
+- Tier is your call per block — cheaper tier for mechanical work, top tier for heavy design — recorded in the tracker, never a silent uniform default.
+- Don't ground a block in coordinator context: one or two greps to see the premise is plausible, then the research belongs to the worker. One exception: a cheap check that might kill or invert the block earns its tokens.
+- Don't mine PR bodies for bookkeeping — read the inbox file; review is a separate job you are not always doing.
+- A worktree's green test run can lie: a Python editable install records one absolute path, so a second checkout can import the first one's `src/` and pass regardless of its own changes. The only reliable check is the resolved path — have the worker print the tested module's `__file__` from inside a test and report it beside the pass count.
+
+## Merge and reclaim
+
+Reclaim as a step in the loop — on merge, on early-stop, on abandonment — not a batch at the end; early worker termination is normal, not an error. On merge: squash + `--delete-branch`, ff local main, remove the worktree, cross the block off with a one-sentence note (git holds the detail), transcribe the inbox file, hand-register any tool-index change a worktree-skipping hook missed, and keep sibling manifests in lockstep (`plugin.json` ↔ `marketplace.json` — workers bump one).
+
+- Under worktree-by-default the local branch survives `--delete-branch` — gh deletes local refs only when the branch sits in the clone it merges from, and a worktree-held branch it cannot touch. Delete it by hand only after a diff proves main holds the branch's work: `git diff main <branch> --name-only -- $(git diff main...<branch> --name-only)` comes back empty. Operand order matters — branch-only files surface only when diffing *from* main; the pathspec restricts the check to files the branch touched so main's forward drift can't flood it; and no `--diff-filter=A`, which is blind to a branch whose whole contribution is edits. Diff, don't grep; spot-checking headings is how unmerged work gets mislabeled superseded.
+- A worktree that won't remove is a tell — inspect, don't force: a session can end with an uncommitted follow-on pass invisible on main, and a stale local branch may predate the PR revisions that merged, so recover it as a semantic merge onto current main.
+- `git -C <repo> worktree remove <relpath>` resolves the relative path against *your* cwd, not the `-C` repo — pass absolute paths. A remove failing on Windows path length is mechanical, not a reclaim hazard: verify clean (`status --short`, `log @{u}..HEAD`), then `Remove-Item -LiteralPath '\\?\C:\…' -Recurse -Force` and `git worktree prune`.
+- Stacked PR (base = another PR's branch): merge the base WITHOUT `--delete-branch`, then rebase the child onto main (`git rebase --onto origin/main <base-tip> <child>` — already-upstream commits drop out), confirm the diff is only the child's own files, force-push, retarget, merge. A retargeted child does not auto-close and silently re-proposes the base's whole diff, because its merge-base predates the squash.
+
+## Boundaries
+
+`kickoff` authors one block; dispatch launches and coordinates many. The worker owns its own brainstorm → plan → execute → open-PR; dispatch owns only the cross-worker layer.
