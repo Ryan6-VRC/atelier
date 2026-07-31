@@ -1,9 +1,10 @@
 <#
   Shared between setup-test-editor.ps1 (provisions TestEditor) and run-editmode-tests.ps1 (runs against
-  it). Dot-source it; it defines variables and one function, and does nothing on its own.
+  it). Dot-source it; it defines variables and two functions, and does nothing on its own.
 
-  It exists for the two things the pair MUST agree on. Where the sibling projects live, because the two
-  scripts derived it independently and both hardcoded one operator's home directory into a public repo.
+  It exists for the two things the pair MUST agree on. Where the untracked working projects live inside
+  the checkout, because the two scripts derived it independently and both hardcoded one operator's home
+  directory into a public repo.
   And which packages the venue carries, because the runner re-lists the community set and the fixture set
   that setup already declares — a duplication the runner's own comment asks the reader to maintain by
   hand ("keep in step with setup-test-editor.ps1's $fixtures"), which is the shape that drifts.
@@ -34,9 +35,11 @@ $TestVenueFixtures = @("gogoloco")
   Absolute path of this repo's MAIN checkout, or $null when that cannot be established.
 
   .DESCRIPTION
-  AvatarProject and vrc-unity-tools are siblings of the main checkout, NOT of the calling script, so
-  $PSScriptRoot/.. is wrong from a worktree — a meta-repo worktree has no such siblings, which is why
-  these defaults were absolute in the first place. --git-common-dir maps any worktree back to the main
+  AvatarProject and vrc-unity-tools sit INSIDE the main checkout (`Atelier/AvatarProject`), as untracked
+  working venues and gitignored sibling clones. Being untracked is what makes $PSScriptRoot/.. wrong: from
+  the main checkout that path is the checkout root and does resolve, but from a worktree it is the
+  worktree root, which carries only tracked files and therefore has neither of them. That is why these
+  defaults were absolute in the first place. --git-common-dir maps any worktree back to the main
   checkout's .git, so its parent is the main checkout.
 
   --path-format=absolute is load-bearing, not decoration: plain --git-common-dir answers a bare relative
@@ -70,16 +73,20 @@ function Get-AtelierMainCheckout {
 
 <#
   .SYNOPSIS
-  Resolve a sibling of the main checkout by name, refusing loud with the parameter to pass instead.
+  Resolve a child of the main checkout by name, refusing loud with the parameter to pass instead.
+
+  .DESCRIPTION
+  Named for where it actually looks. "Sibling"/"beside" would send an operator reading the refusal to the
+  main checkout's PARENT directory, where nothing is and where this never searches.
 #>
-function Resolve-AtelierSibling([string]$Name, [string]$ParamName) {
+function Resolve-AtelierChild([string]$Name, [string]$ParamName) {
   $main = Get-AtelierMainCheckout
   if ($null -eq $main) {
     throw "cannot locate the main checkout (git rev-parse failed here) — pass -$ParamName explicitly"
   }
   $path = Join-Path $main $Name
   if (-not (Test-Path $path)) {
-    throw "$Name not found beside the main checkout at $main — pass -$ParamName explicitly"
+    throw "$Name not found inside the main checkout at $main — pass -$ParamName explicitly"
   }
   return (Resolve-Path $path).Path
 }

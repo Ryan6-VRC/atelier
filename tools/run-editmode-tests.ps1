@@ -13,8 +13,8 @@ param(
   [string]$Project    = (Join-Path $PSScriptRoot "../TestEditor"),
   # The Unity project this venue's packages are kept in step with — the version baseline for the parity
   # guard below, NOT an avatar. Must match whatever was passed to setup-test-editor.ps1 -SourceProject.
-  # Empty means "the AvatarProject beside the main checkout"; it is a sibling of the MAIN checkout, not
-  # of this script, so a worktree cannot reach it script-relative. Resolved below.
+  # Empty means "the AvatarProject inside the main checkout"; it is untracked, so a worktree's own root
+  # does not carry it and script-relative cannot reach it. Resolved below.
   [string]$SourceProject = "",
   [string]$Assemblies = "Ryan6VRC.AvatarTools.Tests;Ryan6VRC.AgentTools.Tests",
   [string]$Filter     = "",
@@ -22,8 +22,17 @@ param(
   [int]$TimeoutSec    = 540
 )
 . (Join-Path $PSScriptRoot "test-venue-common.ps1")
+# This script does not set $ErrorActionPreference, so a dot-source that failed above (file missing,
+# renamed, unreadable) only WROTE an error and carried on — measured on PowerShell 7. The package lists
+# would then be $null, every `foreach ($pkg in $null)` would iterate zero times, and the community tier's
+# absence-IS-fatal check would be skipped in silence: a green run against a venue whose test assemblies
+# cannot compile. Inline literals could not be empty; a shared file can, so assert it loaded.
+if (-not $TestVenueCommunity -or -not $TestVenueFixtures -or -not $TestVenueSdk) {
+  Write-Host "OUTCOME=RUN_ERROR test-venue-common.ps1 did not load (package lists empty) — the venue guards cannot run"
+  exit 5
+}
 if ([string]::IsNullOrWhiteSpace($SourceProject)) {
-  try { $SourceProject = Resolve-AtelierSibling "AvatarProject" "SourceProject" }
+  try { $SourceProject = Resolve-AtelierChild "AvatarProject" "SourceProject" }
   catch { Write-Host "OUTCOME=RUN_ERROR $($_.Exception.Message)"; exit 5 }
 }
 $editor = "C:/Program Files/Unity/Hub/Editor/2022.3.22f1/Editor/Unity.exe"

@@ -10,21 +10,21 @@
 param(
   # The Unity project whose Packages/ payload is copied in, and the version baseline the runner's
   # SDK-parity guard compares against — NOT an avatar. Any real project works. Empty means "the
-  # AvatarProject beside the main checkout", resolved below rather than written out here: it is a
-  # sibling of the MAIN checkout, not of this script, so a worktree cannot reach it script-relative.
+  # AvatarProject inside the main checkout", resolved below rather than written out here: it is
+  # untracked, so a worktree's own root does not carry it and script-relative cannot reach it.
   [string]$SourceProject = "",
   # TestEditor lives beside this script's repo root → worktree-local by default.
   [string]$Dest      = (Join-Path $PSScriptRoot "../TestEditor"),
   # Where the com.ryan6vrc.* packages under test live. Pass a worktree to verify its edits; the
   # generated manifest repoints the file: refs at this root (absolute), so TestEditor is never tied
-  # to the main checkout's sibling layout. Empty resolves the same way as $SourceProject.
+  # to the main checkout's own layout. Empty resolves the same way as $SourceProject.
   [string]$ToolsRoot = "",
   [switch]$Sync
 )
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "test-venue-common.ps1")
-if ([string]::IsNullOrWhiteSpace($SourceProject)) { $SourceProject = Resolve-AtelierSibling "AvatarProject" "SourceProject" }
-if ([string]::IsNullOrWhiteSpace($ToolsRoot))     { $ToolsRoot     = Resolve-AtelierSibling "vrc-unity-tools" "ToolsRoot" }
+if ([string]::IsNullOrWhiteSpace($SourceProject)) { $SourceProject = Resolve-AtelierChild "AvatarProject" "SourceProject" }
+if ([string]::IsNullOrWhiteSpace($ToolsRoot))     { $ToolsRoot     = Resolve-AtelierChild "vrc-unity-tools" "ToolsRoot" }
 
 # Provisioned once from $SourceProject: the VRChat-pinned SDK plus the community packages the test
 # assemblies compile against. Both lists, and the fixture list below, live in test-venue-common.ps1
