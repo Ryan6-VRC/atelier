@@ -138,7 +138,7 @@ transitions:
   - { to: Exit,   when: [ Done is true ] }          # `to: Exit` is the exit transition
 ```
 
-Transition fields: `to` (a target address — below — or `Exit`), `when` (condition list, empty = unconditional), `exitTime`, `duration`, `fixedDuration` (default **true**), `interruption`, `ordered` (default **true**), `mute` / `solo` (bool, default-elided when false), `name` (a plain label; state/`any:` ladders only, refused on an `entry:` rung whose emit path can't carry it). `canTransitionToSelf` is an `any:`-ladder-only field. Unset `duration`/`exitTime`/`interruption` inherit `defaults`.
+Transition fields: `to` (a target address — below — or `Exit`), `when` (condition list, empty = unconditional), `exitTime`, `duration`, `fixedDuration` (default **true**), `interruption`, `ordered` (default **true**), `mute` / `solo` (bool, default-elided when false), `name` (a plain label; state/`any:` ladders only, refused on an `entry:` rung whose emit path can't carry it — and correspondingly **dropped** when decompiling a vendor rung that has one, reported as a per-rung Note rather than a refusal, since refusing would strand real packages over a field nothing reads at runtime; entry rungs carrying a cosmetic name are uncommon but not rare). `canTransitionToSelf` is an `any:`-ladder-only field. Unset `duration`/`exitTime`/`interruption` inherit `defaults`.
 
 **Conditions are strings, right-anchored: the last two space-separated tokens are the op and the value; everything before is the parameter, verbatim** — interior spaces survive unquoted (`when: [ Hair ribbon is true ]`); separators are strict single spaces. A parameter carrying a flow delimiter (`,` `]` `}`) or other quote-triggering character emits as one quoted scalar. An op-lookalike parameter (one literally named `X is true`) is ambiguous read left-to-right — right-anchoring is the reader's only disambiguator. `value` is `true`/`false` or a number. The operator must match the parameter's declared type (validated):
 
@@ -243,8 +243,10 @@ behaviours:
       set:  { bit0: 1, Debounced: 0 }                 # ChangeType.Set  — name: value
       add:  { Work: -0.5 }                            # ChangeType.Add
       copy: { Work: OscFloat }                        # ChangeType.Copy — dest: source
-      random: { Roll: { min: 0, max: 1, chance: 0.5 } }
+      random: { Roll: { min: 0, max: 7, preventRepeats: true } }
 ```
+
+`random`'s four fields are the SDK's, and the SDK draws them by DESTINATION type: `min`/`max` plus `preventRepeats` for an Int, `chance` alone for a Bool or Trigger, `min`/`max` for a Float. The schema accepts all four on any entry rather than resolving the destination's type here, so an entry the SDK would ignore is yours to get right. `preventRepeats` defaults false and is emitted only when true — the example above is an Int roll, the one shape that uses all three of its fields.
 
 `copy` takes either a source-name string, or a range map to remap while copying:
 

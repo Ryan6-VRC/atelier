@@ -13,12 +13,28 @@ param(
   [string]$Project    = (Join-Path $PSScriptRoot "../TestEditor"),
   # The Unity project this venue's packages are kept in step with — the version baseline for the parity
   # guard below, NOT an avatar. Must match whatever was passed to setup-test-editor.ps1 -SourceProject.
-  [string]$SourceProject = "C:/Users/Ryan/Documents/Atelier/AvatarProject",
+  # Empty means "the AvatarProject inside the main checkout"; it is untracked, so a worktree's own root
+  # does not carry it and script-relative cannot reach it. Resolved below.
+  [string]$SourceProject = "",
   [string]$Assemblies = "Ryan6VRC.AvatarTools.Tests;Ryan6VRC.AgentTools.Tests",
   [string]$Filter     = "",
   [Parameter(Mandatory=$true)][string]$Tag,
   [int]$TimeoutSec    = 540
 )
+. (Join-Path $PSScriptRoot "test-venue-common.ps1")
+# This script does not set $ErrorActionPreference, so a dot-source that failed above (file missing,
+# renamed, unreadable) only WROTE an error and carried on — measured on PowerShell 7. The package lists
+# would then be $null, every `foreach ($pkg in $null)` would iterate zero times, and the community tier's
+# absence-IS-fatal check would be skipped in silence: a green run against a venue whose test assemblies
+# cannot compile. Inline literals could not be empty; a shared file can, so assert it loaded.
+if (-not $TestVenueCommunity -or -not $TestVenueFixtures -or -not $TestVenueSdk) {
+  Write-Host "OUTCOME=RUN_ERROR test-venue-common.ps1 did not load (package lists empty) — the venue guards cannot run"
+  exit 5
+}
+if ([string]::IsNullOrWhiteSpace($SourceProject)) {
+  try { $SourceProject = Resolve-AtelierChild "AvatarProject" "SourceProject" }
+  catch { Write-Host "OUTCOME=RUN_ERROR $($_.Exception.Message)"; exit 5 }
+}
 $editor = "C:/Program Files/Unity/Hub/Editor/2022.3.22f1/Editor/Unity.exe"
 # Run-output goes to a disposable sibling of TestEditor, never into tracked tooling: gitignored
 # wholesale, worktree-local, and safe to delete at any time. Pruned at 30 days because nothing
@@ -74,11 +90,10 @@ foreach ($pkg in @("com.vrchat.base", "com.vrchat.avatars", "com.vrchat.core.boo
   }
 }
 # --- Community packages (auto-sync, don't block) --- these bump on ALCOM's cadence; a hard block
-# would train reflexive re-sync. Re-copy on mismatch so TestEditor always tests current. The compose
-# trio is what CheckSeam reflects; emulator/GestureManager are the real types PlayGateCoreTests builds.
-# Absence IS fatal here: the test assemblies compile against these types, so the venue is broken.
-foreach ($pkg in @("nadena.dev.ndmf", "nadena.dev.modular-avatar", "com.vrcfury.vrcfury",
-                   "lyuma.av3emulator", "vrchat.blackstartx.gesture-manager")) {
+# would train reflexive re-sync. Re-copy on mismatch so TestEditor always tests current. Absence IS
+# fatal here: the test assemblies compile against these types, so the venue is broken. The list is
+# shared with the provisioner (test-venue-common.ps1) — the two must agree, and a copy here drifted.
+foreach ($pkg in $TestVenueCommunity) {
   $a = Get-SdkVersion $SourceProject $pkg
   $t = Get-SdkVersion $Project $pkg
   if ($null -eq $a) { Write-Host "OUTCOME=RUN_ERROR $SourceProject missing $pkg — run 'vrc-get resolve' there"; exit 5 }
@@ -88,13 +103,12 @@ foreach ($pkg in @("nadena.dev.ndmf", "nadena.dev.modular-avatar", "com.vrcfury.
     if ((Get-SdkVersion $Project $pkg) -ne $a) { Write-Host "OUTCOME=RUN_ERROR $pkg post-sync version mismatch"; exit 5 }
   }
 }
-# --- Fixture packages (soft) --- keep in step with setup-test-editor.ps1's $fixtures. A test READS an
-# asset out of these rather than compiling against their types, so absence degrades ONE case instead of
-# breaking the venue: that case self-Ignores and the skip is named in the OUTCOME block below. Never
-# fatal — a single non-redistributable vendor package must not be able to stop the whole suite — and
-# never DELETES a copy this venue already has, so a venue provisioned from a project carrying the
-# fixture survives a later run whose $SourceProject does not.
-foreach ($pkg in @("gogoloco")) {
+# --- Fixture packages (soft) --- a test READS an asset out of these rather than compiling against their
+# types, so absence degrades ONE case instead of breaking the venue: that case self-Ignores and the skip
+# is named in the OUTCOME block below. Never fatal — a single non-redistributable vendor package must not
+# be able to stop the whole suite — and never DELETES a copy this venue already has, so a venue
+# provisioned from a project carrying the fixture survives a later run whose $SourceProject does not.
+foreach ($pkg in $TestVenueFixtures) {
   $a = Get-SdkVersion $SourceProject $pkg
   $t = Get-SdkVersion $Project $pkg
   if ($null -eq $a) {
