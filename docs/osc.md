@@ -12,27 +12,34 @@ Routes out, so nothing below is a second copy: parameter-name hazards and the co
 - **`/input/<Name>`** — client input commands, **inbound only**. These are not avatar parameters and nothing echoes them back under the same address; their effects surface as built-in parameters instead, so `/input/Vertical` moves the player and reads back as `VelocityZ`.
 - **`/avatar/change`** — emitted with the avatar id when the worn avatar changes.
 
-A bool travels as an OSC `T`/`F` type tag carrying no payload, an int as `,i`, a float as `,f`. A consumer that expects `0`/`1` ints for booleans silently sees no bools at all.
+A bool travels as an OSC `T`/`F` type tag carrying no payload, an int as `,i`, a float as `,f`.
 
-## Latching and momentary are opposite contracts, and a consumer cannot infer which it has
+## Argument types are exact, and a mismatch is usually silent
 
-A **latching** parameter is driven in both directions by something outside the consumer and stays where it was put; a **momentary** one returns to zero on its own. The consumer's edge handling inverts between them: a mapping that acts on every transition is correct against a latch and double-acts against a momentary source, netting no change. Nothing on the wire distinguishes them — the value is a value — so the declaration has to travel with the parameter, per parameter rather than per rig. `design.md` §The muteproxy contract is the worked case, and the one that established the cost of leaving it unstated.
+**This is the rule that costs the most time when it is not known.** Inbound dispatch is on the argument's runtime type with no coercion anywhere: an int writes bool and int parameters and never a float, a float writes only floats. So `/avatar/parameters/MyFloat` sent an int `1` changes nothing at all. Sending `1` where `1.0` was meant is the single most common way for a correct-looking rig to do nothing.
+
+Whether you are told depends on which path the parameter takes, and the quiet path is the one this channel is most useful for. A parameter declared in the expression-parameters asset is checked against the generated config and a mismatch is logged; an **animator-only** parameter — the kind reachable here and nowhere else — takes the unchecked path and the write is dropped in silence. `/input/` never warns at all: its float reader yields 0.0 for anything that is not a float and its bool reader yields false for anything that is not a bool or an int, so `/input/Vertical=1` reads as zero and `/input/Jump=1.0` as false.
+
+Two mismatches throw instead of passing quietly, which at least makes them visible: `/input/Horizontal` unboxes its argument as a float directly where `Vertical` goes through the tolerant reader, and an int-typed parameter sent a bool casts a boxed bool to int.
+
+## Latching and momentary are opposite contracts
+
+A **latching** parameter is driven both directions by something outside the consumer and stays where it was put; a **momentary** one returns to zero on its own. A consumer that acts on every transition is correct against a latch and double-acts against a momentary source, netting no change. Nothing on the wire distinguishes them, so the declaration travels with the parameter, per parameter rather than per rig. `design.md` §The muteproxy contract is the worked case.
 
 ## The emulator carries OSC, and this is the whole surface
 
-Everything here is asserted from `AvatarProject/Packages/lyuma.av3emulator/` (MIT, © Lyuma) and confirmed by measurement against a running play session.
+Asserted from `AvatarProject/Packages/lyuma.av3emulator/` (MIT, © Lyuma) and confirmed by measurement against a running play session.
 
-**The lever is `LyumaAv3Runtime.EnableAvatarOSC = true`** on the local runtime, in play mode. Setting it adds and enables a `LyumaAv3Osc` component on the emulator control object, opens the socket, and binds it to that avatar. Nothing in the scene needs authoring first.
+**The lever is `EnableAvatarOSC` on the local runtime** (`verify.md` §OSC has the call). Setting it adds and enables the OSC component on the emulator control object, opens the socket, and binds it to that avatar, with nothing to author in the scene first. It **self-clears** if the socket fails to open or the bound descriptor stops matching, so a rig that looks enabled and is silent is worth re-reading rather than re-sending.
 
-It listens on **9000** and sends to **127.0.0.1:9001** — VRChat's own convention, so a client written against the real thing needs no change. There is **no OSCQuery**: the package contains no service discovery of any kind, so nothing announces itself and nothing can be browsed for. Point at the port.
+It listens on **9000** and sends to **127.0.0.1:9001** — VRChat's own convention, so a client written against the real thing needs no change. There is **no OSCQuery**: the package contains no service discovery of any kind, so nothing announces itself and a consumer must be pointed at the port.
 
-Four behaviours that shape anything built on it:
+- **Emission is change-only, per Unity frame.** A static parameter goes quiet rather than streaming; `resendAllParameters` forces a full re-send.
+- **It emits more than its own config declares.** Parameters written through the SDK's animator-parameter-access path — contact-receiver and raycast outputs, measured — reach the wire even when absent from the generated config, so an animator-only parameter is observable without appearing in any expression-parameters asset.
+- **Inbound writes land on the same value the `.expressionValue` drive route writes** (`verify.md` §Drive/observe). Two writers, one value; use one per session.
+- **Addresses are built from the parameter name verbatim**, without the client's rewriting, so a name containing a space resolves one way here and another in game. Cross-check anything name-sensitive against a real client.
+- **Every datagram received in a frame is applied, in order** — the socket's queue is drained whole. A burst that sets and clears within one frame therefore lands as two writes here, so drive a value once per frame and read the result rather than pulsing in a tight loop.
 
-- **Emission is change-only, per Unity frame.** A value is sent when it differs from the last one sent for that address, so a static parameter goes quiet rather than streaming. `LyumaAv3Osc.resendAllParameters` forces a full re-send.
-- **It emits more than its own config declares.** Parameters written through the SDK's animator-parameter-access path — contact-receiver and raycast outputs, measured — are pushed onto the wire even when absent from the generated OSC config, so an animator-only parameter is observable without appearing in any expression-parameters asset.
-- **An inbound write lands on the same field as the `.expressionValue` drive route** (`verify.md` §Drive/observe). They are two writers to one value; use one or the other within a session, not both.
-- **Addresses are built from the parameter name verbatim**, without the client's rewriting. So a name containing a space resolves one way here and another way in game, and it is exactly the names most likely to contain spaces — vendor and generated ones — that diverge. Cross-check anything name-sensitive against a real client.
+No VRChat login is required; the config falls back to memory. With a login present the emulator writes a generated config file into the real VRChat OSC directory, alternating between two names per play entry — harmless, but a write outside the project.
 
-No VRChat login is required; the config falls back to memory. When a login *is* present the emulator writes a generated config file into the real VRChat OSC directory, alternating between two names on each play entry — harmless, but it is a write outside the project.
-
-`/input/` is implemented selectively. Movement and look (`Vertical`, `Horizontal`, `LookHorizontal`, the `Move*`/`Look*` bools), `Jump`, `Run` and `Voice` all act; `Use*`, `Grab*`, `Drop*`, `PanicButton`, `QuickMenu*` and `Comfort*` parse and do nothing. `Voice` reproduces the client's mute semantics — the rising edge toggles `MuteSelf`, the falling edge is a no-op — which makes a latching-source mapping testable without a headset.
+`/input/` is implemented selectively, and the gaps do not follow the naming. **Acting:** `Vertical`, `Horizontal`, `LookHorizontal`, `MoveForward`, `MoveBackward`, `MoveLeft`, `MoveRight`, `LookLeft`, `LookRight`, `Jump`, `Run`, `Voice`. **Parsed and ignored:** `MoveHoldFB`, `SpinHoldCwCcw`, `SpinHoldUD`, `SpinHoldLR`, `UseAxisRight`, `GrabAxisRight`, `UseLeft`/`UseRight`, `GrabLeft`/`GrabRight`, `DropLeft`/`DropRight`, `ComfortLeft`/`ComfortRight`, `PanicButton`, `QuickMenuToggleLeft`/`QuickMenuToggleRight`. **Absent entirely**, reaching the unrecognized-command warning: `LookVertical`. `Voice` reproduces the client's mute semantics — the rising edge toggles `MuteSelf`, the falling edge is a no-op — which makes a latching-source mapping testable without a headset.
