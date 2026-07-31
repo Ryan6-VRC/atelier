@@ -7,7 +7,7 @@ description: Use when authoring a kickoff block that hands a problem to a fresh 
 
 A kickoff block drops a context-less agent onto a problem with the facts firm and the solution open. The receiver is a model at your own capability level with the repo open — ground the problem precisely, name the prerequisites, offer hypotheses to stress-test, then get out of its way. If you've written the answer, you've written the wrong document.
 
-Blocks live in `docs/local/kickoffs.md` — untracked, and main-working-tree only: `docs/local/` is gitignored, so it does not exist in a worktree. Shape: `## <ID> — <title>`, blank line, then `**Gate:** …` as the first body line (launchable / blocked-on-X / operator-held — `grep -A2 '^## '` is the board; `-A1` shows only the blank line), last line the terminal state (normally an open PR with the repo's gates green) and tier.
+Blocks live in `docs/local/kickoffs.md` — untracked, and main-working-tree only: `docs/local/` is gitignored, so it does not exist in a worktree. Shape: `## <ID> — <title>`, blank line, then `**Gate:** …` as the first body line (launchable / blocked-on-X / operator-held — `grep -A2 '^## '` is the board; `-A1` shows only the blank line), last line the terminal state (normally an open PR with the repo's gates green).
 
 ## Sections
 
