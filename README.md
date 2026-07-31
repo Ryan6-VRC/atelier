@@ -75,7 +75,7 @@ The [`vrc-patterns`](https://github.com/Ryan6-VRC/vrc-patterns) library is both 
 
 Most Unity plugins and Blender scripts are designed for humans, so they hide complexity behind clever defaults. Tooling built for an AI operator inverts that: legibility beats edge-case cleverness. If a tool cannot do exactly what was asked, it refuses and explains why, so the driving model can understand and adapt. This makes the system robust to the enormous variety of creator assets; there are no brittle hard-coded workarounds to outgrow.
 
-The same philosophy governs the workspace's own prose: a project skill, [`write-for-agents`](.claude/skills/write-for-agents/SKILL.md), sets the writing craft for every doc, skill, and diagnostic message an agent will read. (It lives in this repo, not the plugin — the skills table above is the workshop's avatar workflows.)
+The same philosophy governs the workspace's own working process: project skills in [`.claude/skills/`](.claude/skills/) — [`write-for-agents`](.claude/skills/write-for-agents/SKILL.md) for the writing craft in every doc, skill, and diagnostic an agent will read; [`kickoff`](.claude/skills/kickoff/SKILL.md) and [`dispatch`](.claude/skills/dispatch/SKILL.md) for authoring work briefs and coordinating worker sessions. (They live in this repo, not the plugin — the skills table above is the workshop's avatar workflows.)
 
 ## Repos
 
