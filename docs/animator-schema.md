@@ -4,7 +4,7 @@ The YAML language `CompileController` compiles into a `.controller` (`animator.m
 
 The three fixtures under `vrc-unity-tools/fixtures/animator-substrate/` (`debounce`, `smoother`, `codec`) are the runnable companions — each compiles clean, lints PASS, and is emulator-verified. Snippets below are drawn from them. The definitive grammar is `AnimatorSchemaYaml.cs` (parse) + `ControllerEmit.cs` (emit) + `SchemaValidation.cs` (validate), and on the read side `ControllerDecompile.cs` + `AnimatorSchemaEmit.cs` (serialize); when this doc and those disagree, the code wins — tell someone.
 
-The surface is the compile↔decompile round-trip for the controller **graph**: the layers, states, transitions, motions, and behaviours you author both compile and survive a `DecompileController` read ([Decompile output](#decompile-output)). Authoring metadata a `.controller` does not store — `basis`, `role`, and per-param `aap`/`scratch`/`vrc` (they live in the descriptor / `VRCExpressionParameters`) — decompiles to canonical form, not its authored value (`avatar-root` / `fx`; params rebuild as name+type+ default only). The much-shrunken [Not yet in the schema](#not-yet-in-the-schema) section lists what a compile still rejects.
+The surface is the compile↔decompile round-trip for the controller **graph**: the layers, states, transitions, motions, and behaviours you author both compile and survive a `DecompileController` read ([Decompile output](#decompile-output)). Authoring metadata a `.controller` does not store — `basis`, `role`, and per-param `aap`/`scratch`/`vrc` (they live in the descriptor / `VRCExpressionParameters`) — decompiles to canonical form, not its authored value (`avatar-root` / `fx`; params rebuild as name+type+ default only), and [`menu:`](#menu) does not decompile at all. The much-shrunken [Not yet in the schema](#not-yet-in-the-schema) section lists what a compile still rejects.
 
 ## YAML subset
 
@@ -24,6 +24,7 @@ defaults: { … }              # inherited transition/WD settings (below)
 parameters: { … }            # map: name → spec
 layers: [ … ]                # ordered list of layers
 clips: { … }                 # map: name → inline clip
+menu: [ … ]                  # ordered list of expression-menu controls (optional)
 _notes: anything             # any TOP-LEVEL key starting `_` is compile-ignored (Decompile's output channel)
 ```
 
@@ -283,6 +284,35 @@ Each is a flat field map; the enum fields use the tokens shown (fail-loud on an 
 
 **`layerControl` vs `playableLayer` asymmetry (the SDK's, not ours):** `playableLayer.layer` is an **enum token** (which playable), while `layerControl.layer` is an **int index** (which layer *within* the `playable:` playable). `playAudio` carries the full `VRCAnimatorPlayAudio` surface — see `ControllerEmit.PopulatePlayAudio` for every field.
 
+## menu
+
+An optional ordered list of expression-menu controls, emitted as `<controller>_Menu.asset` beside the params asset. A module's menu is thus regenerable from its YAML rather than hand-maintained (`vrc-patterns/CONVENTIONS.md` §The Interface stanza owns when an entry ships one).
+
+```yaml
+menu:
+  - button: Tag                      # the KIND is the key, the control NAME the value
+    param: SelectiveAnimation/Tag
+  - toggle: Wear
+    param: Outfit/Worn
+    value: 1                         # default 1; the value written while the control is active
+  - radial: Saturation
+    param: Color/Sat                 # rides subParameters — a radial writes nothing on press
+  - submenu: Colors
+    controls: [ … ]                  # same grammar, recursively
+```
+
+Four kinds: `button`, `toggle`, `submenu`, `radial`. Fields are `param`, `value` (not on a radial — its parameter *is* the position, so a `value:` would have nowhere to go and is refused), and `controls` (submenu only, and required — an empty submenu is a dead end). A bare `submenu` needs no `param`; every other kind without one is refused as a control that would do nothing.
+
+**A control's `param` is checked against the *wire* type** — `vrc.type ?? type`, the type the params asset lists and VRChat reads the control against, not the animator type. A `radial` therefore needs a float *on the wire*: a `{ type: float, vrc: { type: bool } }` param is a bool to the menu, and a knob on it would carry only 0 and 1. The param must also survive into the params asset, so a `scratch:` one is refused (validation) and a VRC built-in is refused (emit) — both are excluded from that asset, leaving a control that is inert on the avatar with nothing in the built menu to show it.
+
+**A page holds `VRCExpressionsMenu.MAX_CONTROLS` controls, and going over is a compile error, not an advisory.** The SDK's own menu inspector truncates `controls` to that cap the moment a human opens the asset, so an over-long menu silently *loses* controls rather than degrading — split it into sub-menus. `MenuLimits.MaxControlsPerMenu` mirrors the constant for the System.*-only validator; a real emit asserts the two agree and fails loud if the SDK ever moves it. The cap is **per page**, so a full page plus a sub-menu holding another full page is legal.
+
+**The whole tree is one asset.** Sub-menu pages emit as sub-assets of the root file, so a consumer's `menus:` row references one GUID and no page can be orphaned into a loose asset nobody points at. A recompile churns the pages wholesale — a renamed or deleted sub-menu is destroyed, not left inside the file. The root object is overwritten in place, so its GUID survives a recompile exactly as the controller's and the params asset's do; dropping the `menu:` block deletes the asset.
+
+**Emit-only, deliberately — there is no `menu:` on the read side.** A `.controller` stores no menu, so a menu could never ride the controller round-trip; `DecompileController` takes a controller and nothing else and emits no `menu:` block, the same asymmetry `parameters:` already has with its `VRCExpressionParameters` (above). This is a decision, not a gap: transcribing a menu asset back to YAML is rare and mechanical. The consequence is that decompile-equality cannot see menus at all, which is why the vrc-patterns gate compares emitted and committed menu assets in a **separate pass** — structurally, not byte-wise, since the two carry different GUIDs by construction, and over *every* serialized field rather than only the authorable ones (an `icon` in a committed menu is drift the next compile strips).
+
+**The asymmetry has one edge sharper than the params asset's.** Losing `vrc:` metadata on a decompile *degrades* a rebuilt params asset; losing `menu:` **deletes a file other assets reference by GUID**. `Decompile → edit → Compile` back into the folder the controller came from removes `<controller>_Menu.asset`, and a consumer's FullController `menus:` row then dangles — and the gate stays green, because both sides agree the menu is absent. The compile logs a warning whenever it deletes a menu for a document declaring none; that warning is the whole defence. Round-tripping an entry that ships a menu means re-adding the block before recompiling.
+
 ## Decompile output
 
 `DecompileController` (the read door; contract in `animator.md`) reachability-walks a built controller and serializes it back to this schema. What the read side layers on top of the authoring surface:
@@ -304,6 +334,7 @@ Each is a flat field map; the enum fields use the tokens shown (fail-loud on an 
 A compile rejects these — listed so an "unknown field" error reads as deferred, not a syntax slip:
 
 - **AvatarMask emission.** A layer's `mask:` references an existing `AvatarMask` by path; the compiler never **emits** one (external refs only). *Referencing* one is fully covered — a project-local `.mask` round-trips GUID-identical through the path ref, exactly as an SDK/`Packages/` one does — so what is deferred is authoring a mask from the document, not masked layers.
+- **Menu puppets and icons.** [`menu:`](#menu) covers button/toggle/submenu/radial; `TwoAxisPuppet`/`FourAxisPuppet` and their `labels` are out of vocabulary (`menus.md`: effectively unused here), as is a control `icon`, which would need an asset ref per control. A rig needing one authors its menu asset by hand and keeps it out of `built/`.
 - **CustomObjectSync-scale parameterized codegen** — its own future slice.
 - **An NDMF build-time pass** — the compiler writes assets, not a build hook.
 
