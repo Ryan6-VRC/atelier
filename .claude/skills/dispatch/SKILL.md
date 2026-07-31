@@ -1,6 +1,7 @@
 ---
 name: dispatch
 description: Use when launching a body of kickoff blocks onto worker sessions and coordinating them to reviewable PRs ("dispatch these", "run the wave") — the downstream half of `kickoff`. A single block is pasted into a fresh session directly — no skill.
+disable-model-invocation: true
 ---
 
 # Dispatch
