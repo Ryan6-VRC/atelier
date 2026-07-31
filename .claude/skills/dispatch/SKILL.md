@@ -24,6 +24,7 @@ Scan the full prompt, block included, for merge-permission phrasing ("land it", 
 ## Coordinating
 
 - Parallelism is bounded by the physical singletons (live Editors, the one machine, a serial test runner), not the dependency graph. Same repo + disjoint files runs concurrently for free; overlapping files is a merge you own.
+- An **on-request**-gated block (kickoff skill vocabulary) never fills a wave slot on its own — it's launchable, but only when the operator names it by ID.
 - Assigning singletons is your job, not the worker's — hosts of the same kind carry different state and capabilities. Name the assignment in the launch prompt; keep the roster's distinguishing traits in the tracker, and cite them rather than restating them.
 - After presenting launch prompts, present the **singleton board**: each singleton and venue, who holds it, what's free, what launches now versus waits. The operator sequences from that board, not from prose above it.
 - Tier is your call per block — cheaper tier for mechanical work, top tier for heavy design — recorded in the tracker, never a silent uniform default.
