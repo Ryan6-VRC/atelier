@@ -297,11 +297,18 @@ menu:
     value: 1                         # default 1; the value written while the control is active
   - radial: Saturation
     param: Color/Sat                 # rides subParameters — a radial writes nothing on press
+    icon: assets/Sat.png             # relative to THIS document; any kind may carry one
   - submenu: Colors
     controls: [ … ]                  # same grammar, recursively
 ```
 
-Four kinds: `button`, `toggle`, `submenu`, `radial`. Fields are `param`, `value` (not on a radial — its parameter *is* the position, so a `value:` would have nowhere to go and is refused), and `controls` (submenu only, and required — an empty submenu is a dead end). A bare `submenu` needs no `param`; every other kind without one is refused as a control that would do nothing.
+Four kinds: `button`, `toggle`, `submenu`, `radial`. Fields are `param`, `value` (not on a radial — its parameter *is* the position, so a `value:` would have nowhere to go and is refused), `icon`, and `controls` (submenu only, and required — an empty submenu is a dead end). A bare `submenu` needs no `param`; every other kind without one is refused as a control that would do nothing.
+
+**An `icon` is a path in either of two spellings.** A value starting `Assets/` or `Packages/` is a project path; anything else resolves against the *document's own directory* — the portable form, and the one a library entry wants, since the same entry compiles both from its installed package path and from an arbitrary filesystem `--root`. Backslashes and `..` segments are normalized in both; an absolute path is refused outright, as it would resolve only on the machine that wrote it. Resolution stays in **asset-path space** whenever the document is in the AssetDatabase, because a mounted package's `Packages/<name>/…` names no folder on disk: doing the arithmetic on the filesystem sends it to wherever the bytes actually live, outside the project, and every icon in a mounted package then resolves to nothing.
+
+**Whether a bad icon is fatal depends on the document, not on the icon.** The compiler adjudicates an icon only when it can — when the *document* is in the AssetDatabase. There, resolution is authoritative and anything unresolved fails the compile: there is no marker distinguishing an intended-dangling icon from a typo, and a silently icon-less control is exactly what an author would not notice. When the document is **outside** the AssetDatabase the compiler has nothing to ask and cannot tell a correct path from a wrong one, so it never fails — it emits a null icon and records a compile advisory, whatever the spelling. That is the vrc-patterns gate, which compiles every entry from a filesystem `--root` into a host that does not load the entry's package; failing there would make the field unauthorable by the library it exists for. The in-project compile that regenerates `built/` is where a typo is caught, and every committed icon passes through it.
+
+Two consequences worth knowing before relying on the field. **The gate cannot see an icon** — neither side of its menu comparison can resolve one, so an entry whose `built/` and yaml disagree about an icon still passes. And an out-of-project compile cannot check that an icon is even an image; that too waits for the in-project compile. Icons survive composition onto a host avatar (`menus.md`).
 
 **A control's `param` is checked against the *wire* type** — `vrc.type ?? type`, the type the params asset lists and VRChat reads the control against, not the animator type. A `radial` therefore needs a float *on the wire*: a `{ type: float, vrc: { type: bool } }` param is a bool to the menu, and a knob on it would carry only 0 and 1. The param must also survive into the params asset, so a `scratch:` one is refused (validation) and a VRC built-in is refused (emit) — both are excluded from that asset, leaving a control that is inert on the avatar with nothing in the built menu to show it.
 
@@ -334,7 +341,7 @@ Four kinds: `button`, `toggle`, `submenu`, `radial`. Fields are `param`, `value`
 A compile rejects these — listed so an "unknown field" error reads as deferred, not a syntax slip:
 
 - **AvatarMask emission.** A layer's `mask:` references an existing `AvatarMask` by path; the compiler never **emits** one (external refs only). *Referencing* one is fully covered — a project-local `.mask` round-trips GUID-identical through the path ref, exactly as an SDK/`Packages/` one does — so what is deferred is authoring a mask from the document, not masked layers.
-- **Menu puppets and icons.** [`menu:`](#menu) covers button/toggle/submenu/radial; `TwoAxisPuppet`/`FourAxisPuppet` and their `labels` are out of vocabulary (`menus.md`: effectively unused here), as is a control `icon`, which would need an asset ref per control. A rig needing one authors its menu asset by hand and keeps it in `assets/`, out of `built/` — a recompile overwrites `built/` wholesale, so a hand-authored menu left there is destroyed rather than merged.
+- **Menu puppets, and the two control fields beside `icon`.** [`menu:`](#menu) covers button/toggle/submenu/radial; `TwoAxisPuppet`/`FourAxisPuppet` are out of vocabulary (`menus.md`: effectively unused here), and with them `labels`, which only a puppet renders. `style` is out for a different reason: the SDK's own control inspector never binds it, so authoring it would author a field nothing reads. A rig needing a puppet authors its menu asset by hand and keeps it in `assets/`, out of `built/` — a recompile overwrites `built/` wholesale, so a hand-authored menu left there is destroyed rather than merged.
 - **CustomObjectSync-scale parameterized codegen** — its own future slice.
 - **An NDMF build-time pass** — the compiler writes assets, not a build hook.
 
