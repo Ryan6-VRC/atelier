@@ -41,4 +41,4 @@ Verbosity is audience miscalibration: the default imagined reader is a nervous j
 
 ## 4. Form
 
-One line per paragraph, no hard wrap (`tools/reflow_md.py --check` is the meter — advisory at pre-commit, doesn't block). Skills follow `vrc-skills/CONVENTIONS.md` — plugin skills are gated by its `validate_skills.py`, while project skills under `.claude/skills/` are reached only by the form pass and conform by authorship; pattern entries follow `vrc-patterns/CONVENTIONS.md`.
+One line per paragraph, no hard wrap (`tools/reflow_md.py --check` is the meter — advisory at pre-commit, doesn't block). Skills follow `vrc-skills/CONVENTIONS.md` and are gated by its `validate_skills.py`, whether they ship in that repo or as project skills under `.claude/skills/` — one anatomy, both enumerations; pattern entries follow `vrc-patterns/CONVENTIONS.md`.

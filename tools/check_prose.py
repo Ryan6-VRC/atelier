@@ -1,11 +1,16 @@
 # tools/check_prose.py
 """Workspace prose-governance check, run from the meta-repo root.
 
-Four passes over the assembled workspace; a pass whose sibling repo is absent
-skips with a printed NOTE (absence is a valid workspace state, never a failure):
+Four passes over the assembled workspace. A pass with nothing to work on — an
+absent sibling repo, no governed skill directory — skips with a printed NOTE:
+absence is a valid workspace state, never a failure. A family whose repo IS
+present but whose directory is gone is the other thing, and fails loud
+(FAMILY_REQUIRED_BY).
 
   1. vrc-skills' own gate, tools/validate_skills.py (subprocess) — skill
-     anatomy; its errors/warnings count here.
+     anatomy; its errors/warnings count here. Passes 1-3 cover both governed
+     enumerations (SKILL_FAMILIES): the plugin repo's skills/ and this repo's
+     .claude/skills/, held to one anatomy.
   2. Doc pointers: every docs-file reference in a SKILL.md resolves against the
      meta-repo (docs/ listing, root .md files, files in vrc-skills). WARN.
   3. Tool names, structured slot only: each leading bold-backticked name in a
@@ -184,11 +189,38 @@ class Findings:
         return sum(w for _, w in self.per_pass.values())
 
 
+# Both governed skill enumerations. A project skill under the meta-repo's
+# .claude/skills/ is not a lighter class than a plugin skill — vrc-skills'
+# CONVENTIONS.md "The gate" holds both to one anatomy; only the owning repo
+# differs, which matters solely to the link check the child gate runs.
+SKILL_FAMILIES = ('vrc-skills/skills', '.claude/skills')
+
+# A family whose owning repo is present but whose directory is gone is corruption,
+# not absence. Naming directories explicitly took that check away from the child
+# gate (invoked bare, it raises "skills/ not found" and exits 2), so it has to be
+# made here or a vanished vrc-skills/skills drops 14 skills and the run still
+# scores clean. The meta-repo owns no such invariant: having no project skills at
+# all is an ordinary state, so .claude/skills has no required marker.
+FAMILY_REQUIRED_BY = {'vrc-skills/skills': 'vrc-skills'}
+
+
+def all_skill_dirs():
+    """Every candidate directory, unfiltered — so pass 1's child gate still gets
+    to report a skill directory that has no SKILL.md at all."""
+    families = []
+    for fam in SKILL_FAMILIES:
+        d = ROOT / fam
+        if d.is_dir():
+            families.append(d)
+        elif (marker := FAMILY_REQUIRED_BY.get(fam)) and (ROOT / marker).is_dir():
+            raise GateError(f'{marker} is present but {fam}/ is missing — the skill family '
+                            'vanished; refusing to score the remaining families as a clean run')
+    return sorted(p for f in families for p in f.iterdir() if p.is_dir())
+
+
 def skill_dirs():
-    skills = ROOT / 'vrc-skills' / 'skills'
-    if not skills.is_dir():
-        return []
-    return sorted(p for p in skills.iterdir() if p.is_dir() and (p / 'SKILL.md').is_file())
+    """The subset that has a SKILL.md, for the passes that read one."""
+    return [p for p in all_skill_dirs() if (p / 'SKILL.md').is_file()]
 
 
 # ---- pass 1: the repo-local skill gate ----
@@ -206,11 +238,22 @@ def pass_validate(out):
     out.start('validate_skills')
     script = ROOT / 'vrc-skills' / 'tools' / 'validate_skills.py'
     if not script.is_file():
+        # The gate lives in the sibling, so its absence also silences anatomy
+        # checking for THIS repo's project skills — name that casualty, or the
+        # run reads as a clean bill over skills nothing linted.
+        local = [p for p in (ROOT / '.claude' / 'skills').glob('*') if p.is_dir()]
+        casualty = (f'; {len(local)} .claude/skills/ skill(s) went unchecked' if local else '')
         print('NOTE  pass 1 (validate_skills): vrc-skills (or its tools/validate_skills.py) '
-              'absent — skipped')
+              f'absent — skipped{casualty}')
         return
-    p = subprocess.run([sys.executable, str(script)], capture_output=True,
-                       text=True, encoding='utf-8', errors='replace')
+    dirs = all_skill_dirs()
+    if not dirs:
+        print('NOTE  pass 1 (validate_skills): no governed skill directories — skipped')
+        return
+    # Name both enumerations rather than letting the child default to its own
+    # skills/ — one invocation, so the single-summary contract below still holds.
+    p = subprocess.run([sys.executable, str(script)] + [str(d) for d in dirs],
+                       capture_output=True, text=True, encoding='utf-8', errors='replace')
     rel = _display(script)
     out_lines = (p.stdout or '').splitlines()
     for line in out_lines + (p.stderr or '').splitlines():
@@ -236,17 +279,20 @@ def pass_validate(out):
 
 # ---- pass 2: doc pointers resolve in the meta-repo ----
 
-def pass_doc_pointers(out, exempt):
+def pass_doc_pointers(out, exempt, fence):
     out.start('doc-pointers')
     dirs = skill_dirs()
     if not dirs:
-        print('NOTE  pass 2 (doc-pointers): vrc-skills absent — skipped')
+        print('NOTE  pass 2 (doc-pointers): no governed skill directories — skipped')
         return
     vrc_skills = ROOT / 'vrc-skills'
     known_names = ({p.name for p in (ROOT / 'docs').glob('*.md')} |
                    {p.name for p in ROOT.glob('*.md')} |
                    {p.name for p in vrc_skills.rglob('*.md') if '.git' not in p.parts})
 
+    # Collect first, so the "is this per-tree scratch?" question is one batched
+    # check-ignore rather than one per pointer.
+    cited = []   # (rel, line, ref) in encounter order
     for d in dirs:
         if d.name in exempt:
             continue
@@ -261,15 +307,34 @@ def pass_doc_pointers(out, exempt):
                 if ref in seen:
                     continue
                 seen.add(ref)
-                if '/' in ref:
-                    first = ref.split('/')[0]
-                    if first.startswith('vrc-') and not (ROOT / first).is_dir():
-                        continue  # sibling absent: not resolvable, not a finding
-                    if not any((base / ref).exists() for base in (ROOT, vrc_skills, d)):
-                        out.warn(f'{rel}:{i}', f"doc pointer '{ref}' does not resolve in the workspace")
-                elif ref not in known_names:
-                    out.warn(f'{rel}:{i}', f"doc pointer '{ref}' matches no meta-repo doc, "
-                                           f"root file, or vrc-skills file")
+                cited.append((rel, i, d, ref))
+
+    # A pointer into a per-tree scratch path (docs/local/, test-output/) is
+    # unresolvable by construction, not broken: those trees are untracked, so they
+    # exist only in the tree that made them. Ask git that question directly rather
+    # than reusing the form fence's exclude list — the fence answers "is this ours
+    # to reflow", which is not the same question. references/ is excluded from the
+    # fence yet references/README.md is tracked and cited by skills, so keying on
+    # the fence would have silently stopped checking a live pointer.
+    per_tree = git_ignored(ROOT, sorted({ref for _, _, _, ref in cited if '/' in ref}))
+
+    for rel, i, d, ref in cited:
+        if ref in per_tree:
+            continue
+        if '/' in ref:
+            first = ref.split('/')[0]
+            if first.startswith('vrc-') and not (ROOT / first).is_dir():
+                continue  # sibling absent: not resolvable, not a finding
+            if not any((base / ref).exists() for base in (ROOT, vrc_skills, d)):
+                out.warn(f'{rel}:{i}', f"doc pointer '{ref}' does not resolve in the workspace")
+        elif ref not in known_names:
+            # Bare names resolve partly out of vrc-skills, so with the sibling
+            # absent a miss says nothing about the pointer — same carve-out the
+            # slash branch above makes, which this branch was missing.
+            if not vrc_skills.is_dir():
+                continue
+            out.warn(f'{rel}:{i}', f"doc pointer '{ref}' matches no meta-repo doc, "
+                                   f"root file, or vrc-skills file")
 
 
 # ---- pass 3: Tools-section names appear in TOOLS.md ----
@@ -279,7 +344,8 @@ def pass_tool_names(out, exempt, terminal_section):
     dirs = skill_dirs()
     tools_md = ROOT / 'TOOLS.md'
     if not dirs or not tools_md.is_file():
-        print('NOTE  pass 3 (tool-names): vrc-skills or TOOLS.md absent — skipped')
+        print('NOTE  pass 3 (tool-names): no governed skill directories, or TOOLS.md '
+              'absent — skipped')
         return
     roster_text = tools_md.read_text(encoding='utf-8')
 
@@ -352,9 +418,8 @@ def fnmatch_md(rel, pat):
     return fnmatch.fnmatch(rel, pat) or (pat.startswith('**/') and fnmatch.fnmatch(rel, pat[3:]))
 
 
-def pass_form(out):
+def pass_form(out, fence):
     out.start('form')
-    fence = read_constants(ROOT / 'docs' / 'tool-design.md', 'governed_fence')['governed_fence']
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import reflow_md
 
@@ -397,9 +462,16 @@ def main(argv=None):
         consts = read_constants(conv, 'description_prefix')
         exempt = consts.get('exempt_skills', [])
         terminal = consts.get('terminal_section', terminal)
-    pass_doc_pointers(out, exempt)
+    consts_fence = read_constants(ROOT / 'docs' / 'tool-design.md', 'governed_fence')
+    if not isinstance(consts_fence.get('governed_fence'), dict):
+        # Bare subscripting would raise KeyError and exit 1, which this module
+        # reserves for lint findings; a malformed constants block is an internal
+        # failure (exit 2), same as a missing one.
+        raise GateError('docs/tool-design.md: constants block has no governed_fence mapping')
+    fence = consts_fence['governed_fence']
+    pass_doc_pointers(out, exempt, fence)
     pass_tool_names(out, exempt, terminal)
-    pass_form(out)
+    pass_form(out, fence)
 
     per = ', '.join(f'{name} {e}/{w}' for name, (e, w) in out.per_pass.items())
     print(f'check_prose: {out.errors} error(s), {out.warnings} warning(s) [{per} (errors/warnings)]')
