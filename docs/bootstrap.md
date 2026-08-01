@@ -70,7 +70,7 @@ The workspace keeps **one `UnityMCP` entry** in `.mcp.json`; route with `set_act
 The **SessionStart hook** (`tools/unity-instances-hook.sh`) is the health readout: it lists live editors and, on a main checkout, fails loud if the `vrc-mcp-proxy` sibling or `uv` is missing (zero UnityMCP). Confirm a project actually works:
 
 - The hook shows your editor live (or a fresh heartbeat in `~/.unity-mcp/`).
-- Green bridges are **necessary but not sufficient**: the Unity bridge heartbeats even over a project full of compile errors. Read the console (`read_console`) for zero errors. *That* is "verified working".
+- Green bridges are **necessary but not sufficient**: the Unity bridge heartbeats even over a project full of compile errors. Read the console (`ReportConsole`) for zero errors. *That* is "verified working".
 - `execute_code`'s `compiler` field reads `roslyn`, not `codedom` (the C#-6 fallback — install Roslyn per §3).
 
 MCP config written mid-session isn't live until the next launch (servers load at launch).
