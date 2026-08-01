@@ -21,7 +21,7 @@ Here the agent drives Unity and Blender directly; tools step in only for the rep
 Multi-rooted, defined by residency and trigger — not a single chain of hops:
 
 - **Resident** (in every session, paying rent every session): CLAUDE.md, skill *descriptions*, tool-emitted diagnostics. A resident line must earn its rent every session; rare-case depth here is a defect — lift it (§Lifting) or push it down the ladder.
-- **One hop**: `docs/` domain files, routed by CLAUDE.md's read-when index. Knowledge a whole class of work needs lives in the doc that class always reads, and the read-when line must say so — corpus-wide doctrine in a conditionally-routed doc is invisible to most of the readers who need it.
+- **One hop**: `docs/` domain files, routed by CLAUDE.md's read-when index. Knowledge a whole class of work needs lives in the doc that class always reads, and the read-when line must say so — corpus-wide doctrine in a conditionally-routed doc is invisible to most of the readers who need it. **Depth pays rent per reader, not per fact:** a component almost no session in that class touches earns only what changes *planning*, with the measured surface routed to the pattern entry that measured it (`VRCRaycast` in `runtime.md` is the worked demotion).
 - **Trigger-gated**: skill *bodies* — the process, gates, and judgment for one task shape; loaded on task match, not reached by hops.
 - **Deep**: pattern and reference entries — narrow precedent that never rose into docs; reached via catalog.
 - **Machine-fired**: checks, for traps whose biting circumstance is detectable (§Lifting).
