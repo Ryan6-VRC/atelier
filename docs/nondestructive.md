@@ -2,7 +2,7 @@
 
 How avatars are assembled here. This is the foundation: the avatar you edit is **authoring**, never the shipped product.
 
-Read this to orient, then stop. The framework mechanisms below the surface — build order, per-component behaviour, what survives a copy — are the tools' job, not yours: where a mechanism bites, a check fires and names the fix. The **package source is the authority** on any framework question (`Packages/nadena.dev.modular-avatar/`, `Packages/com.vrcfury.vrcfury/`); read it or measure live rather than reasoning from a summary.
+Read this to orient, then stop. The framework mechanism below the surface — build order, per-component behaviour, what survives a copy — is the tools' to know, not yours; what stays here is what has to shape your authoring *before* a check can help, and each item says whether a check backs it. The **package source is the authority** on any framework question (`Packages/nadena.dev.modular-avatar/`, `Packages/com.vrcfury.vrcfury/`); read it or measure live rather than reasoning from a summary.
 
 ## An avatar is a base + mergeables
 
@@ -19,6 +19,8 @@ The avatar in the scene is a recipe. The final avatar is produced at **build tim
 - **A full build is the real correctness check.** A play-mode build exercises the whole stack at once, catching what no single tool's PASS/FAIL can (`verify.md`; behaviour has its own ladder in `gimmicks.md`).
 - The stack won't process a hierarchy still holding prefab instances — a clone is unpacked first.
 - **Anything derived from the avatar** — clips, meshes, binding paths — is read from the **baked** result, never the source asset, because the build renames and merges.
+
+### The bake door — `OnPreprocessAvatar`, never `ManualProcessAvatar`
 
 **If you write a tool that bakes**, the door is `VRCBuildPipelineCallbacks.OnPreprocessAvatar` — never `AvatarProcessor.ManualProcessAvatar`, which runs NDMF's plugin chain only, so Modular Avatar survives while VRCFury and the optimizers are skipped: a plausible baked avatar, no error, and nothing signalling it is not the one that uploads. It mutates its argument in place and returns `false` when a hook blocks the build; surface that refusal. Hooks may also open **modal dialogs** (VRCFury prompts on a broken Write Defaults mix), so a bake driven over MCP can wedge the editor — recovery in `unity.md` §Sharp edges. Don't suppress the prompt; it reports a real defect.
 
@@ -38,16 +40,16 @@ The two frameworks store references differently, which decides what survives a c
 
 **Modular Avatar by default** — the self-heal makes it forgiving. **VRCFury** when a mergeable needs robust animator merging: the more it drives the avatar's FX (gestures moving ears, tail, expressions), the more VRCFury earns its place.
 
-1. **A module that both moves objects and animates them keeps both operations in one framework.** An MA move under a VRCFury merge silently stops driving the animated object — one direction only, and `CheckAvatar`'s `anchor-seam` class plus the `vrc-patterns` gate enforce it (`unity-tools.md`; `CheckAnimator.CollectAnchorSeamBreaks` carries the build-order mechanism and its source citations). The corollary that has **no** check: VRCFury's parameter-name rewrite also only reaches its own subtree, so a param-carrying component MA moved out of it keeps the bare name and its writes bridge to nothing — a receiver under a moved anchor reads 0 forever. Hence behaviour lives in VRCFury, MA touches only anchor nodes carrying no animated bindings, and a module **senses from inside**: constrain a sense point to the anchor GO, never parent it there.
+1. **A module that both moves objects and animates them keeps both operations in one framework.** The break runs **one way**: a clip VRCFury merged that paths through a node Modular Avatar moved stops driving that object, while the reverse is safe — VRCFury repaths the merged clips along with its own moves, and MA has no counterpart running late enough to return the favour. So a VRCFury `ArmatureLink` under a `FullController` is a sanctioned anchor; an MA `BoneProxy` or `MergeArmature` anywhere above an animated node in that subtree is not. **It is unannounced, not unlogged** — the build names every binding path it drops and every layer it empties, but nothing points at the anchor as the cause, and a clip stripped of its bindings looks like one that never had any. The same asymmetry hits VRCFury's parameter-name rewrite, which reaches only its own subtree too: a param-carrying component MA moved out keeps the bare name and its writes bridge to nothing, so a receiver under a moved anchor reads 0 forever. **No check catches either** — so behaviour lives in VRCFury, MA touches only anchor nodes carrying no animated bindings, and a module **senses from inside**: constrain a sense point to the anchor GO, never parent it there.
 2. **A module that may be instanced more than once needs VRCFury** — per-instance parameter isolation by default.
 
-## Two merge behaviours that change what you author
+## Merge behaviours that change what you author
 
-Everything else about these components is the package source's to answer. These two decide work *before* you reach a tool:
+Everything else about these components is the package source's to answer. These decide work *before* you reach a tool:
 
-- **`Merge Armature` matches by bone name**, and its two branches decide what an owned base should carry. A **matched** bone *zips* (the outfit's collapses onto the avatar's); an **unmatched** bone is reparented and **kept** as the outfit's own — the ordinary case for skirt/ribbon chains, not a defect. So a base retaining a chain it does not weight flips a mergeable from kept to zipped, and whatever the base carries on those bones — constraints especially — inherits the mergeable's geometry. A *whole-armature* mismatch zips nothing and skins the outfit to a private copy of the armature; `CheckSeam` REFUSEs on that rather than scoring it.
+- **`Merge Armature` matches by bone name**, and its two branches decide what an owned base should carry. A **matched** bone *zips* (the outfit's collapses onto the avatar's); an **unmatched** bone is reparented and **kept** as the outfit's own — the ordinary case for skirt/ribbon chains, not a defect. So a base retaining a chain it does not weight flips a mergeable from kept to zipped, and whatever the base carries on those bones inherits the mergeable's geometry. A *whole-armature* mismatch zips nothing and skins the outfit to a private copy of the armature; `CheckSeam` REFUSEs on that rather than scoring it.
 - **The merge is identity-preserving.** MA retargets bones exactly as they sit and reconciles nothing, so a mismatched rest pose bakes through unchanged: what you see pre-build is what ships. VRCFury is the exception — its align-to-base options apply **at build**, not in edit mode, so that invariant does not hold for it.
-- **Two silent destructions, neither of which any check catches.** `Merge Armature` skips the children of a physbone root entirely, leaving them on the outfit side — and it is **fatal** if one of them names a humanoid bone. `Armature Link` **deletes parent constraints on the objects it merges by default** (`removeParentConstraints`, under Super Advanced Options), so linking a rig whose behaviour *is* a parent constraint destroys it without a word; clear the flag or anchor that rig another way.
+- **`Armature Link` deletes parent constraints on the objects it merges, by default** (`removeParentConstraints`, under Super Advanced Options), so linking a rig whose behaviour *is* a parent constraint destroys it without a word, and no check catches it. Clear the flag, or anchor that rig another way.
 
 ## Tooling implications
 
