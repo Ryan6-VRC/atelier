@@ -14,6 +14,10 @@ Routes out, so nothing below is a second copy: parameter-name hazards and the co
 
 A bool travels as an OSC `T`/`F` type tag carrying no payload, an int as `,i`, a float as `,f`.
 
+## OSCQuery serves the parameter surface, per node
+
+The client's OSCQuery server (advertised over mDNS as `_oscjson._tcp`, floating HTTP port) answers a single-node GET per parameter: `/avatar/parameters/<Name>` returns a JSON node whose `VALUE` is the live value — unsynced parameters included, at full unclamped local precision (an unsynced Int default of 1000 reads back 1000). The tree is built from the generated config, so an animator-only parameter 404s, and it follows the worn avatar: while no worn avatar declares the parameter the node 404s rather than serving stale state, and after `/avatar/change` the new avatar's value was served within 0.14 s (one measurement, one client build, 2026-08-02). The emulator serves none of this (below). vrc-bridge's own served tree and its consumption of this surface are `vrc-bridge/docs/design.md`'s.
+
 ## Argument types are exact, and a mismatch is usually silent
 
 **This is the rule that costs the most time when it is not known.** Inbound dispatch is on the argument's runtime type with no coercion anywhere: an int writes bool and int parameters and never a float, a float writes only floats. So `/avatar/parameters/MyFloat` sent an int `1` changes nothing at all. Sending `1` where `1.0` was meant is the single most common way for a correct-looking rig to do nothing.
@@ -21,6 +25,8 @@ A bool travels as an OSC `T`/`F` type tag carrying no payload, an int as `,i`, a
 Whether you are told depends on which path the parameter takes, and the quiet path is the one this channel is most useful for. A parameter declared in the expression-parameters asset is checked against the generated config and a mismatch is logged; an **animator-only** parameter — the kind reachable here and nowhere else — takes the unchecked path and the write is dropped in silence. `/input/` never warns at all: its float reader yields 0.0 for anything that is not a float and its bool reader yields false for anything that is not a bool or an int, so `/input/Vertical=1` reads as zero and `/input/Jump=1.0` as false.
 
 Two mismatches throw instead of passing quietly, which at least makes them visible: `/input/Horizontal` unboxes its argument as a float directly where `Vertical` goes through the tolerant reader, and an int-typed parameter sent a bool casts a boxed bool to int.
+
+**The unchecked path is not reliably reachable at all on the live client, and the emulator will not tell you.** Correctly-typed writes to an animator-only Int were dropped in silence on one avatar build (the parameter appeared only in transition conditions) and applied on another (drivers also wrote it) — mechanism unsettled, one client build, 2026-08-02 — while the emulator applies them unconditionally. So a parameter OSC must write gets declared in the expression parameters even when nothing syncs it (unsynced costs no sync bits); leave nothing OSC-written animator-only.
 
 ## Latching and momentary are opposite contracts
 
