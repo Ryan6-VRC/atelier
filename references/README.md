@@ -39,6 +39,8 @@ Match your task → project (`file`).
 - Read another player's **hand pose** from contacts — per-finger proximity cages plus a self-shrinking calibration pass that normalizes hand-size variation into a motion-time float → `Gesture-Tracker` (`Gesture Tracker.prefab`, `FX.controller`, `Resources/Animations/{L,R}{hand,index,middle,ring,pinky}/`)
 - Let a **remote** player grab, rotate, and world-drop a prop off *your* avatar — two finger-contact trackers, one physbone, FinalIK `AimIK` for the held orientation → `Avatar-Prop` (`Modular avatar prefab/Avatar Prop.prefab`, `!Resources/Controllers/Avatar prop FX*.controller`)
 - Play an animation for one targeted player only, pre-`VRCRaycast` (two offset FinalIK raycasts plus a contact pair standing in for a hit flag) → `Selective-Animation` (`Selective Animation.prefab`)
+- Smooth OSC-driven floats over network sync + binary-encode them as cheap synced bools (the `Name{1,2,4}`/`NameNegative` wire convention) → `OSCmooth` (`Script/Editor/OSCmoothAnimationHandler.cs`)
+- The sender side of that wire convention — how VRCFaceTracking adapts its binary encoding to the avatar's declared params → `VRCFaceTracking` (`VRCFaceTracking.Core/OSC/DataTypes/BinaryBaseParameter.cs`)
 
 **Blender prep (headless bpy)**
 - Shape-key-safe rest-pose bake → `Cats` (`tools/armature_manual.py` `PoseToRest`); FBX export `tools/importer.py`; visemes `tools/viseme.py`; eyes `tools/eyetracking.py`; fix model `tools/armature.py`
@@ -84,6 +86,8 @@ Match your task → project (`file`).
 | [Gesture-Tracker](https://github.com/ThatFatKidsMom/Gesture-Tracker) | M | MIT |
 | [Avatar-Prop](https://github.com/ThatFatKidsMom/Avatar-Prop) | M | MIT (needs FinalIK or the VRLabs stub to open) |
 | [VRCSchool](https://github.com/VRLabs/VRCSchool) | M | MIT — prose knowledge base, read `docs/*.md` |
+| [OSCmooth](https://github.com/regzo2/OSCmooth) | M | MIT |
+| [VRCFaceTracking](https://github.com/benaclejames/VRCFaceTracking) | M | Apache-2.0 |
 
 ## POINT
 
