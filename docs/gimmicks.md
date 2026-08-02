@@ -17,6 +17,7 @@ Building avatar systems — state machines, constraints, contacts, network sync 
 | On/off, mode, pose index | synced bool/int (or Compressor tier if slow-changing) | 1–8 bits |
 | Continuous value, sloppy | physbone `_Stretch`/`_Angle` (native sync) | 0 bits; IK-delayed |
 | Continuous value, exact | synced float (8-bit) or float→bool binary encode | 8 bits / n bits |
+| A whole word table (bytes/floats/bools), exact, slow-to-medium cadence | `vrc-patterns/word-channel` batch-counter multiplexer | indexBits + slot bits, one batch per ~0.1 s tick; pause residual declared per config |
 | Position of another player's part | contact latching + trilateration or crawler | 0 bits; their IK delay |
 | Object world position, approximate | physbone drop (grab is the sync) | 0 bits; per-client drift; **no late-sync** |
 | Local-only input (hardware, apps) | OSC → unsynced params (+ encode if remotes need it) | 0 bits local |
