@@ -1,6 +1,6 @@
 # MochiFitter — cross-base outfit refit
 
-MochiFitter (もちふぃった～, BOOTH, by Nine Gates / おもちのびる) warps a garment authored for one base body onto a different one whose topology no scale or bone op bridges. It is a purchased vendor tool and is not redistributable: treat it and each conversion profile as detected dependencies, and fail loud naming what is absent rather than degrading.
+MochiFitter (もちふぃった～, BOOTH, by Nine Gates / おもちのびる) warps a garment authored for one base body onto a different one whose topology no scale or bone op bridges. It is a purchased vendor tool and is not redistributable: treat it and each conversion profile as detected dependencies, and fail loud naming what is absent rather than degrading. The **`mochifit`** skill owns the refit process end to end — install, route, drive, own, verify; this doc holds the tool facts it runs on.
 
 **Reach for it only when a transform cannot.** `reproportion` handles topo-preserving base changes through equivalency edges and routes the genuinely non-topo case here — that boundary is declared there. A refit takes minutes and bakes geometry; an equivalency edge does neither.
 
@@ -16,11 +16,11 @@ Per target base, a **conversion profile**: `avatar_data_<base>.json`, `config_<s
 
 **The two avatar fields are not source-and-target in the obvious sense.** Target Avatar is the body being dressed. Source Avatar is the *route*, shown as `X → Y (Template経由)`. Setting the target alone leaves the route pointing somewhere unrelated, and the config field then reflects that wrong route — a run configured this way succeeds and produces the wrong conversion.
 
-**Two backends sit behind one checkbox.** The default drives a bundled Blender and yields a portable FBX; the OMOCHI-format option drives a native solver and yields an asset that only resolves while the vendor's importer is installed. The second is marked experimental by the vendor. Prefer the default: its output survives uninstalling the tool, and no relative-cost claim between the two has been measured.
+**The OMOCHI checkbox is an input-format switch, not a backend swap.** Both checkbox states drive the same bundled Blender with the same retarget script; the option only changes the solver's input to a transient `.omochi` (written under the project's `Temp/`, never `Assets/`) and drops the hips-position argument. Either way the output is a plain FBX plus reconstructed prefab with **zero dependencies on the vendor's assets** (measured via `AssetDatabase.GetDependencies`, ver.64) — both survive uninstalling the tool. One measured comparison (Beryl→Nouvelle, ver.64): geometrically equivalent (0.066 mm max baked-mesh deviation, identical bone offsets and blendshape lists), ~5 % faster with the option on. The vendor still marks it experimental; the default is fine and nothing rides on the choice. Manually importing a `.omochi` through the vendor importer is a different, unwelded path (~3× vertex inflation) — the run itself never takes it.
 
-**A run mutates the vendor folder.** It writes `_temp.json` copies of configs and avatar data beside the shipped originals, with paths rewritten to chain the hops. A failed run leaves them for the next one to consume, so check that folder is clean before starting rather than diagnosing after.
+**A run mutates the vendor folder.** Every fire rewrites `_temp.json` copies of configs and avatar data beside the shipped originals, with paths rewritten to chain the hops — their presence after a run is normal residue, not damage. The trap is a **failed** run's leftovers: the next run consumes them, so check the folder is clean of `_temp.json` before starting rather than diagnosing after.
 
-**Completion pops a blocking modal that stalls the Editor's tool queue.** Detect completion by watching the output folder for the finalized prefab; the Editor is unreachable until the dialog is dismissed.
+**Completion pops a blocking native Win32 modal that stalls the Editor's tool queue** — title `Success`, a single `OK` button (measured, ver.64). Detect completion by watching the output folder for the finalized prefab; the Editor is unreachable until the dialog is dismissed. Two verified dismissal routes: `tools/unity-dialog.ps1` from outside the process (exact title + button per its doctrine), or pre-arm the vendor's own static result-dialog suppression flag on the window type — find it by reflection like every other member; its name is an internal and stays out of tracked files.
 
 **`renderer.bounds` cannot verify placement.** The tool deliberately unifies every renderer to one global bounding box. Bake the skinned mesh and measure real vertex positions against the target body's bones.
 
@@ -34,4 +34,4 @@ The vendor's own readme warns that animations and complex gimmicks on the outfit
 
 ## Verifying one
 
-Rest pose proves nothing here: a refit whose weight transfer failed still renders correctly and disintegrates the moment it is posed. Gate on humanoid-bone world-position coincidence (`CheckSeam`) before any render, then sweep poses per `docs/verify.md`.
+Rest pose proves nothing here: a refit whose weight transfer failed still renders correctly and disintegrates the moment it is posed. Gate on humanoid-bone world-position coincidence before any render, then sweep poses per `docs/verify.md`. `CheckSeam` **refuses** a raw refit output beside a bare body — no descriptor context, so its seam resolution finds no merge target (measured) — so on the raw output measure coincidence directly (compare `Animator.GetBoneTransform` world positions by bone name, baked mesh not `renderer.bounds`); `CheckSeam` scores it later, placed on the real base at compose.
