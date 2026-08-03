@@ -1,6 +1,6 @@
 # Unity
 
-`AvatarProject/` is the sandbox Unity project (an untracked working venue — CLAUDE.md §Layout). Its Unity version is **VRChat-pinned — never upgrade** (breaks uploaded content); the pinned version is each venue's own `ProjectSettings/ProjectVersion.txt`, which §Unity MCP's bring-up bullet has you match anyway.
+`AvatarProject/` is the sandbox Unity project (an untracked working venue — CLAUDE.md §Layout). Its Unity version is **VRChat-pinned — never upgrade** (breaks uploaded content).
 
 Packages are VPM-managed and reproducible (constraints: workspace `CLAUDE.md`; commands: `bootstrap.md`).
 
