@@ -6,7 +6,7 @@
 
 Two ways a vendor asset enters an avatar; choose by whether you need to **own its geometry**.
 
-- **Compose (default).** Drop the *untouched* vendor prefab in and attach it non-destructively (Modular Avatar / VRCFury); the stack resolves at upload on a clone, the vendor asset never edited — except its `.meta`, for the blocking importer settings `LAYOUT.md` §Vendor mutation sanctions. Right for anything you don't need to durably change — props, accessories, outfits that fit. → **`compose-mergeable`**.
+- **Compose (default).** Drop the *untouched* vendor prefab in and attach it non-destructively (Modular Avatar / VRCFury); the stack resolves at upload on a clone, the vendor asset never edited. Right for anything you don't need to durably change — props, accessories, outfits that fit. → **`compose-mergeable`**.
 - **Own.** When you need a durable change to the geometry, build your own copy — a new `.blend` + exported `.fbx`, reusing vendor **materials**/**textures**, owning deeper only where customization needs it (a material/texture customization is the **`own-material`** skill — geometry and materials own independently). Once the proportioning system is in play, **every piece that deforms with the body must be owned** to take the shared reshape (a rigid, already-seam-authored piece still just composes), so owning is common. → **`own-base`** (body) / **`own-mergeable`** (outfit / hair / accessory).
 
 Either way the avatar stays non-destructive until upload (`nondestructive.md`).
