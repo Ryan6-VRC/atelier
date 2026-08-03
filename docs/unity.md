@@ -1,6 +1,6 @@
 # Unity
 
-`AvatarProject/` is the sandbox Unity project (an untracked working venue — CLAUDE.md §Layout). Unity **2022.3.22f1**, VRChat-pinned — never upgrade (breaks uploaded content).
+`AvatarProject/` is the sandbox Unity project (an untracked working venue — CLAUDE.md §Layout). Its Unity version is **VRChat-pinned — never upgrade** (breaks uploaded content).
 
 Packages are VPM-managed and reproducible (constraints: workspace `CLAUDE.md`; commands: `bootstrap.md`).
 
