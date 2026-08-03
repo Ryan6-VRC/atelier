@@ -12,7 +12,7 @@ An avatar is an **avatar base** plus any number of **mergeables** attaching thro
 
 ## The build is non-destructive, on a clone
 
-The avatar in the scene is a recipe. The final avatar is produced at **build time on a throwaway clone** — the SDK clones on upload, play mode runs on the transient play copy. **Vendor and scene assets are never mutated**: non-destructiveness is structural, not our discipline.
+The avatar in the scene is a recipe. The final avatar is produced at **build time on a throwaway clone** — the SDK clones on upload, play mode runs on the transient play copy. **Vendor and scene assets are never mutated**: non-destructiveness is structural, not our discipline. **The one input this does not cover is importer state** — the SDK's blocking validations read the on-disk `TextureImporter`/`ModelImporter`/`AudioImporter`, not the asset, so a `.meta` setting that blocks an upload cannot be corrected on the clone by any pass, ours or a vendor's. Deliberate edit policy for that is `LAYOUT.md` §Vendor mutation's; the door is `ConformImportSettings`.
 
 - **Stay non-destructive until upload.** The live authoring stack *is* the avatar; baking is for inspecting a result, never for producing a deliverable.
 - **NDMF** runs ordered phases over the clone. **Modular Avatar is an NDMF plugin**; **VRCFury is its own SDK preprocessor running after Modular Avatar.** You never sequence them — they self-order.
