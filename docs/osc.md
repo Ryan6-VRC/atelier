@@ -10,7 +10,7 @@ Routes out, so nothing below is a second copy: parameter-name hazards and the co
 
 - **`/avatar/parameters/<Name>`** — an avatar's expression parameters, both directions. `<Name>` is the parameter name *after* the client's rewriting, which is why a name carrying a space is a hazard rather than a spelling choice (`animator-schema.md`).
 - **`/input/<Name>`** — client input commands, **inbound only**. These are not avatar parameters and nothing echoes them back under the same address; their effects surface as built-in parameters instead, so `/input/Vertical` moves the player and reads back as `VelocityZ`.
-- **`/avatar/change`** — emitted with the avatar id when the worn avatar changes.
+- **`/avatar/change`** — **both directions**, carrying an avatar id as `,s`. Emitted when the worn avatar changes; sent *in*, it changes the worn avatar, accepting only ids in the player's favorites, recents, own uploads, or purchases. **Inbound carries no outcome**: the client re-emits the id it was *sent* within milliseconds, identically for an ineligible or malformed one, and never again when the avatar actually loads — so the echo proves receipt and a swap's success is not observable here — nor from the readable OSCQuery node of the same name, which reports the last id *requested* and adopts even one no avatar owns, whatever its `DESCRIPTION` claims (`verify.md` for what is). **The reference pages document the outbound direction alone**, so read the inbound half off VRChat's patch notes (2025.1.2, widened in 2025.4.2) and do not re-narrow this line from a reference page that omits it. Eligibility is the patch notes'; the echo and node behaviour is measured.
 
 A bool travels as an OSC `T`/`F` type tag carrying no payload, an int as `,i`, a float as `,f`.
 
@@ -45,6 +45,7 @@ It listens on **9000** and sends to **127.0.0.1:9001** — VRChat's own conventi
 - **Inbound writes land on the same value the `.expressionValue` drive route writes** (`verify.md` §Drive/observe). Two writers, one value; use one per session.
 - **Addresses are built from the parameter name verbatim**, without the client's rewriting, so a name containing a space resolves one way here and another in game. Cross-check anything name-sensitive against a real client.
 - **Every datagram received in a frame is applied, in order** — the socket's queue is drained whole. A burst that sets and clears within one frame therefore lands as two writes here, so drive a value once per frame and read the result rather than pulsing in a tight loop.
+- **`/avatar/change` is outbound-only here.** The emulator builds it in `GetOSCDataInto` and implements no inbound handler for it, so an avatar swap driven over OSC cannot be round-tripped in this venue at all — and since the address is a client command rather than parameter traffic, `verify.md`'s exemption that keeps parameter claims out of the boot tier does not reach it. There is also nothing for it to switch *to*: the emulator runs the avatar in the scene.
 
 No VRChat login is required; the config falls back to memory. With a login present the emulator writes a generated config file into the real VRChat OSC directory, alternating between two names per play entry — harmless, but a write outside the project.
 
