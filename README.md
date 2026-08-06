@@ -128,6 +128,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | Key | Purpose |
 | --- | --- |
 | `ImportPackage` | The heavy-import door, two-phase so the result survives a transport timeout: `Import(path)` kicks off the async `.unitypackage` import and returns `PENDING` at a stable RunLog path (`whatIf` validates only); `Verify(path, expectedRoot?)` re-reads that log and walks the on-disk root for a PASS/PENDING/FAIL verdict authoritative over the callback status, routing deep health to `CheckPackage`. |
+| `ConformImportSettings` | Corrects the import settings that hard-fail a driven upload, folder-scoped and recursive: `RunFolder(folder, whatIf)` over five rows (mip streaming, texture cap, mesh read/write, legacy blendshape normals, audio background load). `.meta`-only, re-runnable, no `force`; the two rows that change what ships name their paths in the summary. |
 
 ### vrc-unity-tools · transplant kit (vendor → owned)
 
