@@ -57,7 +57,7 @@ Match your task → project (`file`).
 - Manipulate Poiyomi materials (animate locked props via `<prop>Animated` tag) → `poiyomi` (`ShaderOptimizer`)
 - Manipulate lilToon materials → `liltoon` (`Editor/lilMaterialProperties.cs`)
 - Make a shader react to audio → `audiolink` (`AudioLink.cginc`, `ALPASS_*`)
-- Draw text or a numeric readout in a shader; ray-trace a virtual billboard plane in the fragment stage → `unity-shaders` (`Shaders/Overlay_HUD.shader` for the MSDF font struct and the plane trace, `Shaders/overlay_common.hlsl` for the shared-include idiom; reproduced and generalized as `vrc-patterns/debug-display`)
+- Draw text or a numeric readout in a shader; ray-trace a virtual billboard plane in the fragment stage → `unity-shaders` (`Shaders/Overlay_HUD.shader` for the MSDF font struct and the plane trace, `Shaders/overlay_common.hlsl` for the shared-include idiom; reproduced and generalized as `vrc-patterns/debug-shaders`)
 
 **Learn the concepts (prose knowledge base, not code)**
 - Avatar 3.0 + Unity-animation reference — Write-Defaults, AAPs, DBT-Combining, Network-Sync, Scale-Friendly, Benchmarks, PhysBones/Contacts/puppets → `VRCSchool` (`docs/{Unity-Animations,Avatars,Other}/*.md`, images inline as sibling `.png`)
@@ -89,7 +89,7 @@ Match your task → project (`file`).
 | [VRCSchool](https://github.com/VRLabs/VRCSchool) | M | MIT — prose knowledge base, read `docs/*.md` |
 | [OSCmooth](https://github.com/regzo2/OSCmooth) | M | MIT |
 | [VRCFaceTracking](https://github.com/benaclejames/VRCFaceTracking) | M | Apache-2.0 |
-| [unity-shaders](https://github.com/lereldarion/unity-shaders) | M | MIT — © 2025 Lereldarion. Ships as the VPM package `lereldarion.unity-shaders`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/debug-display` is derived from it |
+| [unity-shaders](https://github.com/lereldarion/unity-shaders) | M | MIT — © 2025 Lereldarion. Ships as the VPM package `lereldarion.unity-shaders`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/debug-shaders` is derived from it |
 
 ## POINT
 

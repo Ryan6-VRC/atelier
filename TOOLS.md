@@ -58,8 +58,6 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | --- | --- |
 | `RemapMaterials` | Swap materials by asset path across a hierarchy. |
 | `ConstrainedDuplicate` | Clone a hierarchy and wire VRC constraints between original and duplicate bones. |
-| `SetDisplayEntry` | Configure one entry of a `vrc-patterns/debug-display` material — label string, decimals, right-pad, palette, value source — packing the label into material properties. Speaks names, never the packed float. `whatIf`; refuses a `Packages/` target since the shipped preset is a template. Contract: `unity-tools.md`. |
-| `ReportDisplay` | Decode a `debug-display` material back into readable text: grid shape, then per entry the label, format and source. Verdict-free. Owed rather than optional — a packed label reads as the bare number `262143` in any raw dump, so without it an agent cannot observe before changing or verify after. Contract: `unity-tools.md`. |
 
 ### vrc-unity-tools · publish
 
