@@ -19,12 +19,18 @@ param(
   # generated manifest repoints the file: refs at this root (absolute), so TestEditor is never tied
   # to the main checkout's own layout. Empty resolves the same way as $SourceProject.
   [string]$ToolsRoot = "",
+  # Where com.ryan6vrc.patterns lives — its own repo, so it is not under $ToolsRoot. The venue must
+  # carry it because Ryan6VRC.AvatarTools.Editor references its Editor assembly (the debug-shaders
+  # wire format and inspectors ship there): without it the test assemblies do not compile at all.
+  # Pass a worktree to verify its edits. Empty resolves the same way as $SourceProject.
+  [string]$PatternsRoot = "",
   [switch]$Sync
 )
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "test-venue-common.ps1")
 if ([string]::IsNullOrWhiteSpace($SourceProject)) { $SourceProject = Resolve-AtelierChild "AvatarProject" "SourceProject" }
 if ([string]::IsNullOrWhiteSpace($ToolsRoot))     { $ToolsRoot     = Resolve-AtelierChild "vrc-unity-tools" "ToolsRoot" }
+if ([string]::IsNullOrWhiteSpace($PatternsRoot))  { $PatternsRoot  = Resolve-AtelierChild "vrc-patterns" "PatternsRoot" }
 
 # Provisioned once from $SourceProject: the VRChat-pinned SDK plus the community packages the test
 # assemblies compile against. Both lists, and the fixture list below, live in test-venue-common.ps1
@@ -81,13 +87,17 @@ if (Test-Path $psDst) { Remove-Item -Recurse -Force $psDst }
 Copy-Item -Recurse (Join-Path $SourceProject "ProjectSettings") $psDst
 
 # Manifest = $SourceProject's, minus the MCP line (community VRChat packages aren't copied, so they're
-# simply absent), with the two com.ryan6vrc.* file: refs repointed at $ToolsRoot as ABSOLUTE paths.
-# A source project's refs are relative (file:../../vrc-unity-tools/...) and resolve only for a sibling
-# of that project; a worktree-local TestEditor is not that sibling, so rewrite to absolute.
-$toolsFull = (Resolve-Path $ToolsRoot).Path -replace '\\', '/'
+# simply absent), with every com.ryan6vrc.* file: ref repointed as an ABSOLUTE path. A source project's
+# refs are relative (file:../../vrc-unity-tools/...) and resolve only for a sibling of that project; a
+# worktree-local TestEditor is not that sibling, so rewrite to absolute.
+#
+# patterns is repointed separately because it is a repo of its own, mounted at its ROOT rather than at
+# a packages/<name> child, so the tools rewrite below cannot reach it.
+$toolsFull    = (Resolve-Path $ToolsRoot).Path -replace '\\', '/'
+$patternsFull = (Resolve-Path $PatternsRoot).Path -replace '\\', '/'
 $manifest = Get-Content (Join-Path $SourceProject "Packages/manifest.json") | ForEach-Object {
   if ($_ -match 'com\.coplaydev\.unity-mcp') { return }
-  if ($_ -match 'com\.ryan6vrc\.patterns') { return }  # example library, not under test; absent from worktree trees
+  if ($_ -match 'com\.ryan6vrc\.patterns') { return ($_ -replace 'file:[^"]*', "file:$patternsFull") }
   $_ -replace 'file:[^"]*packages/(com\.ryan6vrc\.[^"/]+)', "file:$toolsFull/packages/`$1"
 }
 $manifest | Set-Content -Encoding UTF8 (Join-Path $Dest "Packages/manifest.json")
