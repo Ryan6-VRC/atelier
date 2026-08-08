@@ -76,7 +76,7 @@ MCP round-trips can't hit sub-second timing. When the observable is a *parameter
 
 **The `synced` flag lies both ways** — the baked flag reads synced-false for compressed params that still replicate (VRCFury's Parameter Compressor), and the pre-build asset under-counts (build-time MA/VRCF/prefab merges add synced params) — so judge the synced-bit cost from the post-build `VRCFuryDebugInfo` bit totals (from the bake), never a raw param-asset flag.
 
-**The emulator clamps a driver-written Int to 0–255 only when the param is synced** (`LyumaAv3Runtime.ClampByte` gates on `synced`; its `Add` path is a bare `+=`), where the client documents the clip on synced Ints and an unsynced Set held unclamped in-client, Add unmeasured (`runtime.md` §Parameters) — so a driver-fed Int counter can read healthy in every fixture here and flatline in game; nothing in this venue can catch that class.
+**The emulator clamps a driver-written Int to 0–255 only when the param is synced** (`LyumaAv3Runtime.ClampByte` gates on `synced`), Set and Add alike — matching the client (`runtime.md` §Parameters). The two venues split only on a `convertRange` remap landing exactly on a whole number, where av3emu lands one below.
 
 **An induced cull pause is one line**: disable the clone's `Animator` component mid-run and re-enable it — wire params keep updating, evaluation stops, resume sees current values — the stand-in the `vrc-patterns/word-channel` pause fixtures are built on (the real client's pause-time delivery timing stays two-client-only — `vrchat-client.md`).
 
