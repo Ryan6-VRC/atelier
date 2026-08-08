@@ -24,6 +24,7 @@ Scan the full prompt, block included, for merge-permission phrasing ("land it", 
 ## Coordinating
 
 - Parallelism is bounded by the physical singletons (live Editors, the one machine, a serial test runner), not the dependency graph. Same repo + disjoint files runs concurrently for free; overlapping files is a merge you own.
+- **A live background `Agent` child holds you open, so end your turn rather than wait on it.** The harness re-invokes you when the child completes, and `run_in_background: false` does not change that — the call returns at spawn either way. A `sleep` loop over the child's `tasks/<id>.output` is pure wall clock (28 minutes in one measured worker) and polls a raw transcript, not a result. `Monitor` is not the alternative — it does not block a subagent's turn — and reading that as "then I must poll" is what produced the 28 minutes.
 - An **on-request**-gated block (kickoff skill vocabulary) never fills a wave slot on its own — it's launchable, but only when the operator names it by ID.
 - Assigning singletons is your job, not the worker's — hosts of the same kind carry different state and capabilities. Name the assignment in the launch prompt; keep the roster's distinguishing traits in the tracker, and cite them rather than restating them.
 - After presenting launch prompts, present the **singleton board**: each singleton and venue, who holds it, what's free, what launches now versus waits. The operator sequences from that board, not from prose above it.
