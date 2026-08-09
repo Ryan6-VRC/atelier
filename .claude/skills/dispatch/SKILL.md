@@ -32,6 +32,22 @@ Scan the full prompt, block included, for merge-permission phrasing ("land it", 
 - Don't mine PR bodies for bookkeeping — read the inbox file; review is a separate job you are not always doing.
 - A worktree's green test run can lie: a Python editable install records one absolute path, so a second checkout can import the first one's `src/` and pass regardless of its own changes. The only reliable check is the resolved path — have the worker print the tested module's `__file__` from inside a test and report it beside the pass count.
 
+## Draining a repair queue
+
+The queue line is not the unit of triage — the coherent repair is. Dedupe across the venue files first, then group lines sharing an underlying cause: several warnings aimed at one doc section are usually one section rewrite, often at a net line reduction. Cost the group, never the line.
+
+Sort each repair by failure mode, which sets its default:
+
+- **A false assertion — repair by default.** A green verdict on a bad state, a round-trip that silently drops content, a doc sentence a measurement contradicts. This class outranks blockers: a block fails loud and costs bounded tokens, while a false verdict ships a defect under a green check — and a lie in a `Check*` door corrupts every future grade that leans on it, `fitting-session`'s included.
+- **A loud block or expensive detour — costed, on evidence already in the queue.** The worker routed around it, so what matters is expected recurring cost: the transcript anchor prices the detour in measured tokens, and independent hit count prices recurrence — two independent sightings promote an item, one sighting on an exotic asset is presumptively a drop.
+- **A complaint that still succeeded — drop by default.** A drop needs no justification; a fix must positively claim its factor — a net line reduction, a prose check lifted into code, a measured detour it retires.
+
+Then price where the fix lands (`docs/tool-design.md`'s routing ladder owns the full argument): tool output is near-free, paid at invocation exactly when relevant; a narrow-readership doc is cheap, its only readers the agents it serves; an always-read doc taxes every future session; new gate or code carries maintenance plus standing friction on future work, and clears the highest bar.
+
+Spend real analysis only on the contested middle — most items answer at a glance, and an analysis habit is its own token sink that drifts toward rationalized approvals.
+
+The asymmetry that makes drop-by-default safe: a wrongly dropped defect re-surfaces in a later run and promotes itself on hit count, while a wrongly queued fix burns a wave slot, a worker session, and coordinator context with no equivalent recovery. Softness still applies — a queued repair is a hypothesis the worker's skeptical start may yet decline.
+
 ## Merge and reclaim
 
 Reclaim as a step in the loop — on merge, on early-stop, on abandonment — not a batch at the end; early worker termination is normal, not an error. On merge: squash + `--delete-branch`, ff local main, remove the worktree, cross the block off with a one-sentence note (git holds the detail), transcribe the inbox file, hand-register any tool-index change a worktree-skipping hook missed, and keep sibling manifests in lockstep (`plugin.json` ↔ `marketplace.json` — workers bump one).
