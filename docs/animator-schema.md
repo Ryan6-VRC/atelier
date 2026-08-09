@@ -165,9 +165,9 @@ A `to:` target names a state or sub-machine by one of these disjoint forms (`Con
 
 ### `defaultState:` — a default outside the machine
 
-Unity's `m_DefaultState` is a plain state reference with **no subtree constraint**, so a machine can boot a state nested several machines down — what the animator window writes for "Set as Layer Default State" on a nested node. `defaultState:` carries that: a **root-relative address** in the `to:` grammar above, always naming a **state**. A path resolving to a sub-machine is refused; the field cannot hold one.
+Unity's `m_DefaultState` points at a state anywhere **inside the machine's own sub-tree**, not just a direct child, so a machine can boot a state nested several machines down — what the animator window writes for "Set as Layer Default State" on a nested node. `defaultState:` carries that: a **root-relative address**, always naming a **state**.
 
-It is a second key rather than a path form of `default:` because the two are **independent facts that co-exist**: a machine can carry a foreign default *and* a trailing unconditional entry rung, and one key cannot express both. Keeping them apart also preserves the addressing invariant `to:` relies on — an address selects *which node*, never what happens on arrival.
+Three things are refused rather than approximated: a path resolving to a sub-machine (the field cannot hold one), and a state **outside the carrying machine's sub-tree** — an ancestor's state or a sibling branch, which Unity accepts from a script and then silently discards, leaving the previous default in place. The address is root-relative in **every** spelling, a lone segment included; it does *not* take `to:`'s local reading, so a bare `defaultState: P` inside machine `M` names the layer root's `P` and is therefore refused as outside `M`. Write `M/P`.
 
 ```yaml
     entry:
@@ -175,7 +175,9 @@ It is a second key rather than a path form of `default:` because the two are **i
     defaultState: Preset 0/Neutral      # no rung matched ⇒ boot Neutral, nested inside Preset 0
 ```
 
-**A machine with no direct states of its own needs no `defaultState:`.** Unity auto-fills an empty ancestor's default from a descendant, so `default: Sub` re-derives the nested state for free. Decompile emits the bare form there and spends `defaultState:` only where a rebuild would otherwise lose the default — which is any machine holding a direct state, since that state claims the slot first.
+It is a second key rather than a path form of `default:` because the two are **independent facts that co-exist**: a machine can carry a foreign default *and* a trailing unconditional entry rung, and one key cannot express both. Keeping them apart also preserves the addressing invariant `to:` relies on — an address selects *which node*, never what happens on arrival.
+
+**Decompile spends the key only where a rebuild would otherwise lose the default.** Unity auto-fills an *empty* ancestor slot as states are added, landing on the **first state added anywhere in the sub-tree** — not, as it looks, the child machine's own default. So when the default already equals that first state, a recompile re-derives it for free and the bare `default:` form (or no key at all) is faithful; anything else needs `defaultState:` written out. A machine holding a direct state therefore always needs it, since that direct state claims the slot first.
 
 **Name escaping.** A literal `/` or `\` inside a state/machine name is escaped `\/` / `\\` **in an addressing/path context**; a path splits on **unescaped** `/` only. A bare local reference and non-path scalars (a state's own name key) stay unescaped.
 
