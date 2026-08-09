@@ -37,7 +37,7 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 - **`docs/workflow.md`** — cross-system orchestration above any one tool: goals, sequencing, Unity↔Blender handoffs.
 - **`docs/tool-design.md`** — the design constitution for everything agent-facing: tool interfaces, and where knowledge lives (routing ladder, managed echoes, trap-lifting, governed diagnostics). Read before adding or changing tools, skills, or any agent-directed prose.
 - **`TOOLS.md`** — the system tool index: every callable across `vrc-unity-tools` / `vrc-blender-tools`. Read it to see the whole tool surface at once.
-- **`docs/runtime.md`** + **`docs/gimmicks.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns); skip for other work.
+- **`docs/runtime.md`** + **`docs/gimmicks.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns); skip for other work. Exception: `gimmicks.md` §Packaging owns `globalParams` for any VRCFury `FullController`.
 - **`docs/verify.md`** — how to prove a claim about an avatar: the method ladder, evidence rules, the enforced play-mode gate, what needs a real client. Read before verifying anything, not just gimmick work.
 - **`docs/emulator.md`** — the Av3Emulator harness: driving and observing an avatar in play mode — runtimes, remote clones, injected contacts, grabs, OSC-in-play, session cost. Read before driving any play session.
 - **`docs/vrchat-client.md`** — the agent-driven live desktop client: launch/relaunch, OSCQuery reads, instance policy, two-client runs. Read when a claim needs the shipping client.
