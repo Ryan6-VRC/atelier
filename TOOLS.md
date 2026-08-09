@@ -65,6 +65,8 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | --- | --- |
 | `UploadAvatar` | Batch-upload composed avatars live to VRChat, driving Continuous Avatar Uploader by reflection (optional; absent → REFUSE with the fix). Operator-gated, never autonomous; `whatIf` previews readiness without uploading. |
 | `RenderThumbnail` | Baked posed portrait for an avatar's upload thumbnail — 1200x900 PNG, **edit-mode** default: bakes the **full VRC SDK preprocess chain** (optimizers included), so it shows what actually uploads; `RenderAvatar` never bakes. One deterministic synchronous call. `pose` and optional `expression` are names, and an unknown one enumerates. `png=` feeds `UploadAvatar`. |
+| `ReportAvatarRecord` | An uploaded avatar's **live** blueprint record as the server holds it — the scene is not evidence about what is published; this is. Ids, URLs and the account name never enter output. Async: `Run`, then poll `Status()`. Contract: `unity-tools.md` §Publish. |
+| `UpdateAvatarRecord` | Edit an already-uploaded avatar's name, description and tags — **metadata only, no bundle, no re-upload**. Fields are null-means-unchanged; `expectCurrentName` is required and chains from `ReportAvatarRecord`. `ReleaseStatus` is deliberately not settable. `whatIf` previews. Contract: `unity-tools.md` §Publish. |
 | `RenderThumbnailPlay` | Same thumbnail from **play mode** — hair/cloth **settled** by the real physbone solver, FX toggles/materials **resolved**; same caller vocabulary, shared spine (`RenderThumbnailCore`). A play **session**: `Begin` → `manage_editor play` → `Shoot` (async; poll `Status()`) → `manage_editor stop` → `End`. Names any chain **still moving** at capture. `unity-tools.md` §Thumbnails. |
 
 ## vrc-blender-tools
