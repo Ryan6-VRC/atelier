@@ -35,6 +35,7 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 - **`docs/animator.md`** + **`docs/animator-schema.md`** — animator-controller work: the tool doors (report/lint, clean/sweep/repath/own, compile/decompile + the round-trip) and the `CompileController` YAML authoring language. Read for any controller build, inspection, or round-trip.
 - **`docs/blender.md`** — Blender operating knowledge: headless batch + Blender MCP usage, the `avatarprep` extension.
 - **`docs/workflow.md`** — cross-system orchestration above any one tool: goals, sequencing, Unity↔Blender handoffs.
+- **`docs/dispatched-work.md`** — the standing brief for a session handed a kickoff block: the verify→plan→sign-off arc, channels, terminal state, the inbox. Read when a launch prompt or pasted block points you at it.
 - **`docs/tool-design.md`** — the design constitution for everything agent-facing: tool interfaces, and where knowledge lives (routing ladder, managed echoes, trap-lifting, governed diagnostics). Read before adding or changing tools, skills, or any agent-directed prose.
 - **`TOOLS.md`** — the system tool index: every callable across `vrc-unity-tools` / `vrc-blender-tools`. Read it to see the whole tool surface at once.
 - **`docs/runtime.md`** + **`docs/gimmicks.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns); skip for other work. Exception: `gimmicks.md` §Packaging owns `globalParams` for any VRCFury `FullController`.
