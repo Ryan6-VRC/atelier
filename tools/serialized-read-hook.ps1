@@ -65,9 +65,9 @@ try {
     # at CheckAvatar sends it to a door that cannot read a controller. Bare `.meta` is deliberately
     # not a class — it matches every asset in the project and would fire on noise.
     $routes = [ordered]@{
-        asset    = 'Read it with the asset doors instead — `ReportController` for the graph, `CheckAnimator` for a verdict with the binding basis taken from the merge site (`docs/animator.md`).'
-        scene    = 'Read the placed avatar with the scene doors instead — `CheckAvatar`, `ReportGimmick`, `AgentInspector` (`docs/unity-tools.md`). Modular Avatar components serialize by script GUID, so a name grep of the YAML finds nothing that is there.'
-        importer = 'A humanoid mapping lives only in the ModelImporter''s human description, consistent with nothing else in the project — `CheckHumanoidRig` is what reads it.'
+        asset    = 'Read it with the asset doors instead — `ReportController` for the graph, `CheckAnimator` for a verdict with the binding basis taken from the merge site (`docs/animator.md`). For where a parameter is written and read ACROSS the merged controllers, `ReportComposition`.'
+        scene    = 'Read the placed avatar with the scene doors instead — `CheckAvatar`, `ReportGimmick`, `AgentInspector`, and `ReportComposition` for parameter and menu provenance across every merged surface (`docs/unity-tools.md`). Modular Avatar components serialize by script GUID, so a name grep of the YAML finds nothing that is there.'
+        importer = 'A humanoid mapping lives only in the ModelImporter''s human description, consistent with nothing else in the project — `CheckHumanoidRig.InspectAvatar` reads it against a placed avatar.'
     }
     $hit = [ordered]@{}
     foreach ($p in $paths) {
