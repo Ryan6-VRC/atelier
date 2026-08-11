@@ -20,7 +20,9 @@ A controller shipped inside a **never-placed prefab** gives `basis=auto` no in-s
 
 **The binding frame** is a fact about the merge component, which is why `auto` can read it and a frame-blind rewriter cannot. An MA `MergeAnimator` declares it once for the whole controller: `pathMode: Absolute` resolves against the avatar root, while `Relative` resolves against its `relativePathRoot` — and that reference resolves **`referencePath` first**, an empty one yielding nothing whatever `targetObject` holds (`nondestructive.md` §Reference hardening owns why, and why the inspector disagrees), with `targetObject` consulted only for a non-empty path and only under the avatar root. A `relativePathRoot` that resolves to nothing falls back to the component's own GameObject, so the common unset case mounts at the component. A VRCFury `FullController` decides **per binding** instead, walking up from the prop root toward the avatar root and taking the first prefix at which the binding resolves, so **the prop root wins a tie**; `rootBindingsApplyToAvatar` is the single opt-out, sending root-level (`path == ""`) bindings to the avatar instead.
 
-`CheckAnimator`'s binding-walk is the same one `CheckAvatar` (`unity-tools.md`) reuses for scene-placement ref-breaks — one walk, so the two doors can't disagree on how a binding resolves.
+`CheckAnimator`'s binding-walk is the same one `CheckAvatar` and `ReportComposition` (`unity-tools.md`) reuse — one walk, so no two of those doors can disagree on how a binding resolves.
+
+**`mergeSites=N (used: <site>)` rides the summary whenever more than one surface on the avatar mounts the controller under test.** Basis choice alone has flipped this door's verdict — the same controller in the same scene, FAIL then PASS fourteen seconds apart — and nothing in the output said a second site existed. The count is judgment-free multiplicity, reported because selecting the basis stays the agent's call; it does **not** touch `DetectAuto`'s single-site contract, which refuses on ambiguity *at one site* and is answering a different question.
 
 ## Owning & consolidating a controller
 
