@@ -56,6 +56,17 @@
             "statusMessage": "Checking governed prose"
           }
         ]
+      },
+      {
+        "matcher": "Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR/tools/serialized-read-hook.ps1\"",
+            "timeout": 10,
+            "statusMessage": "Checking serialized-asset read scope"
+          }
+        ]
       }
     ],
     "SessionStart": [
