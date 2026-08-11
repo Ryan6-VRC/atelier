@@ -62,7 +62,7 @@ parameters:
 - **`scratch: true`** = an internal/working param. It is still a real animator parameter; it is only excluded from the emitted `VRCExpressionParameters` legibility asset.
 - **`vrc:`** drives that asset. `synced`/`saved` set the flags; `type` overrides the listed value-type when it differs from the animator type (a bool read as a float DBT weight). `osc: true` records "this name must survive the build" as intent — the flag itself takes no compile action beyond storing that intent. Independent of the flag: VRChat's OSC interface replaces spaces in a parameter name with underscores (a resulting collision can crash the client), and `# * , ? [ ] { }` are OSC pattern metacharacters — compile surfaces any declared non-scratch parameter whose name hits either hazard as a RunLog advisory.
 
-**The params asset.** The compiler emits a `<controller>_Parameters.asset` listing every declared param **except** VRC built-ins and `scratch:` ones — *even unsynced ones* (`networkSynced=false`, zero sync-bit cost), so a human reading the merged FX sees them. Nothing to declare beyond `parameters:`; `vrc:` only tunes the entries.
+**The params asset.** The compiler emits a `<controller>_Parameters.asset` listing every declared param **except** VRC built-ins and `scratch:` ones — *even unsynced ones* (`networkSynced=false`, zero sync-bit cost), so a human reading the merged FX sees them. A consumer references that asset by GUID (a VRCFury `FullController` names it in `prms:`), so legibility is why *unsynced* params are listed rather than what the asset is for: an excluded name is undeclared on the built avatar. Nothing to declare beyond `parameters:`; `vrc:` only tunes the entries.
 
 ## layers and states
 
