@@ -34,6 +34,14 @@
 #
 # Never block: every path out exits 0, and a marker store that cannot be read or written nudges
 # anyway. The worst case of every failure mode here is one missing or one duplicated line of advice.
+#
+# The cost is one fresh pwsh spawn per matched call, ~250 ms of it ~170 ms interpreter startup, and
+# it fires on roughly 1% of reads (measured 2026-08-12). That stays cheap only because N is small:
+# across every recorded session on this machine the median is 14 Read|Grep|Glob calls, so ~3.5 s per
+# session. A fast pre-filter in front of pwsh was measured and declined — the best front-end
+# available here saves ~165 ms of the 250, and buys it by duplicating outside the tests the payload
+# shapes test_serialized_read_hook.py exists to pin, where the only failure mode is the narrowed
+# coverage the never-block design refuses. N per session, not the spawn, is what would reopen this.
 
 $ErrorActionPreference = 'Stop'
 
