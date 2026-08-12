@@ -19,9 +19,13 @@ param(
   [string]$Assemblies = "Ryan6VRC.AvatarTools.Tests;Ryan6VRC.AgentTools.Tests",
   [string]$Filter     = "",
   [Parameter(Mandatory=$true)][string]$Tag,
-  [int]$TimeoutSec    = 540
+  [int]$TimeoutSec    = 540,
+  # Unity.exe for the run. Empty resolves it from $Project's own pinned version — unity-editor.ps1
+  # owns the ladder. Pass one to override.
+  [string]$Editor     = ""
 )
 . (Join-Path $PSScriptRoot "test-venue-common.ps1")
+. (Join-Path $PSScriptRoot "unity-editor.ps1")
 # This script does not set $ErrorActionPreference, so a dot-source that failed above (file missing,
 # renamed, unreadable) only WROTE an error and carried on — measured on PowerShell 7. The package lists
 # would then be $null, every `foreach ($pkg in $null)` would iterate zero times, and the community tier's
@@ -31,11 +35,16 @@ if (-not $TestVenueCommunity -or -not $TestVenueFixtures -or -not $TestVenueSdk)
   Write-Host "OUTCOME=RUN_ERROR test-venue-common.ps1 did not load (package lists empty) — the venue guards cannot run"
   exit 5
 }
+# Same reasoning for the second dot-source: a missing Resolve-UnityEditor would otherwise surface as a
+# CommandNotFoundException inside the resolve try/catch below, reported as if the EDITOR were missing.
+if (-not (Get-Command Resolve-UnityEditor -ErrorAction SilentlyContinue)) {
+  Write-Host "OUTCOME=RUN_ERROR unity-editor.ps1 did not load (Resolve-UnityEditor undefined) — cannot resolve the editor"
+  exit 5
+}
 if ([string]::IsNullOrWhiteSpace($SourceProject)) {
   try { $SourceProject = Resolve-AtelierChild "AvatarProject" "SourceProject" }
   catch { Write-Host "OUTCOME=RUN_ERROR $($_.Exception.Message)"; exit 5 }
 }
-$editor = "C:/Program Files/Unity/Hub/Editor/2022.3.22f1/Editor/Unity.exe"
 # Run-output goes to a disposable sibling of TestEditor, never into tracked tooling: gitignored
 # wholesale, worktree-local, and safe to delete at any time. Pruned at 30 days because nothing
 # reads an old run — output accrues one file per -Tag, so it grows with wave count, not runs.
@@ -80,6 +89,26 @@ function Copy-PackageIn($pkg, [switch]$Soft) {
   }
 }
 
+# --- Editor-version parity (hard block) --- setup-test-editor.ps1 copies ProjectSettings wholesale from
+# $SourceProject, so the two versions agree the day the venue is provisioned and can only diverge if the
+# source is upgraded afterwards. That divergence matters more than a package drift: the editor is resolved
+# from $Project below, so a stale venue would be tested by a stale editor against current packages, and
+# pointing the NEW editor at it instead would silently upgrade the project in batchmode. Same remedy as an
+# SDK drift, so it reuses that outcome token rather than inventing an eighth exit code.
+function Get-ProjectEditorVersion($proj) {
+  $pv = Join-Path $proj "ProjectSettings/ProjectVersion.txt"
+  if (-not (Test-Path $pv)) { return $null }
+  $m = Get-Content $pv | Select-String '^m_EditorVersion:\s*(\S+)'
+  if (-not $m) { return $null }
+  return $m[0].Matches[0].Groups[1].Value
+}
+$sv = Get-ProjectEditorVersion $SourceProject
+$tv = Get-ProjectEditorVersion $Project
+if ($null -ne $sv -and $null -ne $tv -and $sv -ne $tv) {
+  Write-Host "OUTCOME=SDK_DRIFT m_EditorVersion source=$sv TestEditor=$tv — re-sync: tools/setup-test-editor.ps1 -Sync"
+  exit 4
+}
+
 # --- SDK parity guard (hard block) --- SDK trio is VRChat-pinned; a drift is a real problem.
 foreach ($pkg in @("com.vrchat.base", "com.vrchat.avatars", "com.vrchat.core.bootstrap")) {
   $a = Get-SdkVersion $SourceProject $pkg
@@ -119,6 +148,17 @@ foreach ($pkg in $TestVenueFixtures) {
   if ($a -ne $t) { Write-Host "[runner] fixture sync $pkg  source=$a TestEditor=$t"; Copy-PackageIn $pkg -Soft }
 }
 
+# Resolved here, AFTER the venue guards: an un-provisioned TestEditor has no ProjectVersion.txt, and
+# resolving earlier would answer that with "cannot find the editor" instead of the parity guards'
+# accurate "re-sync the venue" — a refusal naming a fix that cannot work.
+if ([string]::IsNullOrWhiteSpace($Editor)) {
+  try { $Editor = Resolve-UnityEditor $Project }
+  catch { Write-Host "OUTCOME=RUN_ERROR $($_.Exception.Message)"; exit 5 }
+} elseif (-not (Test-Path $Editor)) {
+  Write-Host "OUTCOME=RUN_ERROR -Editor '$Editor' does not exist — pass a path to Unity.exe, or omit -Editor to resolve it from $Project"
+  exit 5
+}
+
 function Invoke-Run([string]$tag) {
   $xml = Join-Path $out "results-$tag.xml"
   $log = Join-Path $out "run-$tag.log"
@@ -126,7 +166,11 @@ function Invoke-Run([string]$tag) {
   $args = @("-runTests","-batchmode","-projectPath",$Project,"-testPlatform","EditMode",
             "-assemblyNames",$Assemblies,"-testResults",$xml,"-logFile",$log)
   if ($Filter -ne "") { $args += @("-testFilter",$Filter) }
-  $p = Start-Process -FilePath $editor -ArgumentList $args -PassThru -NoNewWindow
+  $p = Start-Process -FilePath $Editor -ArgumentList $args -PassThru -NoNewWindow
+  # A Start-Process that never started returns $null (measured). Without this the next line throws on
+  # $null.WaitForExit, $p.ExitCode reads as $null, and the classifier below lands it in the run-error
+  # bucket that blames -Assemblies/-Filter — steering diagnosis away from the process that never ran.
+  if (-not $p) { return @{ outcome="NOSTART"; xml=$xml; log=$log; code=$null } }
   if (-not $p.WaitForExit($TimeoutSec * 1000)) { try { $p.Kill(); $p.WaitForExit(5000) } catch {}; return @{ outcome="TIMEOUT"; xml=$xml; log=$log; code=$null } }
   return @{ outcome=$null; xml=$xml; log=$log; code=$p.ExitCode }
 }
@@ -135,6 +179,11 @@ function Test-CompileError($log) { (Test-Path $log) -and (Select-String -Path $l
 
 Write-Host "[runner] $Tag  filter='$Filter'"
 $r = Invoke-Run $Tag
+# Classified before the compile/crash checks, which all read a log this run never wrote.
+if ($r.outcome -eq "NOSTART") {
+  Write-Host "OUTCOME=RUN_ERROR Unity did not start from '$Editor' — the path resolved but the process could not be launched"
+  exit 5
+}
 # stale-compile trap: the first batchmode run after a .cs edit can fail to compile and silently run the
 # PREVIOUS assembly. Re-run once; if it STILL won't compile, the results XML is stale — don't trust it.
 $compileErr = ($r.outcome -ne "TIMEOUT") -and (Test-CompileError $r.log)
