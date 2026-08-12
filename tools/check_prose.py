@@ -19,7 +19,10 @@ present but whose directory is gone is the other thing, and fails loud
   4. Form: tools/reflow_md.py's --check over the governed fence — files
      enumerated from the governed_fence constants in docs/tool-design.md
      (roots, glob, exclude, check-ignore). ERROR on drift: the form gate is
-     already the declared convention.
+     already the declared convention. Individual roots still NOTE-skip, but
+     resolving to zero files overall is the one absence that is not a valid
+     state — this repo's own .md is always inside the fence — so it fails
+     loud rather than reporting a clean run over nothing.
 
 The fence bounds this gate only. tools/prose-hook.ps1's write-time nudge fires
 on any markdown the agent authors in the workspace and reads no fence constant,
@@ -60,79 +63,48 @@ class GateError(Exception):
 
 # ---- constants blocks (docs/tool-design.md, vrc-skills/CONVENTIONS.md) ----
 
-def _strip_comment(line):
-    out, quote = [], None
-    for ch in line:
-        if quote:
-            out.append(ch)
-            if ch == quote:
-                quote = None
-        elif ch in '"\'':
-            quote = ch
-            out.append(ch)
-        elif ch == '#':
-            break
-        else:
-            out.append(ch)
-    return ''.join(out).rstrip()
-
-
-def _scalar(s):
-    s = s.strip()
-    if s[:1] in ('"', "'") and s.endswith(s[0]) and len(s) > 1:
-        return s[1:-1]
-    if s.lower() in ('true', 'false'):
-        return s.lower() == 'true'
-    try:
-        return int(s)
-    except ValueError:
-        return s
-
-
-def _value(v):
-    if v.startswith('['):
-        return [_scalar(x) for x in v.strip('[]').split(',') if x.strip()]
-    if v.startswith('{'):
-        d = {}
-        for pair in v.strip('{}').split(','):
-            if ':' in pair:
-                k, pv = pair.split(':', 1)
-                d[k.strip()] = _scalar(pv)
-        return d
-    return _scalar(v)
-
-
-def _lenient_yaml(block):
-    """Stdlib fallback: flat keys, one nesting level, inline [] / {} — enough
-    for the constants blocks this reads."""
-    root, child = {}, None
-    for raw in block.splitlines():
-        line = _strip_comment(raw)
-        if not line.strip() or ':' not in line:
-            continue
-        indented = line[:1] in (' ', '\t')
-        key, val = line.strip().split(':', 1)
-        val = val.strip()
-        target = child if (indented and child is not None) else root
-        if val == '':
-            target[key] = {}
-            if not indented:
-                child = target[key]
-        else:
-            target[key] = _value(val)
-            if not indented:
-                child = None
-    return root
-
-
 def read_constants(path, marker):
     if not path.is_file():
         raise GateError(f'{path}: not found — cannot read its constants block')
     text = path.read_text(encoding='utf-8')
     for block in re.findall(r'^\s{0,3}```ya?ml[^\n]*\n(.*?)^\s{0,3}```\s*$', text, re.M | re.S):
         if marker in block:
-            return yaml.safe_load(block) if yaml else _lenient_yaml(block)
+            try:
+                consts = yaml.safe_load(block)
+            except yaml.YAMLError as e:
+                # Not a lint finding about someone's prose: the gate cannot read
+                # its own configuration, which is an internal failure (exit 2).
+                raise GateError(f'{path}: constants block is not valid YAML: {e}') from e
+            if not isinstance(consts, dict):
+                raise GateError(f'{path}: constants block is not a mapping (got '
+                                f'{type(consts).__name__})')
+            return consts
     raise GateError(f'{path}: no fenced yaml block containing "{marker}"')
+
+
+def validate_fence(fence):
+    """Fail loud (GateError → exit 2) on a fence whose shape would silently
+    meter the wrong file set. An empty roots or a mistyped exclude does not
+    raise on its own — it selects zero files and reports success, the one
+    failure a governance gate must never have. Element types are checked too:
+    a non-str in roots reaches Path.glob and raises TypeError, and one in
+    exclude is str()-coerced into an exclusion that silently never matches."""
+    if not isinstance(fence, dict):
+        raise GateError('docs/tool-design.md: constants block has no governed_fence mapping')
+    for key, typ in (('roots', list), ('exclude', list), ('glob', str), ('not_ignored', bool)):
+        if key not in fence:
+            raise GateError(f'docs/tool-design.md: governed_fence missing key: {key}')
+        if not isinstance(fence[key], typ):
+            raise GateError(f'docs/tool-design.md: governed_fence key {key!r} must be '
+                            f'{typ.__name__}, got {type(fence[key]).__name__}')
+    for key in ('roots', 'exclude'):
+        for item in fence[key]:
+            if not isinstance(item, str) or not item:
+                raise GateError(f'docs/tool-design.md: governed_fence {key} entries must be '
+                                f'non-empty strings, got {item!r}')
+    if not fence['roots']:
+        raise GateError('docs/tool-design.md: governed_fence roots is empty — '
+                        'the form pass would check zero files and report success')
 
 
 # ---- shared helpers ----
@@ -388,12 +360,14 @@ def git_ignored(repo, relpaths):
 
 
 def governed_md(repo, fence):
-    excludes = tuple(str(e).rstrip('/') + '/' for e in fence.get('exclude', []))
-    glob_pat = str(fence.get('glob', '**/*.md'))
+    # Every key is guaranteed present and typed by validate_fence, so these
+    # subscript rather than defaulting — one spelling of the contract.
+    excludes = tuple(e.rstrip('/') + '/' for e in fence['exclude'])
+    glob_pat = fence['glob']
     # Pre-prune ignored top-level dirs so the walk never enters the big
     # untracked venues (Unity projects, reference clones).
     top = [p.name for p in repo.iterdir() if p.is_dir() and p.name != '.git']
-    top_ignored = git_ignored(repo, top) if fence.get('not_ignored') else set()
+    top_ignored = git_ignored(repo, top) if fence['not_ignored'] else set()
 
     rels = []
     for dirpath, dirnames, filenames in os.walk(repo):
@@ -406,7 +380,7 @@ def governed_md(repo, fence):
             rel = base + fn
             if fnmatch_md(rel, glob_pat) and not rel.startswith(excludes):
                 rels.append(rel)
-    if fence.get('not_ignored'):
+    if fence['not_ignored']:
         dropped = git_ignored(repo, rels)
         rels = [r for r in rels if r not in dropped]
     return [repo / r for r in rels]
@@ -445,6 +419,12 @@ def pass_form(out, fence):
             continue
         if src != res:
             out.error(_display(f), 'not one-line-per-paragraph (run tools/reflow_md.py on it)')
+    if not files:
+        # Zero files is never a real workspace: this repo's own .md is always in
+        # the fence. Reporting "0 checked, no findings" would pass the gate by
+        # measuring nothing.
+        raise GateError('the governed fence resolved zero files — check the '
+                        'governed_fence constants in docs/tool-design.md')
     print(f'form: {len(set(files))} governed file(s) checked')
 
 
@@ -452,6 +432,13 @@ def main(argv=None):
     argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(argv)
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')  # findings quote UTF-8 prose
+
+    # Checked before pass 1 runs: read_constants needs yaml, but so does the
+    # child gate this subprocesses, and its exit-2 would otherwise be reported
+    # as a pass-1 ERROR ahead of the real cause.
+    if yaml is None:
+        raise GateError('pyyaml not installed — pip install pyyaml '
+                        '(prerequisite: docs/bootstrap.md §2)')
 
     out = Findings()
     pass_validate(out)
@@ -463,12 +450,11 @@ def main(argv=None):
         exempt = consts.get('exempt_skills', [])
         terminal = consts.get('terminal_section', terminal)
     consts_fence = read_constants(ROOT / 'docs' / 'tool-design.md', 'governed_fence')
-    if not isinstance(consts_fence.get('governed_fence'), dict):
-        # Bare subscripting would raise KeyError and exit 1, which this module
-        # reserves for lint findings; a malformed constants block is an internal
-        # failure (exit 2), same as a missing one.
-        raise GateError('docs/tool-design.md: constants block has no governed_fence mapping')
-    fence = consts_fence['governed_fence']
+    # Bare subscripting would raise KeyError and exit 1, which this module
+    # reserves for lint findings; a malformed constants block is an internal
+    # failure (exit 2), same as a missing one.
+    fence = consts_fence.get('governed_fence')
+    validate_fence(fence)
     pass_doc_pointers(out, exempt, fence)
     pass_tool_names(out, exempt, terminal)
     pass_form(out, fence)
@@ -483,4 +469,10 @@ if __name__ == '__main__':
         sys.exit(main())
     except GateError as e:
         sys.stderr.write(f'error: {e}\n')
+        sys.exit(2)
+    except Exception:
+        # Exit 1 means "lint findings"; an unhandled crash must not borrow that
+        # code and read as a prose problem. Mirrors validate_skills.py.
+        import traceback
+        traceback.print_exc()
         sys.exit(2)
