@@ -60,79 +60,35 @@ class GateError(Exception):
 
 # ---- constants blocks (docs/tool-design.md, vrc-skills/CONVENTIONS.md) ----
 
-def _strip_comment(line):
-    out, quote = [], None
-    for ch in line:
-        if quote:
-            out.append(ch)
-            if ch == quote:
-                quote = None
-        elif ch in '"\'':
-            quote = ch
-            out.append(ch)
-        elif ch == '#':
-            break
-        else:
-            out.append(ch)
-    return ''.join(out).rstrip()
-
-
-def _scalar(s):
-    s = s.strip()
-    if s[:1] in ('"', "'") and s.endswith(s[0]) and len(s) > 1:
-        return s[1:-1]
-    if s.lower() in ('true', 'false'):
-        return s.lower() == 'true'
-    try:
-        return int(s)
-    except ValueError:
-        return s
-
-
-def _value(v):
-    if v.startswith('['):
-        return [_scalar(x) for x in v.strip('[]').split(',') if x.strip()]
-    if v.startswith('{'):
-        d = {}
-        for pair in v.strip('{}').split(','):
-            if ':' in pair:
-                k, pv = pair.split(':', 1)
-                d[k.strip()] = _scalar(pv)
-        return d
-    return _scalar(v)
-
-
-def _lenient_yaml(block):
-    """Stdlib fallback: flat keys, one nesting level, inline [] / {} — enough
-    for the constants blocks this reads."""
-    root, child = {}, None
-    for raw in block.splitlines():
-        line = _strip_comment(raw)
-        if not line.strip() or ':' not in line:
-            continue
-        indented = line[:1] in (' ', '\t')
-        key, val = line.strip().split(':', 1)
-        val = val.strip()
-        target = child if (indented and child is not None) else root
-        if val == '':
-            target[key] = {}
-            if not indented:
-                child = target[key]
-        else:
-            target[key] = _value(val)
-            if not indented:
-                child = None
-    return root
-
-
 def read_constants(path, marker):
+    if yaml is None:
+        raise GateError('pyyaml not installed — pip install pyyaml '
+                        '(prerequisite: docs/bootstrap.md §2)')
     if not path.is_file():
         raise GateError(f'{path}: not found — cannot read its constants block')
     text = path.read_text(encoding='utf-8')
     for block in re.findall(r'^\s{0,3}```ya?ml[^\n]*\n(.*?)^\s{0,3}```\s*$', text, re.M | re.S):
         if marker in block:
-            return yaml.safe_load(block) if yaml else _lenient_yaml(block)
+            return yaml.safe_load(block)
     raise GateError(f'{path}: no fenced yaml block containing "{marker}"')
+
+
+def validate_fence(fence):
+    """Fail loud (GateError → exit 2) on a fence whose shape would silently
+    meter the wrong file set. An empty roots or a mistyped exclude does not
+    raise on its own — it selects zero files and reports success, the one
+    failure a governance gate must never have."""
+    if not isinstance(fence, dict):
+        raise GateError('docs/tool-design.md: constants block has no governed_fence mapping')
+    for key, typ in (('roots', list), ('exclude', list), ('glob', str), ('not_ignored', bool)):
+        if key not in fence:
+            raise GateError(f'docs/tool-design.md: governed_fence missing key: {key}')
+        if not isinstance(fence[key], typ):
+            raise GateError(f'docs/tool-design.md: governed_fence key {key!r} must be '
+                            f'{typ.__name__}, got {type(fence[key]).__name__}')
+    if not fence['roots']:
+        raise GateError('docs/tool-design.md: governed_fence roots is empty — '
+                        'the form pass would check zero files and report success')
 
 
 # ---- shared helpers ----
@@ -445,6 +401,12 @@ def pass_form(out, fence):
             continue
         if src != res:
             out.error(_display(f), 'not one-line-per-paragraph (run tools/reflow_md.py on it)')
+    if not files:
+        # Zero files is never a real workspace: this repo's own .md is always in
+        # the fence. Reporting "0 checked, no findings" would pass the gate by
+        # measuring nothing.
+        raise GateError('the governed fence resolved zero files — check the '
+                        'governed_fence constants in docs/tool-design.md')
     print(f'form: {len(set(files))} governed file(s) checked')
 
 
@@ -463,12 +425,11 @@ def main(argv=None):
         exempt = consts.get('exempt_skills', [])
         terminal = consts.get('terminal_section', terminal)
     consts_fence = read_constants(ROOT / 'docs' / 'tool-design.md', 'governed_fence')
-    if not isinstance(consts_fence.get('governed_fence'), dict):
-        # Bare subscripting would raise KeyError and exit 1, which this module
-        # reserves for lint findings; a malformed constants block is an internal
-        # failure (exit 2), same as a missing one.
-        raise GateError('docs/tool-design.md: constants block has no governed_fence mapping')
-    fence = consts_fence['governed_fence']
+    # Bare subscripting would raise KeyError and exit 1, which this module
+    # reserves for lint findings; a malformed constants block is an internal
+    # failure (exit 2), same as a missing one.
+    fence = consts_fence.get('governed_fence')
+    validate_fence(fence)
     pass_doc_pointers(out, exempt, fence)
     pass_tool_names(out, exempt, terminal)
     pass_form(out, fence)

@@ -30,7 +30,7 @@ Install per your host; all must exist before wiring:
 - **Blender 5.1+ portable** under `~/Apps/blender-<ver>-windows-x64/` (the launcher auto-discovers the newest one there).
 - **`uv`/`uvx`** — runs the MCP servers.
 - **`vrc-get`** and **ALCOM/VCC** — you want both; see §3.
-- **Python 3.10+** — the Unity/Blender tools and the bridge.
+- **Python 3.10+** and `pyyaml` (`pip install pyyaml`) — Python runs the Unity/Blender tools and the bridge; the prose gate (`tools/check_prose.py`) reads its constants blocks with pyyaml and refuses to run without it rather than parsing them by hand.
 - **Claude Code** — the agent host.
 
 ## 3. Wire it

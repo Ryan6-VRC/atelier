@@ -47,10 +47,15 @@ Governed prose = tracked `.md` under the fence below, plus agent-facing diagnost
 ```yaml
 # prose-policy constants — read by the workspace prose checks
 governed_fence:
-  roots: [".", "vrc-*"]          # the meta-repo and every vrc-* sibling
-  not_ignored: true              # would-be-tracked: check-ignore, so files still being authored count
+  roots:                # the meta-repo and every vrc-* sibling
+    - "."
+    - "vrc-*"
+  not_ignored: true     # would-be-tracked: check-ignore, so files still being authored count
   glob: "**/*.md"
-  exclude: [test-output/, references/, docs/local/]
+  exclude:
+    - test-output/
+    - references/
+    - docs/local/
 docs_max_hops_from_claude_md: 1  # core knowledge sits at most one hop out
 ```
 
