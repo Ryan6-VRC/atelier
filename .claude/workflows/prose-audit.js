@@ -128,8 +128,15 @@ if (failedUnits.length > units.length / 4) {
 }
 
 // ---- phase 2: reduce (barrier is genuine: grouping needs every digest) ---------------
-phase('Reduce')
-const grouper = await agent(`Run a Python one-off (script in test-output/prose-audit/ if needed, never tools/) that reads every file in ${ROOT}/${CLAIMS}/, parses "subject-key | claim | location" lines, normalizes keys (lowercase, strip plurals/punctuation), groups by key, and writes ${ROOT}/test-output/prose-audit/buckets.json as a JSON array of {subject, entries: [{claim, location, digest}]} keeping ONLY subjects spanning more than one digest file. Return the bucket count and path.`, { label: 'reduce:group', phase: 'Reduce', schema: BUCKETS, effort: 'low', model: MODEL })
+// THIS run's digests only, named explicitly rather than globbing the directory. Nothing prunes
+// ${CLAIMS}, so it accumulates digests from every previous run — which are stale twice over: their
+// claims describe files as they were then (the corpus moves under them), and a bucket that changed
+// id between runs leaves its old file behind to collide with its own successor, manufacturing a
+// bucket per subject out of one unit's claims. Cross-run reach was never what made a differential
+// run valid either: whenToUse tells the operator to pass the changed files PLUS the files they
+// cite, so the citation neighborhood is in-run by construction.
+const digests = units.map(u => `${CLAIMS}/${u.id}.md`).join(', ')
+const grouper = await agent(`Run a Python one-off (script in test-output/prose-audit/ if needed, never tools/) that reads EXACTLY these digest files under ${ROOT}/ — ignore any other file in that directory, it belongs to an earlier run: ${digests}. Skip any that is missing (its unit failed). Parse "subject-key | claim | location" lines, normalize keys (lowercase, strip plurals/punctuation), group by key, and write ${ROOT}/test-output/prose-audit/buckets.json as a JSON array of {subject, entries: [{claim, location, digest}]} keeping ONLY subjects spanning more than one digest file. Return the bucket count and path.`, { label: 'reduce:group', phase: 'Reduce', schema: BUCKETS, effort: 'low', model: MODEL })
 
 let candidates = []
 let reduceIncomplete = false
