@@ -32,12 +32,33 @@ const POLICY = `${ROOT}/docs/tool-design.md`
 // Fixed doc clusters mirror the corpus's own citation clusters; files not claimed
 // by a fixed cluster fall through to generic buckets, so a differential run with
 // three files still produces small, valid units.
+//
+// Membership is a hand list on purpose: CLAUDE.md's read-when index owns a different fact (which doc a
+// class of work reads) and has no cluster structure to derive from, and the fence reaches vrc-* siblings
+// and .claude/skills/ that the index never names. Decisions already made here, so they are not re-argued:
+//  - Cross-citation counts are a TIEBREAKER, not a basis for moving a stable file: a basename mention is
+//    a declared route, and the verify phase below treats route+guard pairs as refutations — so citation
+//    density selects for already-adjudicated pairs and against the undeclared duplication phase 1 hunts.
+//  - verify.md stays in docs-unity: measured both ways it is 8-out/6-in to EITHER home, so a move is churn.
+//  - runtime.md ties to docs-animator (gimmicks 15) over docs-live (emulator 6).
+//  - mochifitter.md stays in docs-meta, and docs-process is justified by unit balance, not by its one
+//    dispatched-work->workflow citation, which is noise.
 const CLUSTERS = [
   ['docs-animator', ['docs/animator.md', 'docs/animator-schema.md', 'docs/gimmicks.md', 'docs/runtime.md']],
   ['docs-unity', ['docs/unity.md', 'docs/unity-tools.md', 'docs/nondestructive.md', 'docs/verify.md', 'docs/LAYOUT.md']],
-  ['docs-meta', ['CLAUDE.md', 'README.md', 'TOOLS.md', 'docs/tool-design.md', 'docs/workflow.md', 'docs/bootstrap.md', 'docs/new-project.md', 'docs/mochifitter.md']],
+  ['docs-live', ['docs/emulator.md', 'docs/osc.md', 'docs/vrchat-client.md']],
+  ['docs-meta', ['CLAUDE.md', 'README.md', 'TOOLS.md', 'docs/tool-design.md', 'docs/bootstrap.md', 'docs/new-project.md', 'docs/mochifitter.md']],
+  ['docs-process', ['docs/workflow.md', 'docs/dispatched-work.md', '.claude/skills/dispatch/SKILL.md', '.claude/skills/kickoff/SKILL.md']],
   ['docs-rest', ['docs/blender.md', 'docs/menus.md', 'docs/outfits.md', '.claude/skills/write-for-agents/SKILL.md']],
 ]
+// CLUSTERS is static config, so assert it here rather than inside take(): a file listed in two clusters
+// is audited twice, and checking as files arrive would only catch it when both copies are in the run.
+const declared = new Set()
+for (const [id, fs] of CLUSTERS) for (const f of fs) {
+  if (declared.has(f)) throw new Error(`CLUSTERS defect: "${f}" is listed in more than one cluster (again in ${id})`)
+  declared.add(f)
+}
+
 const units = []
 const claimed = new Set()
 const take = (id, fs) => { const hit = fs.filter(f => files.includes(f)); if (hit.length) { units.push({ id, files: hit }); hit.forEach(f => claimed.add(f)) } }
@@ -45,11 +66,18 @@ for (const [id, fs] of CLUSTERS) take(id, fs)
 
 const rest = (pred) => files.filter(f => !claimed.has(f) && pred(f))
 const takeAll = (id, fs) => { if (fs.length) { units.push({ id, files: fs }); fs.forEach(f => claimed.add(f)) } }
-const skillFiles = rest(f => /^vrc-skills\//.test(f))
-for (let i = 0; i < skillFiles.length; i += 8) takeAll(`skills-${1 + i / 8}`, skillFiles.slice(i, i + 8))
-takeAll('patterns', rest(f => /^vrc-patterns\//.test(f)))
-takeAll('subrepos', rest(f => /^vrc-/.test(f)))
-takeAll('ungrouped', rest(() => true))
+// Every generic bucket chunks. A bucket handed whole to one auditor stops amortizing and starts
+// crowding: vrc-patterns alone is 25 files / ~247 KB, which is a unit that cannot be read closely.
+const CHUNK = 8
+const takeChunked = (id, fs) => { for (let i = 0; i < fs.length; i += CHUNK) takeAll(`${id}-${1 + i / CHUNK}`, fs.slice(i, i + CHUNK)) }
+takeChunked('skills', rest(f => /^vrc-skills\//.test(f)))
+takeChunked('patterns', rest(f => /^vrc-patterns\//.test(f)))
+takeChunked('subrepos', rest(f => /^vrc-/.test(f)))
+// Whatever no cluster claimed. Reported by name in the return value: a governed file landing here is
+// valid (that is what the bucket is for) but a DOC landing here has lost its citation neighborhood,
+// which is how four docs went unclustered for three weeks without the funnel ever looking wrong.
+const ungroupedFiles = rest(() => true)
+takeChunked('ungrouped', ungroupedFiles)
 log(`${units.length} units over ${files.length} files`)
 
 // ---- schemas ----------------------------------------------------------------------
@@ -96,7 +124,7 @@ const rawFindings = conform.flatMap((r, i) => (r ? r.findings.map(f => ({ ...f, 
 log(`conformance: ${rawFindings.length} raw findings; ${failedUnits.length} unit(s) FAILED`)
 // Fail loud, and don't spend the downstream phases on a broken base.
 if (failedUnits.length > units.length / 4) {
-  return { status: 'INCOMPLETE — do not treat as a clean audit', failed_units: failedUnits, funnel: { units: units.length, units_failed: failedUnits.length, raw_conformance_findings: rawFindings.length } }
+  return { status: 'INCOMPLETE — do not treat as a clean audit', failed_units: failedUnits, ungrouped_files: ungroupedFiles, funnel: { units: units.length, units_failed: failedUnits.length, raw_conformance_findings: rawFindings.length } }
 }
 
 // ---- phase 2: reduce (barrier is genuine: grouping needs every digest) ---------------
@@ -151,6 +179,7 @@ if (unrefereed) incomplete.push(`${unrefereed} finding(s) unrefereed`)
 return {
   status: incomplete.length ? `INCOMPLETE — ${incomplete.join('; ')}` : 'complete',
   failed_units: failedUnits,
+  ungrouped_files: ungroupedFiles,
   funnel: {
     units: units.length,
     units_failed: failedUnits.length,
