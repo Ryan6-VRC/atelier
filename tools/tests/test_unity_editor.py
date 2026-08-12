@@ -59,16 +59,23 @@ class ResolveUnityEditor(unittest.TestCase):
         return exe
 
     def resolve(self, proj):
-        """Returns (ok, text): the resolved path, or the refusal message."""
+        """Returns (ok, text): the resolved path, or the refusal message.
+
+        Paths arrive through the ENVIRONMENT, never interpolated into the source: a single
+        quote in a path (a %TEMP% under a name like O'Connor) would otherwise close the
+        PowerShell literal early and break every case with a syntax error instead of a
+        result. Args after -Command are appended to the command text rather than bound as
+        parameters, so env is the clean seam here."""
         script = (
-            f". '{RESOLVER}'; "
-            f"try {{ Resolve-UnityEditor '{proj}' }} "
-            f"catch {{ Write-Output ('THREW: ' + $_.Exception.Message) }}"
+            "$ErrorActionPreference='Stop'; . $env:UE_RESOLVER; "
+            "try { Resolve-UnityEditor $env:UE_PROJECT } "
+            "catch { Write-Output ('THREW: ' + $_.Exception.Message) }"
         )
         p = subprocess.run(
             [PWSH, "-NoProfile", "-Command", script],
             capture_output=True, text=True,
-            env={**os.environ, "APPDATA": str(self.appdata)},
+            env={**os.environ, "APPDATA": str(self.appdata),
+                 "UE_RESOLVER": str(RESOLVER), "UE_PROJECT": str(proj)},
         )
         self.assertEqual(p.returncode, 0, f"pwsh exited {p.returncode}: {p.stderr}")
         out = p.stdout.strip()
@@ -99,7 +106,47 @@ class ResolveUnityEditor(unittest.TestCase):
         self.assertFalse(ok, f"resolved to {got} on a version mismatch")
         self.assertIn(ABSENT, got)
 
+    def test_install_path_with_wildcard_characters_resolves(self):
+        """Test-Path reads its argument as a wildcard pattern, so a real Unity.exe under a
+        directory named e.g. '[LTS]' (legal on Windows) reports absent and the resolver would fall through to
+        the default with the right editor sitting on disk. A custom install directory is
+        precisely what the registry branch exists to find, so this is where it must hold."""
+        exe = self.fake_editor("hub [LTS] 2022")
+        self.registry({"data": [{"version": "2022.3.22f1", "location": [str(exe)]}]})
+        ok, got = self.resolve(self.project())
+        self.assertTrue(ok, got)
+        self.assertEqual(Path(got), exe)
+
+    def test_project_path_with_an_apostrophe_resolves(self):
+        """Paths reach pwsh as arguments; an apostrophe must not terminate a string literal."""
+        exe = self.fake_editor("o'connor-install")
+        self.registry({"data": [{"version": "2022.3.22f1", "location": [str(exe)]}]})
+        proj = self.temp / "Ryan O'Connor project"
+        (proj / "ProjectSettings").mkdir(parents=True)
+        (proj / "ProjectSettings" / "ProjectVersion.txt").write_text(
+            "m_EditorVersion: 2022.3.22f1\n", encoding="utf-8")
+        ok, got = self.resolve(proj)
+        self.assertTrue(ok, got)
+        self.assertEqual(Path(got), exe)
+
     # --- degradation: none of these may take the resolver down ---
+
+    def test_readable_registry_with_no_matching_entry_is_still_named(self):
+        """A registry can answer nothing while being perfectly readable. Naming only the
+        default path would report it as never consulted, contradicting the refusal's own
+        claim to list what was searched."""
+        self.registry({"data": [{"version": "6000.0.1f1", "location": ["X:/nope/Unity.exe"]}]})
+        ok, got = self.resolve(self.project(version=ABSENT))
+        self.assertFalse(ok, got)
+        self.assertIn("editors-v2.json", got)
+
+    def test_empty_registry_file_is_named_and_not_fatal(self):
+        """Get-Content -Raw on an empty file is $null, and `$null | ConvertFrom-Json` returns
+        nothing WITHOUT throwing — so the catch never fires and the loop must tolerate it."""
+        self.registry("")
+        ok, got = self.resolve(self.project(version=ABSENT))
+        self.assertFalse(ok, got)
+        self.assertIn("editors-v2.json", got)
 
     def test_corrupt_registry_falls_through_and_names_itself(self):
         self.registry("{ not json at all")

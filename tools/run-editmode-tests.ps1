@@ -95,16 +95,20 @@ function Copy-PackageIn($pkg, [switch]$Soft) {
 # from $Project below, so a stale venue would be tested by a stale editor against current packages, and
 # pointing the NEW editor at it instead would silently upgrade the project in batchmode. Same remedy as an
 # SDK drift, so it reuses that outcome token rather than inventing an eighth exit code.
-function Get-ProjectEditorVersion($proj) {
-  $pv = Join-Path $proj "ProjectSettings/ProjectVersion.txt"
-  if (-not (Test-Path $pv)) { return $null }
-  $m = Get-Content $pv | Select-String '^m_EditorVersion:\s*(\S+)'
-  if (-not $m) { return $null }
-  return $m[0].Matches[0].Groups[1].Value
+# The parse itself is unity-editor.ps1's (dot-sourced above) — re-deriving it here would be the
+# same duplication this PR removed from gate.ps1, two lines after centralising it.
+$sv = Get-UnityProjectVersion $SourceProject
+$tv = Get-UnityProjectVersion $Project
+# The SOURCE side must be readable. Tolerating $null would skip the guard in silence exactly when the
+# baseline is broken, and a check that could not run is not a check that passed (CLAUDE.md rule 7) —
+# this file already refuses loudly for that class of defect on the source's packages below.
+if ($null -eq $sv) {
+  Write-Host "OUTCOME=RUN_ERROR $SourceProject has no readable ProjectSettings/ProjectVersion.txt — is it a Unity project?"
+  exit 5
 }
-$sv = Get-ProjectEditorVersion $SourceProject
-$tv = Get-ProjectEditorVersion $Project
-if ($null -ne $sv -and $null -ne $tv -and $sv -ne $tv) {
+# $tv IS allowed to be null: an un-provisioned venue legitimately has no ProjectVersion.txt, and the
+# package guards below already name that case with its remedy.
+if ($null -ne $tv -and $sv -ne $tv) {
   Write-Host "OUTCOME=SDK_DRIFT m_EditorVersion source=$sv TestEditor=$tv — re-sync: tools/setup-test-editor.ps1 -Sync"
   exit 4
 }
@@ -154,7 +158,7 @@ foreach ($pkg in $TestVenueFixtures) {
 if ([string]::IsNullOrWhiteSpace($Editor)) {
   try { $Editor = Resolve-UnityEditor $Project }
   catch { Write-Host "OUTCOME=RUN_ERROR $($_.Exception.Message)"; exit 5 }
-} elseif (-not (Test-Path $Editor)) {
+} elseif (-not (Test-Path -LiteralPath $Editor)) {
   Write-Host "OUTCOME=RUN_ERROR -Editor '$Editor' does not exist — pass a path to Unity.exe, or omit -Editor to resolve it from $Project"
   exit 5
 }
@@ -179,11 +183,6 @@ function Test-CompileError($log) { (Test-Path $log) -and (Select-String -Path $l
 
 Write-Host "[runner] $Tag  filter='$Filter'"
 $r = Invoke-Run $Tag
-# Classified before the compile/crash checks, which all read a log this run never wrote.
-if ($r.outcome -eq "NOSTART") {
-  Write-Host "OUTCOME=RUN_ERROR Unity did not start from '$Editor' — the path resolved but the process could not be launched"
-  exit 5
-}
 # stale-compile trap: the first batchmode run after a .cs edit can fail to compile and silently run the
 # PREVIOUS assembly. Re-run once; if it STILL won't compile, the results XML is stale — don't trust it.
 $compileErr = ($r.outcome -ne "TIMEOUT") -and (Test-CompileError $r.log)
@@ -193,6 +192,13 @@ if ($compileErr) {
   $compileErr = ($r.outcome -ne "TIMEOUT") -and (Test-CompileError $r.log)
 }
 
+# After the re-run, not before it: the re-run can ALSO fail to start, and with no log written
+# $compileErr/$crashed/$haveXml are all false and $r.code is $null, so it would fall through to the
+# bad -Assemblies/-Filter bucket — the exact misdiagnosis NOSTART exists to prevent.
+if ($r.outcome -eq "NOSTART") {
+  Write-Host "OUTCOME=RUN_ERROR Unity did not start from '$Editor' — the path resolved but the process could not be launched"
+  exit 5
+}
 if ($r.outcome -eq "TIMEOUT") { Write-Host "OUTCOME=TIMEOUT"; exit 3 }
 
 # CRASH = native fault: the log crash signature, or a negative native-fault exit code (e.g. 0xC0000005
