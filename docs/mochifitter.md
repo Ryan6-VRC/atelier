@@ -30,7 +30,7 @@ Per target base, a **conversion profile**: `avatar_data_<base>.json`, `config_<s
 
 **The bundled Beryl sample costume's geometry lives inside the tool**, at `Editor/TestingDatasets/Beryl_Costumes.fbx`; the root-level `Assets/Beryl/` the installer also drops holds only its four materials and six textures. Source a refit from the sample and it dies on the next tool re-import — copy the FBX out first.
 
-**`avatar_data_<base>.json`'s `defaultFBXPath` is a picker default, not the live binding.** The actual base FBX comes from `OutfitRetargetingSettings.asset`'s `baseFbxAsset`, a GUID reference — a profile with a `defaultFBXPath` pointing at a relocated or never-imported file still runs correctly (measured: five of a venue's seven profiles pointed at absent paths, including the Beryl→Nouvelle refit measured above). A vendor-drop relocation can silently degrade the picker without a GUID reference scan ever seeing it.
+**`avatar_data_<base>.json`'s `defaultFBXPath` is a picker default, not the live binding** — the actual base FBX is `OutfitRetargetingSettings.asset`'s `baseFbxAsset`, a GUID reference. A stale or absent `defaultFBXPath` still runs correctly, and a GUID reference scan won't catch it — don't read the JSON path as evidence a profile is broken.
 
 **A run mutates the vendor folder.** Every fire rewrites `_temp.json` copies of configs and avatar data beside the shipped originals, with paths rewritten to chain the hops — their presence after a run is normal residue, not damage. The trap is a **failed** run's leftovers: the next run consumes them, and nothing distinguishes them from healthy residue — so **delete every `_temp.json` before firing**; they are disposable and regenerated per fire, never an input worth keeping.
 
