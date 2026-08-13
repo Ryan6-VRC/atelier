@@ -132,8 +132,38 @@ class ReflowInvariants(unittest.TestCase):
         # it is still top-level code.
         self.assertReflow('* * *\n    x = 1\nprose word here\n', contains='    x = 1')
 
-    def test_tab_after_marker_still_separates_items(self):
+    # --- tabs are declined rather than modelled ---
+    # A tab's width depends on the column it lands in, and nothing here is
+    # authored with tabs. So no indent bound accepts one and no item is measured
+    # through one: a tab-bearing line is left exactly as written, in both
+    # directions — never joined into, and never reported as needing a reflow.
+    def test_tab_after_marker_leaves_the_item_alone(self):
         self.assertReflow('- bullet\n-\tfoo\n', unchanged=True)
+        self.assertReflow('-\tfirst\n    wrapped\n', unchanged=True)
+
+    def test_tab_led_fence_is_code_not_a_fence(self):
+        self.assertReflow('\t```\n```\n* star item\n     prose word\n', unchanged=True)
+
+    def test_tab_led_line_does_not_close_a_fence(self):
+        self.assertReflow('  ~~~~\n\t~~~~\n  * star item\n      prose word\n', unchanged=True)
+
+    def test_ordered_marker_over_nine_digits_is_not_a_marker(self):
+        # CommonMark caps an ordered marker at 9 digits; past that the line is
+        # ordinary prose and must not open an item, or the code block below it
+        # gets dedented out of protection.
+        self.assertReflow('1234567890. prose\n\n            code one\n            code two\n',
+                          unchanged=True)
+
+    # --- known residual, locked so a change here is deliberate ---
+    def test_known_residual_non_one_ordered_marker_after_paragraph(self):
+        """A non-`1` ordered marker cannot interrupt a paragraph in CommonMark,
+        so this line is prose and the block below it is top-level code — but the
+        marker still opens an item here and the code is joined. Both candidate
+        fixes measured worse (one joins every `1./2./3.` step list in the repo,
+        the other raises the adversarial residual sevenfold), so the behaviour is
+        recorded rather than fixed. Change it only with a measurement."""
+        self.assertReflow('paragraph\n2. not a list\n\n    code one\n    code two\n',
+                          contains='code one code two')
 
 
 if __name__ == '__main__':

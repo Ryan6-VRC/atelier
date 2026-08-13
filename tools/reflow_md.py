@@ -26,9 +26,24 @@ unusual construct the classifier below doesn't recognize could in principle be
 joined wrongly while both guards pass — a change that alters rendering, never
 content, and so shows up in the reflow's diff. `--check` is therefore a strong
 gate, not a proof: review the one-time repo-wide reflow diff; trust the gate for
-steady-state edits. The one known such construct is a fence whose opening and
-closing runs sit at indents that disagree relative to their list item — measured
-at 0.028% of adversarially generated documents, none of them in this corpus.
+steady-state edits.
+
+Two known constructs still mis-join, both needing a block to open where a list
+marker's own line is not what it appears: a non-`1` ordered marker that cannot
+interrupt a paragraph but is measured as an item anyway, and a fence whose
+opening and closing runs sit at indents that disagree relative to their item.
+Neither occurs in this corpus, and the tests lock the first so a change to it is
+deliberate. Both candidate fixes for it measured worse than leaving it — one
+joins every step-numbered list in the repo — so it is recorded, not patched. The
+rate on adversarially generated documents is the residual's only measure and is
+not a bound: a generator that finds nothing proves only that this generator
+found nothing.
+
+An HTML block other than <pre>/<script>/<style>/<textarea> is standalone for its
+opening line only, so its *body* inside a list item is joinable. Nothing here
+nests one (the corpus's raw <table> sits at column 0, every line tag-led), and
+recognizing CommonMark's block types would cost more machinery than the risk
+earns — but nest a <div> in a bullet and the prose inside it will be joined.
 
 Byte-preserved: fenced code (any delimiter run length; an inner shorter run does
 not close an outer longer one) and indented code; raw-text HTML
@@ -55,14 +70,17 @@ import re
 import sys
 from pathlib import Path
 
-LIST_RE = re.compile(r'^( *)([-*+]|\d+[.)])([ \t]+)\S')
-FENCE_OPEN_RE = re.compile(r'^\s{0,3}(`{3,}|~{3,})')
-HEADING_RE = re.compile(r'^\s{0,3}#{1,6}(\s|$)')
-HR_RE = re.compile(r'^\s{0,3}([-*_])(\s*\1){2,}\s*$')
-SETEXT_RE = re.compile(r'^\s{0,3}(=+|-+)\s*$')          # a setext underline / dash rule, alone on its line
+# Indent bounds below are spaces only, never `\s`: a leading tab is indented code
+# in CommonMark, and `_dedent` strips spaces, so `\s{0,3}` would let a tab-led line
+# reach the join path as though it were a block start.
+LIST_RE = re.compile(r'^( *)([-*+]|\d{1,9}[.)])([ \t]+)\S')   # >9 digits is not a marker
+FENCE_OPEN_RE = re.compile(r'^ {0,3}(`{3,}|~{3,})')
+HEADING_RE = re.compile(r'^ {0,3}#{1,6}(\s|$)')
+HR_RE = re.compile(r'^ {0,3}([-*_])(\s*\1){2,}\s*$')
+SETEXT_RE = re.compile(r'^ {0,3}(=+|-+)\s*$')           # a setext underline / dash rule, alone on its line
 INDENT_CODE_RE = re.compile(r'^(\t| {4,})')
-DEF_RE = re.compile(r'^\s{0,3}\[\^?[^\]]+\]:\s')        # [label]: url  |  [^id]: footnote text
-HTML_RAW_OPEN_RE = re.compile(r'^\s{0,3}<(pre|script|style|textarea)[\s/>]', re.IGNORECASE)
+DEF_RE = re.compile(r'^ {0,3}\[\^?[^\]]+\]:\s')        # [label]: url  |  [^id]: footnote text
+HTML_RAW_OPEN_RE = re.compile(r'^ {0,3}<(pre|script|style|textarea)[\s/>]', re.IGNORECASE)
 
 
 class ReflowError(Exception):
@@ -80,15 +98,23 @@ def _content_col(line):
     if HR_RE.match(line):            # `* * *` is a thematic break, not a bullet
         return None
     spaces = m.group(3)
-    # A marker followed by a tab or 5+ spaces starts its content one column past
-    # the marker; the rest of that line is an indented code block (see below).
-    run = 1 if ('\t' in spaces or len(spaces) >= 5) else len(spaces)
+    if '\t' in spaces:
+        # Tab width depends on the column it lands in. Nothing here is authored
+        # with tabs (`.editorconfig` sets spaces), so rather than carry a
+        # tab-stop model, decline the item — `_opens_with_code` then holds the
+        # line, and the construct is left exactly as written.
+        return None
+    # A marker followed by 5+ spaces starts its content one column past the
+    # marker; the rest of that line is an indented code block (see below).
+    run = 1 if len(spaces) >= 5 else len(spaces)
     return len(m.group(1)) + len(m.group(2)) + run
 
 
 def _opens_with_code(line):
-    """A marker followed by a tab or 5+ spaces: the item's own first line is
-    already an indented code block, so the line never joins with a neighbour."""
+    """A marker whose content cannot simply be joined onto: 5+ spaces after it
+    means the item's own first line is already an indented code block, and a tab
+    after it means we decline to measure the item at all (see `_content_col`).
+    Either way the line never joins with a neighbour."""
     m = LIST_RE.match(line)
     if not m or HR_RE.match(line):
         return False
@@ -138,7 +164,7 @@ def _is_hardbreak(line):
 def _fence_close(line, ch, length):
     """A closing fence: >= `length` of the SAME char `ch`, <=3 indent, nothing
     but whitespace after (a closing fence carries no info string)."""
-    m = re.match(r'^\s{0,3}(' + re.escape(ch) + r'+)[ \t]*$', line)
+    m = re.match(r'^ {0,3}(' + re.escape(ch) + r'+)[ \t]*$', line)
     return bool(m) and len(m.group(1)) >= length
 
 
