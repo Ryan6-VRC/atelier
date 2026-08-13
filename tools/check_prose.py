@@ -10,7 +10,8 @@ present but whose directory is gone is the other thing, and fails loud
   1. vrc-skills' own gate, tools/validate_skills.py (subprocess) — skill
      anatomy; its errors/warnings count here. Passes 1-3 cover both governed
      enumerations (SKILL_FAMILIES): the plugin repo's skills/ and this repo's
-     .claude/skills/, held to one anatomy.
+     .claude/skills/, held to one anatomy. Numbered first, RUN last, so the
+     reporting passes report before it can abort the run (pass 4 can abort too).
   2. Doc pointers: every docs-file reference in a SKILL.md resolves against the
      meta-repo (docs/ listing, root .md files, files in vrc-skills). WARN.
   3. Tool names, structured slot only: each leading bold-backticked name in a
@@ -175,24 +176,39 @@ SKILL_FAMILIES = ('vrc-skills/skills', '.claude/skills')
 # all is an ordinary state, so .claude/skills has no required marker.
 FAMILY_REQUIRED_BY = {'vrc-skills/skills': 'vrc-skills'}
 
+# Families already NOTE'd by a non-strict caller, so passes 2 and 3 don't say it twice.
+_NOTED_VANISHED = set()
 
-def all_skill_dirs():
+
+def all_skill_dirs(strict=True):
     """Every candidate directory, unfiltered — so pass 1's child gate still gets
-    to report a skill directory that has no SKILL.md at all."""
+    to report a skill directory that has no SKILL.md at all.
+
+    strict=False downgrades the vanished-family refusal to a NOTE. Only pass 1 needs
+    to raise: it is the pass that scores skill anatomy, so a family that silently
+    dropped out from under it is the run scoring clean over nothing. Passes 2-3 read
+    whatever families remain, and raising there would abort the run before any pass
+    reported — costing a maintainer with a half-refactored sibling the adjudication of
+    the doc edits they actually made, which is the whole reason pass 1 runs last."""
     families = []
     for fam in SKILL_FAMILIES:
         d = ROOT / fam
         if d.is_dir():
             families.append(d)
         elif (marker := FAMILY_REQUIRED_BY.get(fam)) and (ROOT / marker).is_dir():
-            raise GateError(f'{marker} is present but {fam}/ is missing — the skill family '
-                            'vanished; refusing to score the remaining families as a clean run')
+            msg = (f'{marker} is present but {fam}/ is missing — the skill family '
+                   'vanished; refusing to score the remaining families as a clean run')
+            if strict:
+                raise GateError(msg)
+            if fam not in _NOTED_VANISHED:   # passes 2 and 3 both ask; say it once
+                _NOTED_VANISHED.add(fam)
+                print(f'NOTE  {msg} (pass 1 will fail the run)')
     return sorted(p for f in families for p in f.iterdir() if p.is_dir())
 
 
 def skill_dirs():
     """The subset that has a SKILL.md, for the passes that read one."""
-    return [p for p in all_skill_dirs() if (p / 'SKILL.md').is_file()]
+    return [p for p in all_skill_dirs(strict=False) if (p / 'SKILL.md').is_file()]
 
 
 # ---- pass 1: the repo-local skill gate ----
@@ -201,7 +217,13 @@ def skill_dirs():
 # clean/warnings, 1 findings + this summary line on stdout, 2 internal failure
 # (traceback on stderr, never a partial summary). We trust the child's own tally
 # and treat a missing summary, an inconsistent count, or exit 2 as an internal
-# failure — never scoring a crashed gate as clean.
+# failure — never scoring a crashed gate as clean. Internal failure means GateError
+# (exit 2), not out.error (exit 1): a crashed child gate is not a prose finding, and
+# borrowing the findings code told every caller the docs were bad when the gate
+# never ran. The cross-check below is sound only because the child guarantees one
+# finding per line (its Findings._emit collapses whitespace) — without that, a
+# newline in an authored skill name splits one finding into two ERROR lines and
+# forges a tally mismatch out of an ordinary lint finding.
 VALIDATE_SUMMARY_RE = re.compile(
     r'^validate_skills: \d+ skill\(s\), (\d+) error\(s\), (\d+) warning\(s\)\s*$')
 
@@ -232,20 +254,18 @@ def pass_validate(out):
         print(line)
 
     if p.returncode not in (0, 1):
-        out.error(rel, f'exited {p.returncode} (internal failure — see stderr above)')
-        return
+        raise GateError(f'{rel}: exited {p.returncode} (internal failure — see stderr above)')
     summary = next((m for l in out_lines if (m := VALIDATE_SUMMARY_RE.match(l))), None)
     if summary is None:
-        out.error(rel, f'exited {p.returncode} without its summary line — the gate crashed '
-                       'mid-run (internal failure)')
-        return
+        raise GateError(f'{rel}: exited {p.returncode} without its summary line — the gate '
+                        'crashed mid-run (internal failure)')
     errs, warns = int(summary.group(1)), int(summary.group(2))
     seen_err = sum(1 for l in out_lines if l.startswith('ERROR'))
     seen_warn = sum(1 for l in out_lines if l.startswith('WARN'))
     if (errs > 0) != (p.returncode == 1) or errs != seen_err or warns != seen_warn:
-        out.error(rel, f'summary ({errs}e/{warns}w at exit {p.returncode}) disagrees with its '
-                       f'own emitted lines ({seen_err}e/{seen_warn}w) — internal failure')
-        return
+        raise GateError(f'{rel}: summary ({errs}e/{warns}w at exit {p.returncode}) disagrees '
+                        f'with its own emitted lines ({seen_err}e/{seen_warn}w) — internal '
+                        'failure')
     out.add(errs, warns)
 
 
@@ -433,16 +453,14 @@ def main(argv=None):
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')  # findings quote UTF-8 prose
 
-    # Checked before pass 1 runs: read_constants needs yaml, but so does the
-    # child gate this subprocesses, and its exit-2 would otherwise be reported
-    # as a pass-1 ERROR ahead of the real cause.
+    # Checked before any pass: read_constants needs yaml, and so does the child
+    # gate pass 1 subprocesses, whose exit-2 would otherwise surface ahead of the
+    # real cause.
     if yaml is None:
         raise GateError('pyyaml not installed — pip install pyyaml '
                         '(prerequisite: docs/bootstrap.md §2)')
 
     out = Findings()
-    pass_validate(out)
-
     exempt, terminal = [], 'Tools'
     conv = ROOT / 'vrc-skills' / 'CONVENTIONS.md'
     if conv.is_file():
@@ -455,12 +473,28 @@ def main(argv=None):
     # failure (exit 2), same as a missing one.
     fence = consts_fence.get('governed_fence')
     validate_fence(fence)
-    pass_doc_pointers(out, exempt, fence)
-    pass_tool_names(out, exempt, terminal)
-    pass_form(out, fence)
-
-    per = ', '.join(f'{name} {e}/{w}' for name, (e, w) in out.per_pass.items())
-    print(f'check_prose: {out.errors} error(s), {out.warnings} warning(s) [{per} (errors/warnings)]')
+    aborted = True
+    try:
+        pass_doc_pointers(out, exempt, fence)
+        pass_tool_names(out, exempt, terminal)
+        # Pass 1 runs last so the reporting passes report first. Its internal failures
+        # raise (exit 2), and a maintainer with a half-refactored vrc-skills checkout
+        # still needs the other passes to adjudicate the doc edits they actually made.
+        # Pass 4 can abort too (the zero-file fence refusal), so this is a reordering for
+        # the common case, not a guarantee that every pass gets to run — which is why the
+        # summary below prints from a finally.
+        pass_form(out, fence)
+        pass_validate(out)
+        aborted = False
+    finally:
+        # Print the tally even when a pass aborted. Passes that completed emitted real
+        # findings, and exiting 2 with no summary at all reads downstream — in
+        # .githooks/pre-commit above all — as "nothing was judged", which is false the
+        # moment any pass got that far.
+        per = ', '.join(f'{name} {e}/{w}' for name, (e, w) in out.per_pass.items())
+        state = ' — RUN INCOMPLETE, a pass aborted (see the error below)' if aborted else ''
+        print(f'check_prose: {out.errors} error(s), {out.warnings} warning(s) '
+              f'[{per} (errors/warnings)]{state}')
     return 1 if out.errors else 0
 
 

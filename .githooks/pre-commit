@@ -2,25 +2,38 @@
 # Warn, don't block: verify TOOLS.md against code and refresh the README tools block.
 # A sync problem must never gate committing real work.
 top="$(git rev-parse --show-toplevel)"
-# The tool surfaces are sibling repos, gitignored by this meta-repo and therefore
-# absent from any linked worktree (or partial checkout). Nothing to verify there —
-# skip cleanly so doc-only worktree commits don't trip the check. Sync is reconciled
-# in the main worktree, on merge or by a cleanup pass.
-if [ ! -d "$top/vrc-unity-tools" ] || [ ! -d "$top/vrc-blender-tools" ] || [ ! -d "$top/vrc-skills" ]; then
-  exit 0
-fi
 if command -v python >/dev/null 2>&1; then
-  # Capture stdout (the "README-UPDATED" marker); stderr flows to the terminal.
-  if out="$(python "$top/tools/sync_tool_inventory.py")"; then
+  # The tool surfaces are sibling repos, gitignored by this meta-repo and therefore
+  # absent from any linked worktree (or partial checkout). Nothing to SYNC there —
+  # skip cleanly so doc-only worktree commits don't trip the check. Sync is reconciled
+  # in the main worktree, on merge or by a cleanup pass. Scoped to the sync alone: this
+  # guard used to skip the whole hook, which silently disabled the prose gate for every
+  # worktree commit, and worktrees are where most commits here are made.
+  if [ -d "$top/vrc-unity-tools" ] && [ -d "$top/vrc-blender-tools" ] && [ -d "$top/vrc-skills" ]; then
+    # Capture stdout (the "README-UPDATED" marker); stderr flows to the terminal. Exit 1
+    # means it ran and found real drift; exit 2 means it never adjudicated (same 0/1/2
+    # contract as check_prose.py below), which must not print as a drift verdict.
+    out="$(python "$top/tools/sync_tool_inventory.py")"; rc=$?
     case "$out" in
       *README-UPDATED*)
         git add "$top/README.md" || echo "pre-commit: could not stage README.md; continuing" >&2 ;;
     esac
-  else
-    echo "pre-commit: tool-inventory drift or error (see above); committing without refresh" >&2
+    if [ "$rc" -eq 1 ]; then
+      echo "pre-commit: tool-inventory drift (see above); committing without refresh" >&2
+    elif [ "$rc" -ne 0 ]; then
+      echo "pre-commit: sync_tool_inventory.py ABORTED (exit $rc) — README was not checked, not proven in sync" >&2
+    fi
   fi
-  python "$top/tools/check_prose.py" || echo "pre-commit: prose-governance findings (see above); committing anyway" >&2
+  # The prose gate needs no sibling — its form pass reads this repo's own tracked .md,
+  # so it runs in every tree. Exit 1 means it ran and found something; any other
+  # non-zero means it never adjudicated, which must not print as a prose verdict.
+  python "$top/tools/check_prose.py"; rc=$?
+  if [ "$rc" -eq 1 ]; then
+    echo "pre-commit: prose-governance findings (see above); committing anyway" >&2
+  elif [ "$rc" -ne 0 ]; then
+    echo "pre-commit: check_prose.py ABORTED (exit $rc) — whatever it printed above is a partial run, not a verdict; the rest of this commit's prose is unchecked, not clean" >&2
+  fi
 else
-  echo "pre-commit: python missing; skipping tool-inventory sync" >&2
+  echo "pre-commit: python missing; skipping tool-inventory sync AND the prose gate" >&2
 fi
 exit 0

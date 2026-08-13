@@ -10,6 +10,16 @@ import sync_tool_inventory as s  # noqa: E402
 WORKSPACE = Path(__file__).resolve().parent.parent.parent
 
 
+def needs_sibling(name):
+    """The tool surfaces are gitignored sibling repos, absent from every linked worktree —
+    which is where most work here happens. These tests used to ERROR there, leaving the suite
+    permanently red in a worktree and making any genuine new failure indistinguishable from
+    the inherited four. Skip instead, and let the skip count carry the honest signal."""
+    return unittest.skipUnless(
+        (WORKSPACE / name).is_dir(),
+        f'{name} absent (linked worktree) — live-surface test skipped, not passed')
+
+
 class TestUnityExtractor(unittest.TestCase):
     def _repo(self, files: dict) -> Path:
         d = Path(tempfile.mkdtemp())
@@ -42,6 +52,7 @@ class TestUnityExtractor(unittest.TestCase):
         with self.assertRaises(s.InventoryError):
             s.extract_unity_keys(repo)
 
+    @needs_sibling("vrc-unity-tools")
     def test_live_surface_extraction(self):
         # The exact census is enforced by TOOLS.md + --check, not here: tool names
         # churn under refactors, so this smoke test only proves the extractor reads
@@ -74,6 +85,7 @@ class TestBlenderExtractor(unittest.TestCase):
             p.write_text(body, encoding="utf-8")
         return d
 
+    @needs_sibling("vrc-blender-tools")
     def test_live_surface_union_dedup(self):
         keys = s.extract_blender_keys(WORKSPACE / "vrc-blender-tools")
         self.assertIn("apply_pose", keys)   # operator == cli stem (one key)
@@ -97,6 +109,7 @@ class TestBlenderExtractor(unittest.TestCase):
 
 
 class TestSkillsExtractor(unittest.TestCase):
+    @needs_sibling("vrc-skills")
     def test_live_surface_names(self):
         # Smoke test only (mirrors the Unity extractor): skill names churn, so prove
         # the extractor reads the real tree — a few stable skills present + a sane
@@ -186,6 +199,7 @@ class TestReadmeSkills(unittest.TestCase):
         with self.assertRaises(s.InventoryError):
             s.parse_readme_skills(self._readme("# Repo\n\n## Skills\n\nprose only\n\n## Next\n"))
 
+    @needs_sibling("vrc-skills")
     def test_live_readme_matches_frontmatter(self):
         # The real README roster stays in lockstep with the plugin's skill names —
         # the check the hook runs, asserted here so a test run alone catches drift.
