@@ -7,35 +7,18 @@ Where things go in the Unity sandbox. The act of importing a vendor package — 
 - **`Assets/Vendor/`** — vendor imports kept as-dropped, hand-edited only for the sanctioned reconstructions under *Vendor mutation* below (`Vendor/Avatars/<Name>/`, `Vendor/Outfits/<Outfit>/`, and `Vendor/_Common/` for assets shared across a seller's packages). **Not kept**, reproducible by re-importing the source `.unitypackage` from the **asset library** — the external store of vendor packages; its location is machine-local (`CLAUDE.local.md`), never written into a tracked file. Our work references vendor assets **by GUID, not path**, so our work survives a bare re-import even though a package re-imports to its own native top folder. A **patched** vendor asset is the exception — it reproduces only with its patch replayed (*Vendor mutation* below).
 - **Everything else under `Assets/`** — our work (prefab variants, scenes, animators, materials). Durable, kept. No `Work/` wrapper.
 - **Durable work is diffable text, not large binaries.** What we keep is what diffs cleanly — YAML (scenes/prefabs/materials), `.meta`, `.json`, scripts. Art/source binaries (`.fbx` `.blend` `.psd` `.png`, audio) don't diff, so:
-  - they're **not kept**, but each keeps its `.meta` (GUID + import settings) so references resolve
-    and a re-exported file rebinds;
+  - they're **not kept**, but each keeps its `.meta` (GUID + import settings) so references resolve and a re-exported file rebinds;
   - RunLog JSON is disposable too — per-run diagnostics, not a durable artifact;
-  - since binaries aren't kept, **back them up externally** — a restored venue has no
-    meshes/textures until they're restored or re-exported.
+  - since binaries aren't kept, **back them up externally** — a restored venue has no meshes/textures until they're restored or re-exported.
 - **Owning is selective.** An owned asset tracks only what it actually changed and keeps **GUID-referencing the vendor original** for everything it didn't — an owned base can still point at vendor animator layers or materials it never customized. Provenance is a property of each *reference*, not of a folder.
 - **A top-level avatar folder holds full prefabs, not loose parts.** `Assets/Avatars/<Name>/` (like `Assets/Outfits/<Base>/<Outfit>/`) is essentially only complete prefabs; owned controllers, clips, and params live in **subfolders**. This is the on-disk half of *owned = wired* (`animator.md`): a properly-owned set is both wired to its load path and filed out of the top level. Convention, not a tool.
 - **`Assets/Vendor/` and `Packages/` are read-only to our tooling.** A tool that would mutate an asset there must **materialize an owned copy first**; writability is judged **per-asset, by path** (an owned controller may still reference a vendor clip — that clip stays read-only). The **one exempt class** is a blocking platform importer setting — *Vendor mutation* below owns it, and `ConformImportSettings` is its only door (no `force`: its whole scope is the sanctioned class). This is a **policy** guard on *deliberate* edits, not a byte contract: it means fork-before-you-change (a `force` override records any breach loudly), not that vendor bytes never move — VPM restores and importer migrations rewrite `Vendor/`/`Packages/` on disk with no agent and no breach (see *Vendor mutation*).
 - **`Assets/Materials/<Avatars|Outfits>/<Name>/`** — owned materials and their exported textures,
   mirroring `Photoshop/` by name. Base-independent like the PSD art (texture work doesn't change with proportions), so one bucket serves every base wearing the outfit — but when the geometry is *also* owned, materials file with it (`Assets/Outfits/<Base>/<Outfit>/Materials/`) instead: one logical asset, one home. Copy semantics (selective slot forking, shader handling) are the `own-material` skill's.
 - **Non-Unity source files live at the Unity project root** (`AvatarProject/`, outside `Assets/` so editing them never triggers a refresh) — inside the untracked venue, never the meta-repo:
-  - **`Blender/Avatars/<Name>/`** — the `<Name>.blend` source (a binary: not kept, externally backed
-    up), namespaced like `Assets/`; it also holds the **proportion-edge JSONs** the reproportion
-    skill reads/writes, which *are* kept (diffable recovery artifacts — see below).
-  - **`Blender/Outfits/<Base>/<Outfit>/<Outfit>.blend`** — owned outfits go **base-first**: the base
-    you fitted to is held constant, the outfit varies underneath it (file by the axis held constant —
-    `Vendor/Outfits/<Outfit>/` stays **outfit-first**, since a vendor product's base varies *inside*
-    one package). The exported `.fbx` mirrors this at `Assets/Outfits/<Base>/<Outfit>/Models/` (Unity
-    imports only under `Assets/`, **not** here); outfit folders carry no proportion profile of their
-    own (see below). One outfit fitted to two bases is **two buckets, two `.blend`s** — duplication
-    accepted for clarity, no cross-base sharing.
-  - **`Photoshop/Avatars/<Name>/`** and **`Photoshop/Outfits/<Outfit>/`** — `.psd` source art,
-    **outfit-first** (no `<Base>` segment): reproportioning is geometry-only, so art is
-    base-independent. A PSD comes over only to be modified (the package already ships its PNG
-    exports), so PSDs are *our* work, never `Vendor/`; not kept, externally backed up like all
-    binaries. What enters Unity is a **flattened PNG export** into the owned-materials bucket —
-    the `.blend` → `.fbx` contract mirrored; an *owned* material referencing a `.psd` inside
-    `Assets/` is a defect (a vendor material linking its own shipped PSD is vendor authoring,
-    untouched until owned).
+  - **`Blender/Avatars/<Name>/`** — the `<Name>.blend` source (a binary: not kept, externally backed up), namespaced like `Assets/`; it also holds the **proportion-edge JSONs** the reproportion skill reads/writes, which *are* kept (diffable recovery artifacts — see below).
+  - **`Blender/Outfits/<Base>/<Outfit>/<Outfit>.blend`** — owned outfits go **base-first**: the base you fitted to is held constant, the outfit varies underneath it (file by the axis held constant — `Vendor/Outfits/<Outfit>/` stays **outfit-first**, since a vendor product's base varies *inside* one package). The exported `.fbx` mirrors this at `Assets/Outfits/<Base>/<Outfit>/Models/` (Unity imports only under `Assets/`, **not** here); outfit folders carry no proportion profile of their own (see below). One outfit fitted to two bases is **two buckets, two `.blend`s** — duplication accepted for clarity, no cross-base sharing.
+  - **`Photoshop/Avatars/<Name>/`** and **`Photoshop/Outfits/<Outfit>/`** — `.psd` source art, **outfit-first** (no `<Base>` segment): reproportioning is geometry-only, so art is base-independent. A PSD comes over only to be modified (the package already ships its PNG exports), so PSDs are *our* work, never `Vendor/`; not kept, externally backed up like all binaries. What enters Unity is a **flattened PNG export** into the owned-materials bucket — the `.blend` → `.fbx` contract mirrored; an *owned* material referencing a `.psd` inside `Assets/` is a defect (a vendor material linking its own shipped PSD is vendor authoring, untouched until owned).
 
 ## Vendor mutation: patch, copy-on-write, importer drift
 
