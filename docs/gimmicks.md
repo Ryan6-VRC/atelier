@@ -106,17 +106,10 @@ The **vrc-patterns** library is the catalog of worked, gated examples for these 
 - **Ship materials self-contained.** VPM's identical-GUID guarantee holds only for in-package GUIDs, so a distributed module ships simple self-contained materials (Unity Standard or a VPM-pinnable shader) — never a Poiyomi/lilToon dependency (Poiyomi isn't VPM-pinnable; a consumer without it gets pink materials). Placeholder primitives (payload spheres, demo cubes) carry no owned `.mat` — use Unity's built-in default. Declare any unavoidable external shader dependency loudly.
 - Two cross-boundary seams worth knowing: a **cross-product param contract** (independent modules compose by agreeing on a synced param name, merged at build; design the consumer to no-op when the partner is absent), and **PC/Quest parameter-parity stubs** (the Quest variant carries param-declaration components mirroring every PC-synced param — sync slots must match across platforms even when the visuals don't ship; audit the stub against the PC list, partial stubs silently drop state cross-platform).
 - In-game UX: prefer physical affordances (grab, touch, gesture-near-contact) over menu depth — but an affordance is the *primary* interface, never the **only** path: every affordance-reachable intent is also menu-reachable (deep in the menu is fine), driving the same intent param. Two things that buys are not obvious: a drive surface the emulator can reach without simulating contacts, and desktop parity, since contact and physbone affordances are VR-gated. A control-surface widget (a grab handle, a target ball) can be **wearer-only**: enable its renderer in the `IsLocal` branch alone — remotes get the behavior without the UI clutter. The menu front splits three ways:
-  - **Enable** — one synced **unsaved** bool wired as the state machine's master gate, so
-    *off is the reset* (drops holds, stops tracking) and the gimmick never resurrects "on" at
-    avatar load. When states are exclusive, fuse enable+mode+recall into **one int** with banded
-    values (off=0, attach 1–9, world 11–19, transient 21+) instead of a bool plus a mode int. For
-    only a *few* exclusive states, skip the int: a couple of synced **bools read directly** (the state
-    machine gates transitions on the pair, `both-false = off`) cost fewer bits and need no decode —
-    reserve the banded int for legibility when bands are many, and a decode-ladder codec for real
-    bit-pressure (tens of bits), which the Parameter Compressor makes rarely necessary otherwise.
+  - **Enable** — one synced **unsaved** bool wired as the state machine's master gate, so *off is the reset* (drops holds, stops tracking) and the gimmick never resurrects "on" at avatar load. When states are exclusive, fuse enable+mode+recall into **one int** with banded values (off=0, attach 1–9, world 11–19, transient 21+) instead of a bool plus a mode int. For only a *few* exclusive states, skip the int: a couple of synced **bools read directly** (the state machine gates transitions on the pair, `both-false = off`) cost fewer bits and need no decode — reserve the banded int for legibility when bands are many, and a decode-ladder codec for real bit-pressure (tens of bits), which the Parameter Compressor makes rarely necessary otherwise.
   - **Options** — the tunable surface; `saved` per-param by preference-vs-transient.
-  - **Failsafe** — an explicit control only when state persists beyond the avatar (world-placed
-    props): a *recall* value distinct from *off*, so the user can summon without resetting.
+  - **Failsafe** — an explicit control only when state persists beyond the avatar (world-placed props): a *recall* value distinct from *off*, so the user can summon without resetting.
+
   Sensing params (physbone `_IsGrabbed`/`_Stretch`, contact receivers, proximity) are never synced and never menu-exposed — only intent costs bits. And some gimmicks are correctly **frontless** — passive always-on FX, OSC-contract systems.
 - In-editor UX: the prefab drops in at avatar root; anchors self-place (ArmatureLink/BoneProxy); anything the installer must hand-place is a defect.
 

@@ -28,13 +28,36 @@ content, and so shows up in the reflow's diff. `--check` is therefore a strong
 gate, not a proof: review the one-time repo-wide reflow diff; trust the gate for
 steady-state edits.
 
+Two known constructs still mis-join, both needing a block to open where a list
+marker's own line is not what it appears: a non-`1` ordered marker that cannot
+interrupt a paragraph but is measured as an item anyway, and a fence whose
+opening and closing runs sit at indents that disagree relative to their item.
+Neither occurs in this corpus, and the tests lock the first so a change to it is
+deliberate. Both candidate fixes for it measured worse than leaving it — one
+joins every step-numbered list in the repo — so it is recorded, not patched. The
+rate on adversarially generated documents is the residual's only measure and is
+not a bound: a generator that finds nothing proves only that this generator
+found nothing.
+
+An HTML block other than <pre>/<script>/<style>/<textarea> is standalone for its
+opening line only, so its *body* inside a list item is joinable. Nothing here
+nests one (the corpus's raw <table> sits at column 0, every line tag-led), and
+recognizing CommonMark's block types would cost more machinery than the risk
+earns — but nest a <div> in a bullet and the prose inside it will be joined.
+
 Byte-preserved: fenced code (any delimiter run length; an inner shorter run does
-not close an outer longer one) and indented (4-space) code; raw-text HTML
+not close an outer longer one) and indented code; raw-text HTML
 elements (<pre>/<script>/<style>/<textarea>) and any line opening an HTML block;
 table rows (any line with '|'); blockquotes; ATX and setext headings; thematic
 breaks; link/footnote reference definitions ([label]: / [^id]:); YAML
 front-matter (only when properly terminated); and hard-break lines (trailing two
 spaces / backslash). The file's existing newline style (LF/CRLF) is preserved.
+
+Every one of those rules is measured from the enclosing list item's content
+column, not from column 0: inside a `- ` item (content column 2) indented code
+starts at 6 and a fence may open at 5, while a line at 4 is an ordinary wrapped
+continuation and joins. Classifying at an absolute column instead both certifies
+hard-wrapped list continuations as canonical and swallows genuine nested blocks.
 
 Pass an explicit tracked-file list, never a directory — scope is then exact and
 never descends into gitignored/vendor/reference trees (the -z/-0 pair is
@@ -47,22 +70,71 @@ import re
 import sys
 from pathlib import Path
 
-LIST_RE = re.compile(r'^(\s*)([-*+]|\d+[.)])\s+\S')
-FENCE_OPEN_RE = re.compile(r'^\s{0,3}(`{3,}|~{3,})')
-HEADING_RE = re.compile(r'^\s{0,3}#{1,6}(\s|$)')
-HR_RE = re.compile(r'^\s{0,3}([-*_])(\s*\1){2,}\s*$')
-SETEXT_RE = re.compile(r'^\s{0,3}(=+|-+)\s*$')          # a setext underline / dash rule, alone on its line
+# Indent bounds below are spaces only, never `\s`: a leading tab is indented code
+# in CommonMark, and `_dedent` strips spaces, so `\s{0,3}` would let a tab-led line
+# reach the join path as though it were a block start.
+LIST_RE = re.compile(r'^( *)([-*+]|\d{1,9}[.)])([ \t]+)\S')   # >9 digits is not a marker
+FENCE_OPEN_RE = re.compile(r'^ {0,3}(`{3,}|~{3,})')
+HEADING_RE = re.compile(r'^ {0,3}#{1,6}(\s|$)')
+HR_RE = re.compile(r'^ {0,3}([-*_])(\s*\1){2,}\s*$')
+SETEXT_RE = re.compile(r'^ {0,3}(=+|-+)\s*$')           # a setext underline / dash rule, alone on its line
 INDENT_CODE_RE = re.compile(r'^(\t| {4,})')
-DEF_RE = re.compile(r'^\s{0,3}\[\^?[^\]]+\]:\s')        # [label]: url  |  [^id]: footnote text
-HTML_RAW_OPEN_RE = re.compile(r'^\s{0,3}<(pre|script|style|textarea)[\s/>]', re.IGNORECASE)
+DEF_RE = re.compile(r'^ {0,3}\[\^?[^\]]+\]:\s')        # [label]: url  |  [^id]: footnote text
+HTML_RAW_OPEN_RE = re.compile(r'^ {0,3}<(pre|script|style|textarea)[\s/>]', re.IGNORECASE)
 
 
 class ReflowError(Exception):
     """Fail-loud error; message names the offending file."""
 
 
+def _content_col(line):
+    """The content column a list marker on `line` opens, or None if it opens none.
+
+    CommonMark measures a list item's interior from where its content starts, so
+    every block-start rule inside the item is relative to this column."""
+    m = LIST_RE.match(line)
+    if not m:
+        return None
+    if HR_RE.match(line):            # `* * *` is a thematic break, not a bullet
+        return None
+    spaces = m.group(3)
+    if '\t' in spaces:
+        # Tab width depends on the column it lands in. Nothing here is authored
+        # with tabs (`.editorconfig` sets spaces), so rather than carry a
+        # tab-stop model, decline the item — `_opens_with_code` then holds the
+        # line, and the construct is left exactly as written.
+        return None
+    # A marker followed by 5+ spaces starts its content one column past the
+    # marker; the rest of that line is an indented code block (see below).
+    run = 1 if len(spaces) >= 5 else len(spaces)
+    return len(m.group(1)) + len(m.group(2)) + run
+
+
+def _opens_with_code(line):
+    """A marker whose content cannot simply be joined onto: 5+ spaces after it
+    means the item's own first line is already an indented code block, and a tab
+    after it means we decline to measure the item at all (see `_content_col`).
+    Either way the line never joins with a neighbour."""
+    m = LIST_RE.match(line)
+    if not m or HR_RE.match(line):
+        return False
+    return '\t' in m.group(3) or len(m.group(3)) >= 5
+
+
+def _dedent(line, content_col):
+    """Strip up to `content_col` leading spaces. Classification happens in the
+    enclosing list item's own coordinate space — that is what makes the absolute
+    column rules below (indented code at 4, block starts at <=3) CommonMark's
+    *relative* ones, without restating each threshold."""
+    k = 0
+    while k < content_col and k < len(line) and line[k] == ' ':
+        k += 1
+    return line[k:]
+
+
 def _is_special_standalone(line):
-    """Lines that are their own logical line and never join with a neighbour."""
+    """Lines that are their own logical line and never join with a neighbour.
+    Caller passes a line already dedented to its list item's content column."""
     s = line.strip()
     if s == '':
         return True
@@ -92,7 +164,7 @@ def _is_hardbreak(line):
 def _fence_close(line, ch, length):
     """A closing fence: >= `length` of the SAME char `ch`, <=3 indent, nothing
     but whitespace after (a closing fence carries no info string)."""
-    m = re.match(r'^\s{0,3}(' + re.escape(ch) + r'+)[ \t]*$', line)
+    m = re.match(r'^ {0,3}(' + re.escape(ch) + r'+)[ \t]*$', line)
     return bool(m) and len(m.group(1)) >= length
 
 
@@ -104,6 +176,7 @@ def reflow(text):
     out = []
     i = 0
     n = len(lines)
+    stack = []   # content columns of the currently open list items, outermost first
 
     # YAML front-matter passthrough — only when a real terminator exists at col 0.
     if n and lines[0] == '---':
@@ -115,8 +188,23 @@ def reflow(text):
     while i < n:
         line = lines[i]
 
+        # Track open list items, so the classification below is measured from the
+        # innermost item's content column rather than from column 0. A dedent past
+        # an item's content column closes it; a blank line never does.
+        if line.strip():
+            indent = len(line) - len(line.lstrip(' '))
+            while stack and indent < stack[-1]:
+                stack.pop()
+            # A marker only opens an item while it is still prose: 4 past the
+            # enclosing content column it is an indented code line instead.
+            cc = _content_col(line)
+            if cc is not None and indent < (stack[-1] if stack else 0) + 4:
+                stack.append(cc)
+        content_col = stack[-1] if stack else 0
+        probe = _dedent(line, content_col)
+
         # Fenced code: verbatim until a matching-or-longer close of the same char.
-        fo = FENCE_OPEN_RE.match(line)
+        fo = FENCE_OPEN_RE.match(probe)
         if fo:
             seq = fo.group(1)
             ch, length = seq[0], len(seq)
@@ -124,14 +212,14 @@ def reflow(text):
             i += 1
             while i < n:
                 out.append(lines[i])
-                closed = _fence_close(lines[i], ch, length)
+                closed = _fence_close(_dedent(lines[i], content_col), ch, length)
                 i += 1
                 if closed:
                     break
             continue
 
         # Raw-text HTML element: verbatim until its close tag.
-        ho = HTML_RAW_OPEN_RE.match(line)
+        ho = HTML_RAW_OPEN_RE.match(probe)
         if ho:
             tag = ho.group(1).lower()
             close_re = re.compile(r'</' + tag + r'>', re.IGNORECASE)
@@ -144,7 +232,7 @@ def reflow(text):
                 i += 1
             continue
 
-        if _is_special_standalone(line) or _is_hardbreak(line):
+        if _is_special_standalone(probe) or _is_hardbreak(line) or _opens_with_code(line):
             out.append(line)
             i += 1
             continue
@@ -156,9 +244,10 @@ def reflow(text):
             nxt = lines[i]
             if nxt.strip() == '':                 # blank ends the block
                 break
-            if _is_special_standalone(nxt):       # heading/hr/setext/table/quote/html/def/indent-code
+            nxt_probe = _dedent(nxt, content_col)
+            if _is_special_standalone(nxt_probe):  # heading/hr/setext/table/quote/html/def/indent-code
                 break
-            if FENCE_OPEN_RE.match(nxt):
+            if FENCE_OPEN_RE.match(nxt_probe):
                 break
             if LIST_RE.match(nxt):                # a new list item ends the current one
                 break
