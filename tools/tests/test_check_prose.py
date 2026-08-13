@@ -75,7 +75,14 @@ class Fixture(unittest.TestCase):
         # files pass 4 sees.
         env = dict(os.environ)
         for var in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR',
-                    'GIT_OBJECT_DIRECTORY', 'GIT_CEILING_DIRECTORIES'):
+                    'GIT_OBJECT_DIRECTORY', 'GIT_CEILING_DIRECTORIES',
+                    # -c settings travel in these, so `git -c core.excludesFile=... `,
+                    # an alias, or `git bisect run` would otherwise reach straight past
+                    # the GIT_CONFIG_GLOBAL/SYSTEM redirect below and change pass 4's
+                    # file set on someone else's machine.
+                    'GIT_CONFIG_PARAMETERS', 'GIT_CONFIG_COUNT'):
+            env.pop(var, None)
+        for var in [k for k in env if k.startswith(('GIT_CONFIG_KEY_', 'GIT_CONFIG_VALUE_'))]:
             env.pop(var, None)
         nowhere = str(self.tmp / 'no-such-gitconfig')
         env['GIT_CONFIG_GLOBAL'] = nowhere
@@ -83,6 +90,11 @@ class Fixture(unittest.TestCase):
         self._envp = mock.patch.dict(os.environ, env, clear=True)
         self._envp.start()
         self.addCleanup(self._envp.stop)
+
+        # Process-global dedupe state in the module under test. Left alone, whether a test
+        # sees the vanished-family NOTE would depend on which test ran first.
+        c._NOTED_VANISHED.clear()
+        self.addCleanup(c._NOTED_VANISHED.clear)
 
         subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
         self._rootp = mock.patch.object(c, 'ROOT', self.root)
@@ -249,6 +261,19 @@ class TestAllSkillDirs(Fixture):
         self.write('vrc-skills/tools/validate_skills.py', '')
         with self.assertRaisesRegex(c.GateError, 'vanished'):
             c.all_skill_dirs()
+
+    def test_non_strict_downgrades_the_vanished_family_to_a_note(self):
+        # What passes 2-3 call. Raising there aborts the run before any pass reports,
+        # which costs a maintainer with a half-refactored sibling the adjudication of the
+        # doc edits they actually made — pass 1 still fails the run on the strict call.
+        self.write('vrc-skills/tools/validate_skills.py', '')
+        self.skill('local', '---\nname: local\n---\n\n# L\n')
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            dirs = c.all_skill_dirs(strict=False)
+        self.assertEqual([p.name for p in dirs], ['local'])
+        self.assertIn('vanished', buf.getvalue())
+        self.assertIn('pass 1 will fail the run', buf.getvalue())
 
     def test_no_families_at_all_is_a_valid_state(self):
         self.assertEqual(c.all_skill_dirs(), [])
@@ -569,18 +594,18 @@ class TestMainExitCodes(Fixture):
         return p.returncode, p.stdout + p.stderr
 
     def test_clean_workspace_exits_zero(self):
-        self.build(child_body=f"print({SUMMARY.format(n=0, e=0, w=0)!r})\n")
+        self.build(child_body=f"print({SUMMARY.format(n=1, e=0, w=0)!r})\n")
         rc, text = self.run_gate()
         self.assertEqual(rc, 0, text)
 
     def test_findings_exit_one(self):
-        self.build(child_body=f"print({SUMMARY.format(n=0, e=0, w=0)!r})\n", drifted=True)
+        self.build(child_body=f"print({SUMMARY.format(n=1, e=0, w=0)!r})\n", drifted=True)
         rc, text = self.run_gate()
         self.assertEqual(rc, 1, text)
         self.assertIn('1 error(s)', text)
 
     def test_malformed_fence_exits_two(self):
-        self.build(child_body=f"print({SUMMARY.format(n=0, e=0, w=0)!r})\n")
+        self.build(child_body=f"print({SUMMARY.format(n=1, e=0, w=0)!r})\n")
         self.write('docs/tool-design.md',
                    '# D\n\n```yaml\ngoverned_fence:\n  roots: []\n  not_ignored: true\n'
                    '  glob: "**/*.md"\n  exclude: []\n```\n')
@@ -601,6 +626,28 @@ class TestMainExitCodes(Fixture):
         self.assertEqual(rc, 2, text)
         self.assertIn('README.md', text)
         self.assertIn('not one-line-per-paragraph', text)
+
+    def test_an_aborted_run_still_prints_a_tally_and_says_it_is_partial(self):
+        # Exiting 2 with no summary at all reads downstream as "nothing was judged", which
+        # is false once any pass got far enough to emit a finding. The hook's message is
+        # written against this line.
+        self.build(child_body="raise SystemExit(2)\n", drifted=True)
+        rc, text = self.run_gate()
+        self.assertEqual(rc, 2, text)
+        self.assertIn('check_prose:', text)
+        self.assertIn('RUN INCOMPLETE', text)
+
+    def test_a_vanished_skill_family_does_not_silence_the_reporting_passes(self):
+        # The scenario the pass reorder exists for, and the one it used to miss: passes 2-3
+        # called all_skill_dirs strictly, so a present vrc-skills with its skills/ gone
+        # aborted at pass 2 with empty stdout and the maintainer's drifted doc unadjudicated.
+        self.build(child_body="raise SystemExit(2)\n", drifted=True)
+        shutil.rmtree(self.root / 'vrc-skills' / 'skills')
+        rc, text = self.run_gate()
+        self.assertEqual(rc, 2, text)
+        self.assertIn('not one-line-per-paragraph', text)   # pass 4 still adjudicated
+        self.assertIn('vanished', text)
+        self.assertIn('RUN INCOMPLETE', text)
 
 
 # ---------------------------------------------------------------- drift

@@ -10,8 +10,8 @@ present but whose directory is gone is the other thing, and fails loud
   1. vrc-skills' own gate, tools/validate_skills.py (subprocess) — skill
      anatomy; its errors/warnings count here. Passes 1-3 cover both governed
      enumerations (SKILL_FAMILIES): the plugin repo's skills/ and this repo's
-     .claude/skills/, held to one anatomy. Numbered first, RUN last: it is the
-     only pass whose failures abort the run, so the others report first.
+     .claude/skills/, held to one anatomy. Numbered first, RUN last, so the
+     reporting passes report before it can abort the run (pass 4 can abort too).
   2. Doc pointers: every docs-file reference in a SKILL.md resolves against the
      meta-repo (docs/ listing, root .md files, files in vrc-skills). WARN.
   3. Tool names, structured slot only: each leading bold-backticked name in a
@@ -176,24 +176,39 @@ SKILL_FAMILIES = ('vrc-skills/skills', '.claude/skills')
 # all is an ordinary state, so .claude/skills has no required marker.
 FAMILY_REQUIRED_BY = {'vrc-skills/skills': 'vrc-skills'}
 
+# Families already NOTE'd by a non-strict caller, so passes 2 and 3 don't say it twice.
+_NOTED_VANISHED = set()
 
-def all_skill_dirs():
+
+def all_skill_dirs(strict=True):
     """Every candidate directory, unfiltered — so pass 1's child gate still gets
-    to report a skill directory that has no SKILL.md at all."""
+    to report a skill directory that has no SKILL.md at all.
+
+    strict=False downgrades the vanished-family refusal to a NOTE. Only pass 1 needs
+    to raise: it is the pass that scores skill anatomy, so a family that silently
+    dropped out from under it is the run scoring clean over nothing. Passes 2-3 read
+    whatever families remain, and raising there would abort the run before any pass
+    reported — costing a maintainer with a half-refactored sibling the adjudication of
+    the doc edits they actually made, which is the whole reason pass 1 runs last."""
     families = []
     for fam in SKILL_FAMILIES:
         d = ROOT / fam
         if d.is_dir():
             families.append(d)
         elif (marker := FAMILY_REQUIRED_BY.get(fam)) and (ROOT / marker).is_dir():
-            raise GateError(f'{marker} is present but {fam}/ is missing — the skill family '
-                            'vanished; refusing to score the remaining families as a clean run')
+            msg = (f'{marker} is present but {fam}/ is missing — the skill family '
+                   'vanished; refusing to score the remaining families as a clean run')
+            if strict:
+                raise GateError(msg)
+            if fam not in _NOTED_VANISHED:   # passes 2 and 3 both ask; say it once
+                _NOTED_VANISHED.add(fam)
+                print(f'NOTE  {msg} (pass 1 will fail the run)')
     return sorted(p for f in families for p in f.iterdir() if p.is_dir())
 
 
 def skill_dirs():
     """The subset that has a SKILL.md, for the passes that read one."""
-    return [p for p in all_skill_dirs() if (p / 'SKILL.md').is_file()]
+    return [p for p in all_skill_dirs(strict=False) if (p / 'SKILL.md').is_file()]
 
 
 # ---- pass 1: the repo-local skill gate ----
@@ -458,18 +473,28 @@ def main(argv=None):
     # failure (exit 2), same as a missing one.
     fence = consts_fence.get('governed_fence')
     validate_fence(fence)
-    pass_doc_pointers(out, exempt, fence)
-    pass_tool_names(out, exempt, terminal)
-    pass_form(out, fence)
-    # Pass 1 runs last precisely because it is the one that can abort the run:
-    # its internal failures raise (exit 2), and a maintainer with a half-refactored
-    # vrc-skills checkout still needs passes 2-4 to adjudicate the doc edits they
-    # actually made. Nothing else orders these — the yaml check above is the only
-    # real precondition. Cost: pass 1's output prints after the others'.
-    pass_validate(out)
-
-    per = ', '.join(f'{name} {e}/{w}' for name, (e, w) in out.per_pass.items())
-    print(f'check_prose: {out.errors} error(s), {out.warnings} warning(s) [{per} (errors/warnings)]')
+    aborted = True
+    try:
+        pass_doc_pointers(out, exempt, fence)
+        pass_tool_names(out, exempt, terminal)
+        # Pass 1 runs last so the reporting passes report first. Its internal failures
+        # raise (exit 2), and a maintainer with a half-refactored vrc-skills checkout
+        # still needs the other passes to adjudicate the doc edits they actually made.
+        # Pass 4 can abort too (the zero-file fence refusal), so this is a reordering for
+        # the common case, not a guarantee that every pass gets to run — which is why the
+        # summary below prints from a finally.
+        pass_form(out, fence)
+        pass_validate(out)
+        aborted = False
+    finally:
+        # Print the tally even when a pass aborted. Passes that completed emitted real
+        # findings, and exiting 2 with no summary at all reads downstream — in
+        # .githooks/pre-commit above all — as "nothing was judged", which is false the
+        # moment any pass got that far.
+        per = ', '.join(f'{name} {e}/{w}' for name, (e, w) in out.per_pass.items())
+        state = ' — RUN INCOMPLETE, a pass aborted (see the error below)' if aborted else ''
+        print(f'check_prose: {out.errors} error(s), {out.warnings} warning(s) '
+              f'[{per} (errors/warnings)]{state}')
     return 1 if out.errors else 0
 
 
