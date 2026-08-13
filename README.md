@@ -199,6 +199,6 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | --- | --- |
 | `apply_proportion_edge` | Apply one declarative proportion edge, validating first and stamping state; `--whatif` validates read-only against the live scene. |
 | `import_fbx` | Import an FBX via Blender's current importer (never the legacy one, which reorients bones); stamps new armatures state="unproportioned" and returns a sanity snapshot, including the source file's `unit_scale_factor` (read from the file — the importer normalizes both unit classes into identical scene state). `export_unity_fbx`'s counterpart. |
-| `export_unity_fbx` | Export with the Unity/VRChat FBX recipe onto one canonical layout (`FBX_SCALE_ALL`, meter-unit) rather than the source's unit class; gates the armature object-rotation clear on the up axis, and **permanently mutates the scene it exports** (bakes parked object scale). `--armature` scopes an owned re-export to one rig. Canon: `fbx_export.py`'s Orientation and Scale sections; `blender.md` carries the second, Unity-side switch. |
+| `export_unity_fbx` | Export with the Unity/VRChat FBX recipe onto the canonical meter-unit layout; **permanently mutates the scene it exports** (bakes parked object scale), and serves at most one armature (`--armature` scopes; a multi-rig whole-scene export refuses). Canon: `fbx_export.py`'s Orientation and Scale docstrings. |
 
 <!-- END tools -->
