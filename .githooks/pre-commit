@@ -10,14 +10,18 @@ if command -v python >/dev/null 2>&1; then
   # guard used to skip the whole hook, which silently disabled the prose gate for every
   # worktree commit, and worktrees are where most commits here are made.
   if [ -d "$top/vrc-unity-tools" ] && [ -d "$top/vrc-blender-tools" ] && [ -d "$top/vrc-skills" ]; then
-    # Capture stdout (the "README-UPDATED" marker); stderr flows to the terminal.
-    if out="$(python "$top/tools/sync_tool_inventory.py")"; then
-      case "$out" in
-        *README-UPDATED*)
-          git add "$top/README.md" || echo "pre-commit: could not stage README.md; continuing" >&2 ;;
-      esac
-    else
-      echo "pre-commit: tool-inventory drift or error (see above); committing without refresh" >&2
+    # Capture stdout (the "README-UPDATED" marker); stderr flows to the terminal. Exit 1
+    # means it ran and found real drift; exit 2 means it never adjudicated (same 0/1/2
+    # contract as check_prose.py below), which must not print as a drift verdict.
+    out="$(python "$top/tools/sync_tool_inventory.py")"; rc=$?
+    case "$out" in
+      *README-UPDATED*)
+        git add "$top/README.md" || echo "pre-commit: could not stage README.md; continuing" >&2 ;;
+    esac
+    if [ "$rc" -eq 1 ]; then
+      echo "pre-commit: tool-inventory drift (see above); committing without refresh" >&2
+    elif [ "$rc" -ne 0 ]; then
+      echo "pre-commit: sync_tool_inventory.py ABORTED (exit $rc) — README was not checked, not proven in sync" >&2
     fi
   fi
   # The prose gate needs no sibling — its form pass reads this repo's own tracked .md,
