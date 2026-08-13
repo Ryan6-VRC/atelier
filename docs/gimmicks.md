@@ -117,6 +117,7 @@ The **vrc-patterns** library is the catalog of worked, gated examples for these 
   - **Options** — the tunable surface; `saved` per-param by preference-vs-transient.
   - **Failsafe** — an explicit control only when state persists beyond the avatar (world-placed
     props): a *recall* value distinct from *off*, so the user can summon without resetting.
+
   Sensing params (physbone `_IsGrabbed`/`_Stretch`, contact receivers, proximity) are never synced and never menu-exposed — only intent costs bits. And some gimmicks are correctly **frontless** — passive always-on FX, OSC-contract systems.
 - In-editor UX: the prefab drops in at avatar root; anchors self-place (ArmatureLink/BoneProxy); anything the installer must hand-place is a defect.
 
