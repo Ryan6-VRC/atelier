@@ -193,16 +193,29 @@ def blank_out(src: str) -> str:
             j = n if j < 0 else j + 2
             wipe(i, j)
             i = j
-        elif two == '@"':                      # verbatim: no escapes, "" is one literal quote
-            j = i + 2
-            while j < n:
-                if src[j] == '"':
-                    if src[j:j + 2] == '""':
+        elif src[i] in '@$' and src[i:i + 3].lstrip('@$')[:1] == '"':
+            k = i                                  # skip the prefix run: @" $" @$" $@"
+            while src[k] in '@$':
+                k += 1
+            j = k + 1
+            if '@' in src[i:k]:                    # verbatim: no escapes, "" is one quote,
+                while j < n:                       # and it may legitimately span lines
+                    if src[j] == '"':
+                        if src[j:j + 2] == '""':
+                            j += 2
+                            continue
+                        j += 1
+                        break
+                    j += 1
+            else:                                  # interpolated only: ordinary escapes
+                while j < n:
+                    if src[j] == "\\":
                         j += 2
                         continue
+                    if src[j] == '"' or src[j] == "\n":
+                        j += 1
+                        break
                     j += 1
-                    break
-                j += 1
             wipe(i, j)
             i = j
         elif src[i] in '"\'':
@@ -246,14 +259,16 @@ def _depth1_body(blanked: str, decl_start: int) -> str:
 
 
 def extract_unity_doors(repo: Path) -> tuple:
-    """(doors, statics): {class: {door name}} and {class: {every public static name}}.
+    """(doors, statics, namespaces): {class: {door name}}, {class: {every public static name}},
+    {class: declared namespace}.
 
     Reads with Python, never a shelled grep: `ReportConsole.cs` carries raw NUL bytes, and
     `rg`/`grep`/`git grep` all classify it as binary and skip it without a word — silently
     dropping a five-door tool class from the census."""
-    doors, statics = {}, {}
+    doors, statics, namespaces = {}, {}, {}
     for cs in sorted(_require_dir(repo / "packages").rglob("*.cs")):
         blanked = blank_out(_read(cs))
+        nsm = re.search(r"^\s*namespace\s+([\w.]+)", blanked, re.MULTILINE)
         for m in _AGENT_TOOL_ANCHOR.finditer(blanked):
             cm = re.search(r"^[^{;]*?\bclass\s+([A-Za-z_]\w*)", blanked[m.end():])
             if not cm:
@@ -266,10 +281,23 @@ def extract_unity_doors(repo: Path) -> tuple:
                 names.add(name)
                 if sig.group("ret").strip() == "string" and (cls, name) not in NOT_DOORS:
                     door_names.add(name)
-            door_names |= {n for c, n in DOORS_EXTRA if c == cls and n in names}
+            for c, n in DOORS_EXTRA:
+                if c != cls:
+                    continue
+                # A renamed method would drop out of DOORS_EXTRA silently, quietly deleting a
+                # door from the census. NOT_DOORS rots the other way — its stale entry stops
+                # excluding and the door turns up as a new coverage finding — so only this
+                # table needs the guard.
+                if n not in names:
+                    raise InventoryError(
+                        f"DOORS_EXTRA names {c}.{n}, which is not a public static on {c} "
+                        f"({cs.name}) — the method was renamed or removed; update the table")
+                door_names.add(n)
             statics.setdefault(cls, set()).update(names)
             doors.setdefault(cls, set()).update(door_names)
-    return doors, statics
+            if nsm:
+                namespaces[cls] = nsm.group(1)
+    return doors, statics, namespaces
 
 
 def _governed_docs(docs_root: Path) -> list:
@@ -281,30 +309,49 @@ def _governed_docs(docs_root: Path) -> list:
 def _call_re(cls: str) -> re.Pattern:
     """`Tool.Method(`, with an optional namespace prefix so the fully-qualified form the docs
     prescribe (`Ryan6Vrc.AgentTools.Editor.Tool.Method(`) counts. The literal dot after the
-    class name also stops `RenderThumbnail` matching `RenderThumbnailPlay.Shoot(`."""
-    return re.compile(r"(?<![\w])(?:\w+\.)*" + re.escape(cls) + r"\.(\w+)\s*\(")
+    class name also stops `RenderThumbnail` matching `RenderThumbnailPlay.Shoot(`.
+
+    The method must start uppercase: every door is PascalCase, while `CheckSeam.cs (line 40)`
+    — a file reference the docs already make — otherwise reads as a call to a method `cs`."""
+    return re.compile(r"(?<![\w])(?:\w+\.)*" + re.escape(cls) + r"\.([A-Z]\w*)\s*\(")
+
+
+# The qualified form the docs prescribe. Its prefix is what makes a wrong one checkable: a
+# call carrying `Ryan6Vrc.<Kit>.Editor.` is asserting a namespace, and asserting the wrong one
+# is the recurring stumble `unity.md` §Invocation names (AgentTools vs AvatarTools).
+_QUALIFIED_CALL = re.compile(r"Ryan6Vrc\.(?:Agent|Avatar)Tools\.Editor\.(\w+)\.([A-Z]\w*)\s*\(")
 
 
 def check_doors(code_root: Path, docs_root: Path) -> tuple:
     """(problems, census). Coverage: every door is named somewhere an agent reads it.
-    Resolution: every documented call on a tool class names a real public static.
+    Resolution: every documented call on a tool class names a real public static, and a
+    fully-qualified one names the kit that class actually lives in.
 
-    Pins entry-point NAMES only — arguments, defaults and overloads are not compared, so a
-    doc's argument list is illustrative and the declaration site stays canon."""
-    doors, statics = extract_unity_doors(code_root / "vrc-unity-tools")
+    Pins entry-point NAMES and namespaces only — arguments, defaults and overloads are not
+    compared, so a doc's argument list is illustrative and the declaration site stays canon."""
+    doors, statics, namespaces = extract_unity_doors(code_root / "vrc-unity-tools")
     texts = [(p, _read(p)) for p in _governed_docs(docs_root)]
 
-    seen, problems = {}, []
+    seen, found = {}, set()          # found: dedupe by issue, not by occurrence
     for cls in sorted(statics):
         pat = _call_re(cls)
         for path, text in texts:
+            rel = path.relative_to(docs_root).as_posix()
             for m in pat.finditer(text):
                 seen.setdefault(cls, set()).add(m.group(1))
                 if m.group(1) not in statics[cls]:
-                    rel = path.relative_to(docs_root).as_posix()
-                    problems.append(
-                        f"{rel}: `{cls}.{m.group(1)}(` names no public static on {cls} — the "
-                        f"declaration site is canon; fix the call or the doc")
+                    found.add((rel, f"`{cls}.{m.group(1)}(` names no public static on {cls} — "
+                                    f"the declaration site is canon; fix the call or the doc"))
+    for path, text in texts:
+        rel = path.relative_to(docs_root).as_posix()
+        for m in _QUALIFIED_CALL.finditer(text):
+            cls, method = m.group(1), m.group(2)
+            if cls not in statics:
+                found.add((rel, f"`{m.group(0)}…` names no [AgentTool] class `{cls}`"))
+            elif namespaces.get(cls) and not m.group(0).startswith(namespaces[cls] + "."):
+                found.add((rel, f"`{cls}.{method}(` is qualified with the wrong kit — {cls} "
+                                f"lives in `{namespaces[cls]}`"))
+    problems = [f"{rel}: {msg}" for rel, msg in sorted(found)]
     missing = [(c, n) for c in sorted(doors) for n in sorted(doors[c] - seen.get(c, set()))]
     for cls, name in missing:
         problems.append(f"{cls}.{name} is a door with no literal call under docs/ — write "
@@ -475,6 +522,12 @@ def main(argv=None) -> int:
     except InventoryError as e:
         print(f"tool-inventory: ERROR: {e}", file=sys.stderr)
         return 2
+    # Door findings print even when key drift fires. The commonest cause of drift is landing a
+    # new tool — exactly the commit whose door rows matter most — and returning here first
+    # would suppress the census and every door line while the hook still said "findings above".
+    print(f"tool-inventory: {census}", file=sys.stderr)
+    for p in door_problems:
+        print(f"tool-inventory: DOORS: {p}", file=sys.stderr)
     problems = check(code_keys, doc_keys)
     if problems:
         for p in problems:
@@ -493,13 +546,10 @@ def main(argv=None) -> int:
         print("tool-inventory: OK — README tools block in sync", file=sys.stderr)
     else:
         print("tool-inventory: OK — TOOLS.md + README skills roster match code", file=sys.stderr)
-    # Door findings are reported AFTER the mirror runs, and deliberately do not gate it: an
-    # undocumented door is a finding about docs/, while the mirror is TOOLS.md → README.md.
-    # Gating it would stop the public README tracking TOOLS.md for as long as a door row sat
-    # unwritten — and since the hook only warns, nobody would see why.
-    print(f"tool-inventory: {census}", file=sys.stderr)
-    for p in door_problems:
-        print(f"tool-inventory: DOORS: {p}", file=sys.stderr)
+    # Door findings never gate the mirror above: an undocumented door is a finding about docs/,
+    # while the mirror is TOOLS.md → README.md. Gating it would stop the public README tracking
+    # TOOLS.md for as long as a door row sat unwritten — and the hook only warns, so nobody
+    # would see why.
     return 1 if door_problems else 0
 
 

@@ -1,4 +1,5 @@
 # tools/tests/test_sync_tool_inventory.py
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -8,6 +9,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import sync_tool_inventory as s  # noqa: E402
 
 WORKSPACE = Path(__file__).resolve().parent.parent.parent
+
+
+def main_checkout() -> Path:
+    """The main working tree, where the gitignored `vrc-*` siblings actually live. In a linked
+    worktree `--git-common-dir` points at the main tree's `.git`, so its parent is that tree;
+    in the main tree it resolves to itself."""
+    try:
+        out = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                             cwd=WORKSPACE, capture_output=True, text=True, check=True)
+        return Path(out.stdout.strip()).parent
+    except (OSError, subprocess.CalledProcessError):
+        return WORKSPACE
 
 
 def needs_sibling(name):
@@ -290,6 +303,14 @@ class TestBlankOut(unittest.TestCase):
         self.assertEqual(out.count("{"), 0)
         self.assertEqual(out.count("}"), 0)
 
+    def test_interpolated_verbatim_in_either_order(self):
+        # `$@"` and `@$"` are both legal and mean the same thing; only the verbatim rules
+        # (no escapes, "" for a quote) keep a trailing backslash from eating the delimiter.
+        for prefix in ('$@"', '@$"'):
+            out = self._blanked(f'var s = {prefix}C:\\path\\{{x}}";\npublic static string F(){{}}\n')
+            self.assertIn("public static string F(", out)
+            self.assertEqual(out.count("{"), 1)
+
     def test_nul_byte_source_is_read(self):
         # ReportConsole.cs carries raw NUL bytes; rg/grep/git grep call it binary and skip
         # it silently, which would drop a five-door class from the census.
@@ -306,7 +327,7 @@ class TestDoorExtraction(unittest.TestCase):
         return d
 
     def test_string_returns_are_doors_other_returns_are_not(self):
-        doors, statics = s.extract_unity_doors(self._repo(
+        doors, statics, _ = s.extract_unity_doors(self._repo(
             "[AgentTool]\npublic static class T {\n"
             "  public static string Run(string a) { return a; }\n"
             "  public static bool Helper() { return true; }\n}"))
@@ -316,7 +337,7 @@ class TestDoorExtraction(unittest.TestCase):
     def test_class_keyword_in_doc_comment_does_not_truncate(self):
         # CompileController.cs:51 — `/// (see class docs)`. This bug hid
         # CompileController.Compile and DecompileController.Decompile from an earlier census.
-        doors, _ = s.extract_unity_doors(self._repo(
+        doors, _, _ = s.extract_unity_doors(self._repo(
             "[AgentTool]\npublic static class T {\n"
             "  /// <summary>see class docs</summary>\n"
             "  public static string Compile(string p) { return p; }\n}"))
@@ -324,7 +345,7 @@ class TestDoorExtraction(unittest.TestCase):
 
     def test_nested_type_members_are_not_the_tools_doors(self):
         # UploadAvatar.UploadOutcome.Uploaded is not UploadAvatar.Uploaded.
-        doors, statics = s.extract_unity_doors(self._repo(
+        doors, statics, _ = s.extract_unity_doors(self._repo(
             "[AgentTool]\npublic static class T {\n"
             "  public struct Out { public static string Made() { return null; } }\n"
             "  public static string Run() { return null; }\n}"))
@@ -332,7 +353,7 @@ class TestDoorExtraction(unittest.TestCase):
         self.assertNotIn("Made", statics["T"])
 
     def test_readonly_field_and_expression_bodied_property_are_not_methods(self):
-        doors, statics = s.extract_unity_doors(self._repo(
+        doors, statics, _ = s.extract_unity_doors(self._repo(
             "[AgentTool]\npublic static class T {\n"
             "  public static readonly string Dir = Make(\"x\");\n"
             "  public static string StatusPath => Dir + \"/s.json\";\n"
@@ -341,7 +362,7 @@ class TestDoorExtraction(unittest.TestCase):
         self.assertEqual(doors["T"], {"Run"})
 
     def test_tuple_async_and_overloaded_signatures(self):
-        doors, statics = s.extract_unity_doors(self._repo(
+        doors, statics, _ = s.extract_unity_doors(self._repo(
             "[AgentTool]\npublic static class T {\n"
             "  public static (string a, string b) Classify(object o) { return (null, null); }\n"
             "  public static async System.Threading.Tasks.Task<int> RunCore() { return 0; }\n"
@@ -350,12 +371,22 @@ class TestDoorExtraction(unittest.TestCase):
         self.assertEqual(statics["T"], {"Classify", "RunCore", "Run"})
         self.assertEqual(doors["T"], {"Run"})          # tuple/Task returns are not doors
 
+    def test_stale_doors_extra_entry_fails_loud(self):
+        # NOT_DOORS rot surfaces on its own (the entry stops excluding, so the method turns
+        # up as a new coverage finding). DOORS_EXTRA rot would silently delete a door, so it
+        # is the table that needs the guard.
+        repo = self._repo(
+            "[AgentTool]\npublic static class CheckAvatar {\n"
+            "  public static string Inspect() { return null; }\n}")
+        with self.assertRaises(s.InventoryError):
+            s.extract_unity_doors(repo)          # DOORS_EXTRA names CheckAvatar.ScanAnchorSeams
+
     def test_exception_tables_apply(self):
         repo = self._repo(
             "[AgentTool]\npublic static class ReportConsole {\n"
             "  public static string Report() { return null; }\n"
             "  public static string BenignLabel() { return null; }\n}")
-        doors, _ = s.extract_unity_doors(repo)
+        doors, _, _ = s.extract_unity_doors(repo)
         self.assertEqual(doors["ReportConsole"], {"Report"})
 
 
@@ -418,6 +449,41 @@ class TestCheckDoors(unittest.TestCase):
         self.assertEqual([p for p in problems if p.startswith("T.Run")], problems)
         self.assertEqual(len(problems), 1)
 
+    NS_CS = ("namespace Ryan6Vrc.AvatarTools.Editor {\n[AgentTool]\npublic static class T {\n"
+             "  public static string Run(string a) { return a; }\n}\n}")
+
+    def test_wrong_kit_in_a_qualified_call_is_a_finding(self):
+        # unity.md calls the AgentTools/AvatarTools split "the recurring stumble"; the
+        # qualified form the docs prescribe is what makes a wrong one checkable.
+        problems, _ = s.check_doors(*self._tree(
+            self.NS_CS, {"a.md": "`Ryan6Vrc.AgentTools.Editor.T.Run(a)`\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("wrong kit", problems[0])
+
+    def test_right_kit_in_a_qualified_call_is_clean(self):
+        problems, _ = s.check_doors(*self._tree(
+            self.NS_CS, {"a.md": "`Ryan6Vrc.AvatarTools.Editor.T.Run(a)`\n"}))
+        self.assertEqual(problems, [])
+
+    def test_qualified_call_on_an_unknown_class_is_a_finding(self):
+        problems, _ = s.check_doors(*self._tree(
+            self.NS_CS, {"a.md": "`Ryan6Vrc.AvatarTools.Editor.T.Run(a)` and "
+                                 "`Ryan6Vrc.AvatarTools.Editor.Typo.Run(a)`\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("no [AgentTool] class", problems[0])
+
+    def test_source_file_reference_is_not_a_call(self):
+        # `CheckSeam.cs (line 40)` is a shape the docs already use; a method group that
+        # accepted lowercase would report it as a call to a method named `cs`.
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)`; see `T.cs (line 40)` for the constants.\n"}))
+        self.assertEqual(problems, [])
+
+    def test_one_finding_per_issue_not_per_occurrence(self):
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)` `T.Gone(x)` `T.Gone(y)` `T.Gone(z)`\n"}))
+        self.assertEqual(len(problems), 1)
+
     def test_missing_code_root_is_structural(self):
         _, docs = self._tree(self.CS, {"a.md": "x\n"})
         with self.assertRaises(s.InventoryError):
@@ -464,13 +530,19 @@ class TestCheckDoors(unittest.TestCase):
         w = self._workspace(door_documented=True)
         self.assertEqual(s.main(["--docs-root", str(w), "--code-root", str(w)]), 0)
 
-    @needs_sibling("vrc-unity-tools")
     def test_live_docs_name_every_live_door(self):
-        # The teeth: the hook only warns, so this is what actually catches the rot.
+        # The teeth: the hook only warns, so this is what actually catches the rot — which
+        # means it has to run in a worktree, where most commits here are made and where the
+        # gitignored siblings are absent. Docs come from THIS tree, code from the main
+        # checkout, which is what the two roots are for.
+        code_root = main_checkout()
+        if not (code_root / "vrc-unity-tools").is_dir():
+            self.skipTest(f"vrc-unity-tools absent from the main checkout ({code_root})")
+        problems, census = s.check_doors(code_root, WORKSPACE)
         # Report which module was imported — an editable install can resolve `s` to a
         # different checkout than the one under test (dispatched-work.md worktree trap).
-        problems, census = s.check_doors(WORKSPACE, WORKSPACE)
-        self.assertEqual(problems, [], f"{census} | tested module: {s.__file__}")
+        self.assertEqual(problems, [],
+                         f"{census} | docs: {WORKSPACE} | code: {code_root} | module: {s.__file__}")
 
 
 if __name__ == "__main__":
