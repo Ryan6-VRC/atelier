@@ -21,6 +21,10 @@ Each skill carries its own gates, sequencing, and tool doors; this is only the g
   to `own-mergeable` — that fix is a geometry round-trip compose can't do. An owned/writable clip, or an MA-scene-ref miss, it repairs in place.
 - **Deferred arc:** copying Modular Avatar / VRCFury / NDMF systems off a base.
 
+## Is it even a gate?
+
+A correction outside what was asked for, that changes what ships, is the operator's — even when it is plainly right, and even when leaving it feels like shipping a known defect. A correction inside the ask, reversible, and invisible in the built result is yours. What tells them apart is what a reviewer would be surprised to find, not how confident you are in the fix: measured vendor incoherence found in passing, and a whole-avatar mode set so your own change would work, are both the first kind. Name it and queue it — never bank the fix and mention it afterwards.
+
 ## No operator to ask?
 
 A gate you can't put to an operator is expected, not a blocker. A background job still **has a channel** — the dispatcher — so surface the gate by ending the turn with `needs input:` and wait; a background job is not "no operator." (A worker dispatched under the `dispatch` skill puts gates to the operator directly, never to the coordinator — that skill's no-handback rule supersedes the dispatcher-as-channel reading for interactive waves.) Only with no channel at all do you take the derivable defaults, and even then the disclosure leads the report — every undecided call flagged at the top, never a silently minted convention (folder or category placement especially). Gated skills cite this protocol; a skill may name its own derivable default beside the citation.
