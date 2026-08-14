@@ -17,7 +17,7 @@ The avatar in the scene is a recipe. The final avatar is produced at **build tim
 - **Stay non-destructive until upload.** The live authoring stack *is* the avatar; baking is for inspecting a result, never for producing a deliverable.
 - **NDMF** runs ordered phases over the clone. **Modular Avatar is an NDMF plugin**; **VRCFury is its own SDK preprocessor running after Modular Avatar.** You never sequence them — they self-order.
 - **A full build is the real correctness check.** A play-mode build exercises the whole stack at once, catching what no single tool's PASS/FAIL can (`verify.md`; behaviour has its own ladder in `gimmicks.md`).
-- The stack won't process a hierarchy still holding prefab instances — a clone is unpacked first.
+- The stack won't process a hierarchy still holding prefab instances — a clone is unpacked first. Cloning one by hand needs no unpack call: `Object.Instantiate` on a prefab instance already returns a plain, unconnected hierarchy (`NotAPrefab`), and `PrefabUtility.UnpackPrefabInstance` on that result throws `ArgumentException`. Reach for `PrefabUtility.InstantiatePrefab` when you want a connected instance to unpack.
 - **Anything derived from the avatar** — clips, meshes, binding paths — is read from the **baked** result, never the source asset, because the build renames and merges.
 
 ### The bake door — `OnPreprocessAvatar`, never `ManualProcessAvatar`
