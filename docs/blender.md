@@ -14,11 +14,11 @@ Run scripts against a clean baseline, enabling only the addons the script needs 
 & "<your-blender>\blender.exe" --background --factory-startup --python <script.py>
 ```
 
-`blender.exe` is **console-subsystem**: it blocks under `& exe` and hands back its own exit code, so no `Start-Process -Wait` wrapper is needed — `blender-launcher.exe` is the GUI-subsystem binary, and the two are easy to conflate. Avoid `Start-Process -ArgumentList` here anyway: it word-splits, so a `.blend` or script path containing a space arrives truncated and Blender refuses the fragment it got. **Read exit codes by redirection, never through a pipe** — a pipeline reports the pipe's own exit, so a refusal (`PruneRefused`, a gated export) reads back as a clean run.
+`blender.exe` is **console-subsystem**: it blocks under `& exe` and hands back its own exit code, so it needs no `Start-Process -Wait` wrapper. `blender-launcher.exe` is the GUI-subsystem binary. Avoid `Start-Process -ArgumentList` regardless: it word-splits, so a `.blend` or script path containing a space arrives truncated and Blender refuses the fragment. **Read exit codes by redirection, never through a pipe** — a pipeline reports the pipe's own exit, so a refusal (`PruneRefused`, a gated export) reads back as a clean run.
 
-Chain multi-step work into one `--python` script because a single launch is deterministic and re-opens nothing, not as a timeout precaution: opening and saving a full-avatar `.blend` costs about a second, and a real op (prune, export) tens of seconds, so two sequential CLI calls in one command finish well inside the 120 s tool ceiling.
+Chain multi-step work into one `--python` script: a single launch is deterministic and re-opens nothing. Timeouts are not the reason — opening and saving a full-avatar `.blend` costs about a second and a real op (prune, export) tens, so two sequential launches in one command finish well inside the 120 s tool ceiling.
 
-**A vendor `.blend` distribution may not be self-contained.** Materials can reference relative texture paths (`../Textures/…`) that exist nowhere in the `.blend`'s own archive, shipping instead in the package's sibling `.unitypackage` — the export then emits `embedding file … failed` warnings and writes an FBX with unresolved texture links. Check the archive for a textures tree before exporting, and read those warnings as missing input rather than an export defect.
+**A vendor `.blend` distribution may not be self-contained.** Materials can reference relative texture paths (`../Textures/…`) that exist nowhere in the `.blend`'s own archive, shipping instead in the package's sibling `.unitypackage` — the export then emits `embedding file … failed` warnings and writes an FBX with unresolved texture links. Check the archive for a textures tree before exporting, and read those warnings as missing input, not an export defect.
 
 ## Interactive (optional) — Blender MCP
 
