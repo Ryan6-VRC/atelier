@@ -101,7 +101,7 @@ _The tool surface the skills above drive. Generated from `TOOLS.md`._
 <!-- BEGIN tools -->
 <!-- generated from TOOLS.md — edit TOOLS.md, not here -->
 
-Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row each. Rows are routing, not contracts; behavior lives in `docs/unity-tools.md` / `docs/animator.md` (controllers & clips) / `docs/blender.md`. The pre-commit hook `tools/sync_tool_inventory.py` verifies each key against its code declaration site (Unity `[AgentTool]` classes, Blender operator names ∪ `cli/` stems) and mirrors this file into `README.md`; it never writes a row itself. The agent landing a tool change updates its row by hand at merge (the hook skips worktrees).
+Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row each. Rows are routing, not contracts; behavior lives in `docs/unity-tools.md` / `docs/animator.md` (controllers & clips) / `docs/blender.md`. **Sections group by what you are doing, not by which package ships the tool** — `agent-tools` and `avatar-tools` rows sit side by side under several headings — so take a tool's kit, and the literal call to paste, from its row in those docs rather than from the heading above it here. The pre-commit hook `tools/sync_tool_inventory.py` verifies each key against its code declaration site (Unity `[AgentTool]` classes, Blender operator names ∪ `cli/` stems), checks that every Unity door is named by a literal call somewhere under `docs/` and that every documented call resolves, and mirrors this file into `README.md`; it never writes a row itself. The agent landing a tool change updates its row by hand at merge (the hook skips worktrees).
 
 ## vrc-unity-tools
 

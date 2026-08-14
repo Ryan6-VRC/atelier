@@ -19,7 +19,10 @@ if command -v python >/dev/null 2>&1; then
         git add "$top/README.md" || echo "pre-commit: could not stage README.md; continuing" >&2 ;;
     esac
     if [ "$rc" -eq 1 ]; then
-      echo "pre-commit: tool-inventory drift (see above); committing without refresh" >&2
+      # Exit 1 covers two findings with different consequences: TOOLS.md key drift gates the
+      # README refresh, an undocumented/stale tool door does not. So the message names the
+      # finding without claiming which — "see above" is where the distinction is printed.
+      echo "pre-commit: tool-inventory findings (see above); committing anyway" >&2
     elif [ "$rc" -ne 0 ]; then
       echo "pre-commit: sync_tool_inventory.py ABORTED (exit $rc) — README was not checked, not proven in sync" >&2
     fi

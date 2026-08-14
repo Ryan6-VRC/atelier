@@ -121,12 +121,197 @@ def extract_skills_keys(repo: Path) -> set:
     return keys
 
 
-def extract_code_keys() -> dict:
+def extract_code_keys(code_root: Path = None) -> dict:
+    code_root = code_root or WORKSPACE
     return {
-        "vrc-unity-tools": extract_unity_keys(WORKSPACE / "vrc-unity-tools"),
-        "vrc-blender-tools": extract_blender_keys(WORKSPACE / "vrc-blender-tools"),
-        "vrc-skills": extract_skills_keys(WORKSPACE / "vrc-skills"),
+        "vrc-unity-tools": extract_unity_keys(code_root / "vrc-unity-tools"),
+        "vrc-blender-tools": extract_blender_keys(code_root / "vrc-blender-tools"),
+        "vrc-skills": extract_skills_keys(code_root / "vrc-skills"),
     }
+
+
+# ── Door coverage: every callable entry point named where an agent will read it ─────────────
+#
+# The defect: a doc names a tool and describes it without ever showing the callable, so the
+# agent guesses `OwnMaterial(...)` for `OwnMaterial.Run(...)` and spends a compile round-trip.
+#
+# A door is `public static string` on an [AgentTool] class, at depth 1 — the kit's own
+# convention, since a door returns its one-line verdict ending `| log=<path>`. The door set
+# therefore tracks the code with nobody maintaining a list, and the two tables below are the
+# entire judgment; they stay small because the convention does the work.
+NOT_DOORS = {
+    # string-returning but internal: content stamps, and diagnostic fragments already inlined
+    # into the verdicts that need them.
+    ("CompileClips", "HashClipContent"), ("CompileClips", "ReadContentStamp"),
+    ("ReportConsole", "BenignLabel"), ("ReportConsole", "ConsoleFilterNote"),
+    # Returns the reason a handle was refused — already inlined into every verdict that wants
+    # it (ReportController, CheckAnimator, DecompileController), so nothing reaches for it
+    # first and a doc row for it would document a string helper.
+    ("ReportController", "RefuseWhy"),
+}
+DOORS_EXTRA = {
+    # Doors whose return type is not `string`. ScanAnchorSeams hands back its offender lines;
+    # vrc-patterns' gate drives it directly.
+    ("CheckAvatar", "ScanAnchorSeams"),
+}
+
+_AGENT_TOOL_ANCHOR = re.compile(r"^[ \t]*\[AgentTool\]", re.MULTILINE)
+_STATIC_SIG = re.compile(
+    r"^[ \t]*public\s+static\s+"
+    r"(?!readonly\b|class\b|struct\b|partial\b|enum\b|interface\b)"
+    r"(?:async\s+)?"
+    r"(?P<ret>\([^)]*\)|[\w.<>,\[\]\?]+(?:\s*<[^>()]*>)?)\s+"
+    r"(?P<name>\w+)\s*\(", re.MULTILINE)
+
+
+def blank_out(src: str) -> str:
+    r"""Replace the CONTENTS of comments, strings and char literals with spaces, preserving
+    length and line structure, so every structural regex below sees code only.
+
+    One character-state pass, not a comment pass then a string pass: `@"https?://\S+"` holds
+    `//`, and a `//` comment in this tree holds an odd number of quotes, so either ordering of
+    two independent passes desynchronises the rest of the file. Char literals are tracked for
+    the same reason — `c0 == '"'` is live here and reads as a string opener to any scanner
+    that ignores `'…'`."""
+    out = list(src)
+    i, n = 0, len(src)
+
+    def wipe(a, b):
+        for k in range(a, min(b, n)):
+            if src[k] != "\n":
+                out[k] = " "
+
+    while i < n:
+        two = src[i:i + 2]
+        if two == "//":
+            j = src.find("\n", i)
+            j = n if j < 0 else j
+            wipe(i, j)
+            i = j
+        elif two == "/*":
+            j = src.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            wipe(i, j)
+            i = j
+        elif two == '@"':                      # verbatim: no escapes, "" is one literal quote
+            j = i + 2
+            while j < n:
+                if src[j] == '"':
+                    if src[j:j + 2] == '""':
+                        j += 2
+                        continue
+                    j += 1
+                    break
+                j += 1
+            wipe(i, j)
+            i = j
+        elif src[i] in '"\'':
+            quote, j = src[i], i + 1
+            while j < n:
+                if src[j] == "\\":             # \" \\ \' inside either literal
+                    j += 2
+                    continue
+                if src[j] == quote:
+                    j += 1
+                    break
+                if src[j] == "\n":             # unterminated: never run past the line
+                    break
+                j += 1
+            wipe(i, j)
+            i = j
+        else:
+            i += 1
+    return "".join(out)
+
+
+def _depth1_body(blanked: str, decl_start: int) -> str:
+    """A class body with everything nested deeper than one level blanked, so a nested type's
+    members are not credited to the tool (`UploadAvatar.UploadOutcome.Uploaded` is not a door
+    of `UploadAvatar`). Runs on blanked source, where every brace left is structural."""
+    i = blanked.find("{", decl_start)
+    if i < 0:
+        return ""
+    depth, j, kept = 0, i, []
+    while j < len(blanked):
+        ch = blanked[j]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                break
+        kept.append(ch if (depth <= 1 or ch == "\n") else " ")
+        j += 1
+    return "".join(kept)
+
+
+def extract_unity_doors(repo: Path) -> tuple:
+    """(doors, statics): {class: {door name}} and {class: {every public static name}}.
+
+    Reads with Python, never a shelled grep: `ReportConsole.cs` carries raw NUL bytes, and
+    `rg`/`grep`/`git grep` all classify it as binary and skip it without a word — silently
+    dropping a five-door tool class from the census."""
+    doors, statics = {}, {}
+    for cs in sorted(_require_dir(repo / "packages").rglob("*.cs")):
+        blanked = blank_out(_read(cs))
+        for m in _AGENT_TOOL_ANCHOR.finditer(blanked):
+            cm = re.search(r"^[^{;]*?\bclass\s+([A-Za-z_]\w*)", blanked[m.end():])
+            if not cm:
+                raise InventoryError(f"{cs}: [AgentTool] is not on a class declaration")
+            cls = cm.group(1)
+            body = _depth1_body(blanked, m.end() + cm.start())
+            names, door_names = set(), set()
+            for sig in _STATIC_SIG.finditer(body):
+                name = sig.group("name")
+                names.add(name)
+                if sig.group("ret").strip() == "string" and (cls, name) not in NOT_DOORS:
+                    door_names.add(name)
+            door_names |= {n for c, n in DOORS_EXTRA if c == cls and n in names}
+            statics.setdefault(cls, set()).update(names)
+            doors.setdefault(cls, set()).update(door_names)
+    return doors, statics
+
+
+def _governed_docs(docs_root: Path) -> list:
+    """Every tracked doc an agent reads for a call shape. `docs/local/` is gitignored scratch."""
+    return sorted(p for p in _require_dir(docs_root / "docs").rglob("*.md")
+                  if "local" not in p.relative_to(docs_root).parts)
+
+
+def _call_re(cls: str) -> re.Pattern:
+    """`Tool.Method(`, with an optional namespace prefix so the fully-qualified form the docs
+    prescribe (`Ryan6Vrc.AgentTools.Editor.Tool.Method(`) counts. The literal dot after the
+    class name also stops `RenderThumbnail` matching `RenderThumbnailPlay.Shoot(`."""
+    return re.compile(r"(?<![\w])(?:\w+\.)*" + re.escape(cls) + r"\.(\w+)\s*\(")
+
+
+def check_doors(code_root: Path, docs_root: Path) -> tuple:
+    """(problems, census). Coverage: every door is named somewhere an agent reads it.
+    Resolution: every documented call on a tool class names a real public static.
+
+    Pins entry-point NAMES only — arguments, defaults and overloads are not compared, so a
+    doc's argument list is illustrative and the declaration site stays canon."""
+    doors, statics = extract_unity_doors(code_root / "vrc-unity-tools")
+    texts = [(p, _read(p)) for p in _governed_docs(docs_root)]
+
+    seen, problems = {}, []
+    for cls in sorted(statics):
+        pat = _call_re(cls)
+        for path, text in texts:
+            for m in pat.finditer(text):
+                seen.setdefault(cls, set()).add(m.group(1))
+                if m.group(1) not in statics[cls]:
+                    rel = path.relative_to(docs_root).as_posix()
+                    problems.append(
+                        f"{rel}: `{cls}.{m.group(1)}(` names no public static on {cls} — the "
+                        f"declaration site is canon; fix the call or the doc")
+    missing = [(c, n) for c in sorted(doors) for n in sorted(doors[c] - seen.get(c, set()))]
+    for cls, name in missing:
+        problems.append(f"{cls}.{name} is a door with no literal call under docs/ — write "
+                        f"`{cls}.{name}(…)` at its row so an agent can paste it")
+    total = sum(len(v) for v in doors.values())
+    return problems, (f"doors {total - len(missing)}/{total} named across "
+                      f"{len(doors)} [AgentTool] classes")
 
 
 LINK_RE = re.compile(r"^\[(?P<text>.+?)\]\((?P<url>\S+)\)$")
@@ -271,11 +456,22 @@ def inject(readme_path: Path, tools_md_path: Path) -> bool:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Verify TOOLS.md against code; mirror it into README.md")
     ap.add_argument("--check", action="store_true", help="verify only; no writes; non-zero on drift")
+    # Two roots, because they diverge in a worktree: the `vrc-*` siblings are gitignored and
+    # absent there, so the docs under test and the code they describe live in different trees.
+    # One root would either abort on the missing siblings or validate the main tree's docs
+    # while the edited ones go unchecked.
+    ap.add_argument("--docs-root", type=Path, default=WORKSPACE,
+                    help="tree holding TOOLS.md / README.md / docs (default: this script's repo)")
+    ap.add_argument("--code-root", type=Path, default=None,
+                    help="tree holding the vrc-* sibling repos (default: --docs-root)")
     args = ap.parse_args(argv)
+    docs_root = args.docs_root
+    code_root = args.code_root or docs_root
     try:
-        code_keys = extract_code_keys()
-        doc_keys = parse_tools_md(WORKSPACE / "TOOLS.md")
-        doc_keys["vrc-skills"] = parse_readme_skills(WORKSPACE / "README.md")
+        code_keys = extract_code_keys(code_root)
+        doc_keys = parse_tools_md(docs_root / "TOOLS.md")
+        doc_keys["vrc-skills"] = parse_readme_skills(docs_root / "README.md")
+        door_problems, census = check_doors(code_root, docs_root)
     except InventoryError as e:
         print(f"tool-inventory: ERROR: {e}", file=sys.stderr)
         return 2
@@ -286,7 +482,7 @@ def main(argv=None) -> int:
         return 1
     if not args.check:
         try:
-            wrote = inject(WORKSPACE / "README.md", WORKSPACE / "TOOLS.md")
+            wrote = inject(docs_root / "README.md", docs_root / "TOOLS.md")
         except InventoryError as e:
             print(f"tool-inventory: ERROR: {e}", file=sys.stderr)
             return 2
@@ -297,7 +493,14 @@ def main(argv=None) -> int:
         print("tool-inventory: OK — README tools block in sync", file=sys.stderr)
     else:
         print("tool-inventory: OK — TOOLS.md + README skills roster match code", file=sys.stderr)
-    return 0
+    # Door findings are reported AFTER the mirror runs, and deliberately do not gate it: an
+    # undocumented door is a finding about docs/, while the mirror is TOOLS.md → README.md.
+    # Gating it would stop the public README tracking TOOLS.md for as long as a door row sat
+    # unwritten — and since the hook only warns, nobody would see why.
+    print(f"tool-inventory: {census}", file=sys.stderr)
+    for p in door_problems:
+        print(f"tool-inventory: DOORS: {p}", file=sys.stderr)
+    return 1 if door_problems else 0
 
 
 if __name__ == "__main__":
