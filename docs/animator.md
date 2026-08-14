@@ -22,6 +22,12 @@ A controller shipped inside a **never-placed prefab** gives `basis=auto` no in-s
 
 `CheckAnimator`'s binding-walk is the same one `CheckAvatar` and `ReportComposition` (`unity-tools.md`) reuse — one walk, so no two of those doors can disagree on how a binding resolves.
 
+**Units differ: `brokenMotions` counts unique GUIDs, `missingMotion` counts state slots.** One dangling clip played by six states is `1` and `6`; convert before comparing.
+
+**"Does anything drive this?" is two calls, not a search:** `ReportController` motions → `ReportClip` bindings. Grepping YAML finds neither the merged surfaces nor the sub-assets.
+
+**An `AnimatorOverrideController` is not an `AnimatorController`** (siblings under `RuntimeAnimatorController`, so every `as` cast reads one as absent — vendors ship them). The asset doors refuse it by name, handing back the base plus the substitution count reading the base would omit; on a placed avatar it rides `unlintableSurfaces=` instead of vanishing.
+
 **`mergeSites=N (used: <site>)` rides the summary whenever more than one surface on the avatar mounts the controller under test.** Basis choice alone has flipped this door's verdict — the same controller in the same scene, FAIL then PASS fourteen seconds apart — and nothing in the output said a second site existed. The count is judgment-free multiplicity, reported because selecting the basis stays the agent's call; it does **not** touch `DetectAuto`'s single-site contract, which refuses on ambiguity *at one site* and is answering a different question.
 
 ## Owning & consolidating a controller
@@ -47,6 +53,10 @@ layers=… states=… orphans=… unresolved=… => OK | log=<path>`, writing th
 `whatIf` runs the whole walk but writes no `.yaml`; `stripLayout` (default off) drops all graph-layout capture — the own-a-vendor path, where the vendor's node arrangement is noise; a refusal (an out-of-vocabulary or malformed construct)
 is `[DecompileController] <leaf>: … => FAIL | log=<path>` naming each — a Snapshot artifact records the
 failure, and no `.yaml` is written (the compile door's refusals carry the same grammar on the RunLog channel). A **READ** tool — it never mutates the controller, so it self-logs to the **Snapshot** dir (read-capture channel), not the verdict RunLog dir. Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) rides in the document's `_notes:` block, which re-compiles inert.
+
+**The refusal is document-scoped** — a partial document would recompile into a controller silently missing a layer. It carries `refusedLayers=N/M` (a layer *carrying* a refusal, not one absent from the document) and `documentScope=` for refusals owned by no layer, and names two routes: `ReportController` to read one, or trim the named layers with `CleanController` and decompile again to own the rest.
+
+**A dangling motion survives the document, not the asset.** It decompiles as `motion: { ref: { guid: …, unresolved: true } }` — the verbatim handle, so it re-resolves if the asset returns — but no C# API writes a broken object reference, so the rebuild gets a null slot, which is the clean-empty idiom every lint is whitelisted against. **A round-tripped controller is therefore verdict-cleaner than its source**, and its `CheckAnimator` result is not evidence about the original. The compile door will not certify that: `unresolvedRefs=N` and **`CLASSIFY`**, with the RunLog naming each state and GUID.
 
 `CompileClips(sourcePath, outDir, force=false, whatIf=false)` is the **second write door**: the sole *authoring* writer of external clips — it emits clip content from a clips-file YAML, where `OwnControllerClips` emits standalone `.anim`s only by *copying* existing clips. Its source is a clips file — the same schema surface (`schema:`, `basis:`, `clips:`, optional `parameters:`) but with **no `layers:`** — and it emits each clip to `<outDir>/<clip>.anim` as a standalone, *visible*, human-editable asset (contrast the controller's hidden inline sub-assets). **Which clips belong here:** hand-authored artifacts a human sees, tunes, or repaths as a unit (poses, expressions, toggle targets) — not generated plumbing, which stays inline even when it targets a material (AAP and blend-tree endpoints; `animator-schema.md` §external clips carries the decidable rule). The contract is in its doc-comment; the load-bearing decisions:
 

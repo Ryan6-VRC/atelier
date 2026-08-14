@@ -139,7 +139,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | `MoveComponents` | Move components onto a new holder hierarchy with anchors pinned back; behavior-neutral. |
 | `GraftHierarchy` | Copy a named subtree wholesale: structure plus all components, refs remapped. |
 | `CopyDescriptor` | Transplant the VRC avatar descriptor, with a fresh PipelineManager. |
-| `FixViewpoint` | Recompute `ViewPosition` from a reference rig's viewpoint plus both rigs' Head/eyes. |
+| `FixViewpoint` | Recompute `ViewPosition` from a reference rig's viewpoint plus both rigs' Head/eyes; explicit eye `Transform`s override an unmapped-eye humanoid rig, per side, reported as `eyeSrc=`. Contract: `unity-tools.md`. |
 | `MatchHumanoidRig` | Conform our humanoid rig to the vendor's bone mapping; `Preflight` previews. |
 | `ConformRenderers` | Copy materials by renderer name from a source hierarchy and normalize bounds/anchor (optional `ownedToSource` override map — direction is the reverse of the transplant kit's). |
 | `OwnMaterial` | Own a vendor material: deep-copy it (or branch/augment an already-owned one), fork the named texture slots into the copy's own subfolder, and unlock a locked-Poiyomi copy — every unforked slot stays on its vendor GUID. The skill chooses which slots; the tool's `slots[]` provenance table is the caller's gate. |
