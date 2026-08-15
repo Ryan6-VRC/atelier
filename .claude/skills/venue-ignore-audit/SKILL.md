@@ -21,7 +21,7 @@ List with `ls`, not `Grep`/`Glob`: the workspace root's own `.ignore` deliberate
 
 ### 2. Measure what is hidden
 
-Two passes per venue, **rooted at the venue directory** — rooting at `Assets/` reports paths a real workspace-level `Grep` cannot reach, for the depth reason `unity.md` §Sharp edges states:
+Two passes per venue, **rooted at the venue directory**. Rooting at `Assets/` overreports: an ignore file *above* the root you name keeps only its **unanchored** rules at every depth below, while a rule anchored to that file's own directory stops applying past the first level beneath the named root — so an `Assets/`-rooted sweep still lists the `Agent/RunLogs/` and `Agent/Scratch/` that a real workspace-level `Grep` cannot reach.
 
 ```
 rg --files . ; rg --files --no-ignore-vcs .
@@ -49,7 +49,7 @@ Split the hidden set by whether an agent searching the venue would be misled:
 - **Binary payloads may stay hidden, but the loss is enumeration, not just content.** A content search stops at the first NUL byte either way, but hiding also costs `rg --files`, so "does texture X exist" answers falsely. Accept that trade deliberately per venue, don't assume it.
 - **Generated output is a real hide.** Shader-lock output and similar regenerated trees are noise an agent should not be reading.
 
-**The trap that survives a careless fix** is the granularity mismatch `unity.md` §Sharp edges owns: a `!` naming a directory does not answer a rule that matches the files inside it. Check each proposed re-include against the rule it is meant to cover, and confirm it in the step-5 re-measure rather than by reading the pair.
+**The trap that survives a careless fix is a granularity mismatch.** `!dir/` only stops `dir` being pruned; against a rule matching the files *inside* it (`/Assets/Agent/RunLogs/*`) the directory is walked and every file stays hidden, so the line reads as a re-include and contributes nothing. `!dir/*` is the form that answers such a rule. Check each proposed re-include against the rule it is meant to cover, and confirm it in the step-5 re-measure rather than by reading the pair.
 
 ### 4. Propose, gate, apply
 
