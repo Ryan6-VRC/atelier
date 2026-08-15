@@ -100,10 +100,16 @@ class TestBlenderExtractor(unittest.TestCase):
 
     @needs_sibling("vrc-blender-tools")
     def test_live_surface_union_dedup(self):
+        # Smoke test only (mirrors the Unity and skills extractors): the exact census is
+        # enforced by TOOLS.md + --check, not here. It was pinned exact here anyway, and
+        # went red the first time vrc-blender-tools grew a door (rename_objects, #24).
+        # A count never carried the dedup this test is named for: every operator
+        # short-name is also a cli stem, so the union's size is the stem count either
+        # way — apply_pose surviving as ONE key is the whole assertion.
         keys = s.extract_blender_keys(WORKSPACE / "vrc-blender-tools")
         self.assertIn("apply_pose", keys)   # operator == cli stem (one key)
         self.assertIn("import_fbx", keys)
-        self.assertEqual(len(keys), 11)
+        self.assertGreaterEqual(len(keys), 11)
 
     def test_operator_in_any_module_and_single_quote(self):
         # An operator declared outside operators.py is still found (glob), and a
