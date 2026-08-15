@@ -110,7 +110,7 @@ State fields: `motion`, `speed`, `speedParam`, `motionTimeParam`, `mirror`, `wri
 
 ### layout
 
-`layout:` records Unity graph node positions so a hand-arranged controller survives `Decompile→edit→Compile`. A machine-body key (root and every sub-machine may carry one), it is authored by hand only rarely — `DecompileController` writes it, and only for a machine whose nodes sit off their defaults, so a block's **presence signals a human arrangement; its absence, don't-care.**
+`layout:` records Unity graph node positions so a hand-arranged controller survives `DecompileController → edit → CompileController`. A machine-body key (root and every sub-machine may carry one), it is authored by hand only rarely — `DecompileController` writes it, and only for a machine whose nodes sit off their defaults, so a block's **presence signals a human arrangement; its absence, don't-care.**
 
 ```yaml
     layout:
@@ -351,7 +351,7 @@ Two consequences worth knowing before relying on the field. **The gate cannot se
 
 **Named refusals.** A construct the schema's shape can't round-trip makes Decompile return a bare `FAIL:` naming each and write **no** yaml — it refuses to approximate; iterate on the message. Two kinds. *Out of vocabulary:* anything the decoder doesn't model (synced layers, a `Trigger` param, an IK-pass layer, an unsupported SMB or motion type, a clip binding on a component type outside the §clips allowlist, an embedded clip's object-reference (PPtr) curve — a material swap has no schema form (a standalone `.anim` swap stays an untouched `ref:`), an unknown driver `ChangeType`…), enforced not by a blocklist but by a **completeness sweep** — it refuses **any** non-default field it doesn't explicitly consume on a state, transition, blend tree, or VRC behaviour, so an unmodeled field (a state's `cycleOffset`/`iKOnFeet`/`tag`, a transition `offset`, a future SDK addition) fails loud instead of silently dropping. *Not expressible in the canonical form:* sibling states or sub-machines with identical names, a direct state and sub-machine sharing a name, or two siblings differing only in whitespace (the name-keyed maps collide or reorder); a real node named `Exit` addressed bare (collides with the exit keyword); driver operations that interleave change-types or repeat a `(type, name)`; two distinct embedded clips sharing a name; **two clip bindings that reconstruct to the same `set:`/`curves:` key** (a declared parameter whose name also reads as `path/Component.property` shadows the scene binding of that name — the map would keep one curve and drop the other); **a default state the layer root cannot address** (a `m_DefaultState` outside this layer, or a broken reference to a deleted state — either would decode to no key and rebuild booting whichever state was added first); a condition parameter whose whitespace can't survive the single-space grammar; any emitted string containing a line break.
 
-**The fixpoint.** A controller you **own** (decompile) round-trips exactly — Decompile→Compile→Decompile reaches a fixpoint. The single acknowledged lossy step is a genuinely-broken vendor motion ref (`unresolved` → null slot → empty child).
+**The fixpoint.** A controller you **own** (decompile) round-trips exactly — DecompileController→CompileController→DecompileController reaches a fixpoint. The single acknowledged lossy step is a genuinely-broken vendor motion ref (`unresolved` → null slot → empty child).
 
 ## Not yet in the schema
 

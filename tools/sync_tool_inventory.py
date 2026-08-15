@@ -323,7 +323,8 @@ def _skill_bodies(code_root: Path) -> list:
 def _call_re(cls: str) -> re.Pattern:
     """`Tool.Method(`, with an optional namespace prefix so the fully-qualified form the docs
     prescribe (`Ryan6Vrc.AgentTools.Editor.Tool.Method(`) counts. The literal dot after the
-    class name also stops `RenderThumbnail` matching `RenderThumbnailPlay.Shoot(`.
+    class name also stops `RenderThumbnail` matching `RenderThumbnailPlay.Run(` — load-bearing
+    now that both classes' primary door is `Run` and only the prefix separates them.
 
     The method must start uppercase: every door is PascalCase, while `CheckSeam.cs (line 40)`
     — a file reference the docs already make — otherwise reads as a call to a method `cs`."""
@@ -407,6 +408,16 @@ def check_doors(code_root: Path, docs_root: Path) -> tuple:
     for cls, name in missing:
         problems.append(f"{cls}.{name} is a door with no literal call under docs/ — write "
                         f"`{cls}.{name}(…)` at its row so an agent can paste it")
+    # Naming: every class names its primary door `Run` (tool-design.md §Tools). The rule's whole
+    # power is that it has no exceptions -- the kit once ran two conventions at once (`Run` on 18
+    # classes, the class's own verb on 20), and agents generalized whichever they met first onto
+    # the other half, at about one session in eighteen. Asserted against `doors` rather than
+    # `statics` so a future NOT_DOORS entry can still suppress a member.
+    for cls in sorted(doors):
+        if "Run" not in doors[cls]:
+            problems.append(f"{cls} declares no `Run` door — the primary door is always `Run`; "
+                            f"rename {cls}'s primary, and keep the verdict label as it is (the "
+                            f"label names the action, not the door)")
     total = sum(len(v) for v in doors.values())
     return problems, (f"doors {total - len(missing)}/{total} named across "
                       f"{len(doors)} [AgentTool] classes")
