@@ -320,21 +320,59 @@ def _skill_bodies(code_root: Path) -> list:
     return sorted(skills.glob("*/SKILL.md"))
 
 
+# The call tail, shared by both patterns below. The arg list is optional and a CAPTURE group
+# rather than a match requirement: `Tool.Method` with no arg list is how much of the corpus names a door, and
+# it rots on a rename exactly like `Tool.Method(` does, so resolution must see it. What the group
+# then reports is "this site was a paste-able call", which only coverage cares about.
+#
+# `[ \t]`, never `\s`: `\s` spans newlines, so `Tool.Run\n\n(See also …)` would capture `'\n\n('`
+# and credit a paragraph break as an argument list. Harmless while the group gated the match;
+# a false coverage credit once it is a flag.
+#
+# The trailing `(?!\.\w)` is what keeps an optional arg list from turning every dotted member
+# path into a call: `UploadAvatar.UploadOutcome.Uploaded` — a shape `_depth1_body` exists to
+# handle — would otherwise resolve as a call to `UploadAvatar.UploadOutcome` and be reported as
+# naming no public static, under a remedy ("fix the call or the doc") that fits nothing the
+# author did. A dot followed by a word character continues a path; a dot followed by anything
+# else is sentence punctuation, so `see T.Run.` stays checked.
+#
+# `(?!\w)` anchors the method name so the lookahead cannot be dodged by giving back characters:
+# without it `UploadOutcome` shortens to `UploadOutcom`, whose next char is `e` rather than `.`,
+# and the false positive returns wearing a truncated name. It is inert on its own — earlier
+# drafts credited it with guarding `RenderThumbnail` against `RenderThumbnailPlay`, which the
+# literal dot has always done — and load-bearing only in front of a lookahead that can fail.
+_CALL_TAIL = r"(?!\w)([ \t]*\()?(?!\.\w)"
+
+
 def _call_re(cls: str) -> re.Pattern:
-    """`Tool.Method(`, with an optional namespace prefix so the fully-qualified form the docs
-    prescribe (`Ryan6Vrc.AgentTools.Editor.Tool.Method(`) counts. The literal dot after the
-    class name also stops `RenderThumbnail` matching `RenderThumbnailPlay.Run(` — load-bearing
-    now that both classes' primary door is `Run` and only the prefix separates them.
+    """`Tool.Method`, with or without a following arg list, and with an optional namespace prefix
+    so the fully-qualified form the docs prescribe (`Ryan6Vrc.AgentTools.Editor.Tool.Method`)
+    counts. The literal dot after the class name stops `RenderThumbnail` matching
+    `RenderThumbnailPlay.Run` — load-bearing now that both classes' primary door is `Run` and
+    only the prefix separates them.
 
     The method must start uppercase: every door is PascalCase, while `CheckSeam.cs (line 40)`
-    — a file reference the docs already make — otherwise reads as a call to a method `cs`."""
-    return re.compile(r"(?<![\w])(?:\w+\.)*" + re.escape(cls) + r"\.([A-Z]\w*)\s*\(")
+    — a file reference the docs already make — otherwise reads as a call to a method `cs`. That
+    guard carries more weight since the arg list became optional, because what remains matchable
+    without one is any capitalised word following a tool-class dot. `_CALL_TAIL` excludes the
+    dotted member paths. What is left is a doc naming a nested type with no member after it
+    (`UploadAvatar.UploadOutcome`), which still reads as a call and would be reported as naming
+    no public static — the known residual false red, and the reason to reach for the extractor's
+    nested-type names if one ever lands in the corpus.
+
+    Group 2 is the paren — see `_CALL_TAIL`, and `_resolution_scan` for who reads it."""
+    return re.compile(r"(?<![\w])(?:\w+\.)*" + re.escape(cls) + r"\.([A-Z]\w*)" + _CALL_TAIL)
 
 
 # The qualified form the docs prescribe. Its prefix is what makes a wrong one checkable: a
 # call carrying `Ryan6Vrc.<Kit>.Editor.` is asserting a namespace, and asserting the wrong one
 # is the recurring stumble `unity.md` §Invocation names (AgentTools vs AvatarTools).
-_QUALIFIED_CALL = re.compile(r"Ryan6Vrc\.(?:Agent|Avatar)Tools\.Editor\.(\w+)\.([A-Z]\w*)\s*\(")
+#
+# Parenless too, and it has to be: `_call_re`'s `(?:\w+\.)*` prefix swallows a parenless
+# qualified ref and resolves it clean, so a paren-only arm here would leave a shape that reads
+# as namespace-checked and is not.
+_QUALIFIED_CALL = re.compile(
+    r"Ryan6Vrc\.(?:Agent|Avatar)Tools\.Editor\.(\w+)\.([A-Z]\w*)" + _CALL_TAIL)
 
 
 def _resolution_scan(texts: list, statics: dict, namespaces: dict,
@@ -347,7 +385,14 @@ def _resolution_scan(texts: list, statics: dict, namespaces: dict,
     in a skill body is still undocumented. Passing `seen` from a corpus that does not answer
     the coverage question would let a door named only in a `SKILL.md` count as covered and its
     finding vanish, which is the check silently *loosening* while the diff appears to tighten
-    it. So the skills pass supplies `found` and withholds `seen`; nothing else separates them.
+    it. So the skills and `TOOLS.md` passes supply `found` and withhold `seen`; nothing else
+    separates them.
+
+    Within a `seen` corpus there is a second, finer version of the same asymmetry: only a match
+    that carried an arg list credits coverage. Resolution reads every match, because a parenless
+    `Tool.Method` rots on a rename just as surely; coverage reads only the paste-able ones,
+    because the missing-door message prescribes exactly that form ("write `Cls.Name(…)` at its
+    row so an agent can paste it") and a remedy the check would not accept is not a remedy.
 
     `fix_in` names the repo a finding must be fixed in, when that is not the tree being
     committed. Every finding this check emitted before was clearable in the same commit; a
@@ -358,10 +403,10 @@ def _resolution_scan(texts: list, statics: dict, namespaces: dict,
         pat = _call_re(cls)
         for rel, text in texts:
             for m in pat.finditer(text):
-                if seen is not None:
+                if seen is not None and m.group(2):
                     seen.setdefault(cls, set()).add(m.group(1))
                 if m.group(1) not in statics[cls]:
-                    found.add((rel, f"`{cls}.{m.group(1)}(` names no public static on {cls} — "
+                    found.add((rel, f"`{cls}.{m.group(1)}` names no public static on {cls} — "
                                     f"the declaration site is canon; fix the call or the "
                                     f"doc{where}"))
     for rel, text in texts:
@@ -370,8 +415,63 @@ def _resolution_scan(texts: list, statics: dict, namespaces: dict,
             if cls not in statics:
                 found.add((rel, f"`{m.group(0)}…` names no [AgentTool] class `{cls}`{where}"))
             elif namespaces.get(cls) and not m.group(0).startswith(namespaces[cls] + "."):
-                found.add((rel, f"`{cls}.{method}(` is qualified with the wrong kit — {cls} "
+                found.add((rel, f"`{cls}.{method}` is qualified with the wrong kit — {cls} "
                                 f"lives in `{namespaces[cls]}`{where}"))
+
+
+_BACKTICKED = re.compile(r"`([A-Z]\w*)(?:\([^`]*\))?`")
+
+
+def _bare_door_rows(tools_md: str, statics: dict, found: set) -> None:
+    """`TOOLS.md` rows that name a member of their OWN key class without the class prefix.
+
+    The file is a table keyed by class, so its rows once wrote door names bare — the key
+    supplied the class to the reader, and to nothing else: a bare `` `Run` `` is invisible to
+    every scan here, which is how six rows in the system tool index went on teaching deleted
+    door names through a rename the gate reported green.
+
+    The direction matters. "An unresolvable bare token is a stale door" is the natural reading
+    and is unusable — these rows are thick with `Transform`, `PENDING`, `ReleaseStatus` and
+    sibling class names, and it runs about 13 false to 3 true, inferring what a token means.
+    Inverted, it asserts a state: a token that IS a declared static of the class its own row is
+    keyed by resolves against a declaration site, whatever else it might have been. Nothing
+    else is touched, and the message stays inside what the trigger proved (see the emit site).
+
+    This is what keeps the prefix a house style rather than a one-time cleanup — a new row
+    written bare is caught when it is written, so every surviving token is prefixed and the
+    next rename is caught by the resolution scan above.
+
+    Adds to `found` rather than returning, so these share the resolution scans' dedupe-by-issue
+    and their sort: a row naming `Run` twice is one finding, not two."""
+    seen_delim, in_tools = False, False
+    for raw in tools_md.splitlines():
+        line = raw.strip()
+        if line.startswith("#"):
+            # Door names only mean anything under the Unity kit; the Blender surface keys are
+            # operator names with no C# statics behind them.
+            in_tools = "vrc-unity-tools" in line.lstrip("#").strip()
+            seen_delim = False
+            continue
+        if not line.startswith("|"):
+            seen_delim = False
+            continue
+        key, seen_delim = _row_key(line, seen_delim)
+        if key is None or not in_tools or key not in statics:
+            continue
+        for m in _BACKTICKED.finditer("|".join(line.split("|")[2:])):
+            if m.group(1) in statics[key]:
+                # "public static", not "door": the membership test is `statics`, which keeps the
+                # NOT_DOORS members this file elsewhere insists are not doors. And the prescribed
+                # class is offered, not asserted — the trigger only proves the name resolves on
+                # THIS row's class, and every [AgentTool] class declares `Run`, so a row
+                # mentioning a sibling tool's door bare would otherwise be handed a fix naming
+                # the wrong owner.
+                found.add(("TOOLS.md", f"`{m.group(1)}` is written bare in the {key} row, and it "
+                                       f"names a public static — prefix it with the class that "
+                                       f"declares it (`{key}.{m.group(1)}` if this row's tool is "
+                                       f"the one meant, otherwise that tool's class), so a rename "
+                                       f"cannot rot the row unseen; a row key is not a prefix any "
+                                       f"check can read"))
 
 
 def check_doors(code_root: Path, docs_root: Path) -> tuple:
@@ -382,11 +482,18 @@ def check_doors(code_root: Path, docs_root: Path) -> tuple:
     Pins entry-point NAMES and namespaces only — arguments, defaults and overloads are not
     compared, so a doc's argument list is illustrative and the declaration site stays canon.
 
-    Two corpora, deliberately asymmetric. `docs/` gets both scans. `vrc-skills`' skill bodies
-    get **resolution only**: they paste the same call literals and rot the same way, but they
-    are trigger-gated task bodies rather than the door roster, so demanding a literal call
-    there would be a false red. `_resolution_scan`'s docstring owns why the split has to be
-    structural rather than a promise.
+    Three corpora, deliberately asymmetric. `docs/` gets both scans. `vrc-skills`' skill bodies
+    and `TOOLS.md` get **resolution only**: they paste the same call literals and rot the same
+    way, but they are trigger-gated task bodies and routing rows rather than the door roster,
+    so demanding a literal call there would be a false red. `_resolution_scan`'s docstring owns
+    why the split has to be structural rather than a promise.
+
+    `TOOLS.md` is read strictly, unlike the skills' tolerated absence: it sits in the same tree
+    as `docs/`, so a missing one is a broken `--docs-root` rather than a legitimately partial
+    checkout, and `main()` already fails on that path a line earlier. `README.md` is not read at
+    all — `inject()` generates its tool block from this file, so scanning both double-reports one
+    source. The rows only became reachable at all once they carried the class prefix that
+    `_bare_door_rows` now pins.
 
     Scope this does NOT claim: the hook skips the whole sync when the `vrc-*` siblings are
     absent, which is every worktree — and a door rename lands in `vrc-unity-tools`, whose own
@@ -399,10 +506,13 @@ def check_doors(code_root: Path, docs_root: Path) -> tuple:
     # ValueError — an uncaught traceback, not even the InventoryError exit-2 arm.
     skill_texts = [(p.relative_to(code_root).as_posix(), _read(p))
                    for p in _skill_bodies(code_root)]
+    tools_md = _read(docs_root / "TOOLS.md")
 
     seen, found = {}, set()          # found: dedupe by issue, not by occurrence
     _resolution_scan(texts, statics, namespaces, found, seen=seen)
     _resolution_scan(skill_texts, statics, namespaces, found, fix_in="vrc-skills")
+    _resolution_scan([("TOOLS.md", tools_md)], statics, namespaces, found)
+    _bare_door_rows(tools_md, statics, found)
     problems = [f"{rel}: {msg}" for rel, msg in sorted(found)]
     missing = [(c, n) for c in sorted(doors) for n in sorted(doors[c] - seen.get(c, set()))]
     for cls, name in missing:

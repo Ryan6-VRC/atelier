@@ -397,7 +397,7 @@ class TestDoorExtraction(unittest.TestCase):
 
 
 class TestCheckDoors(unittest.TestCase):
-    def _tree(self, cs: str, docs: dict) -> tuple:
+    def _tree(self, cs: str, docs: dict, tools_md: str = "") -> tuple:
         code = Path(tempfile.mkdtemp())
         p = code / "vrc-unity-tools/packages/x/Editor/T.cs"
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -406,7 +406,15 @@ class TestCheckDoors(unittest.TestCase):
         (d / "docs").mkdir()
         for name, body in docs.items():
             (d / "docs" / name).write_text(body, encoding="utf-8")
+        # Written unconditionally, empty by default: `check_doors` reads TOOLS.md strictly, so
+        # writing it only when a case supplies one would raise in every case that does not --
+        # and the cheapest way out of that failure is to make the read tolerant, silently
+        # reversing the decision that a missing TOOLS.md is a broken --docs-root.
+        (d / "TOOLS.md").write_text(tools_md, encoding="utf-8")
         return code, d
+
+    # A minimal keyed table under the Unity heading `_bare_door_rows` scopes to.
+    ROWS = "## vrc-unity-tools\n\n| Key | Purpose |\n| --- | --- |\n| `T` | {} |\n"
 
     CS = ("[AgentTool]\npublic static class T {\n"
           "  public static string Run(string a) { return a; }\n}")
@@ -440,6 +448,59 @@ class TestCheckDoors(unittest.TestCase):
         self.assertIn("T.Gone", problems[0])
         self.assertIn("names no public static", problems[0])
 
+    def test_parenless_call_naming_no_such_method_is_a_finding(self):
+        # The style R19's rename rotted 5 sites in, two of them in files the paren-only scan
+        # had nothing to say about at all -- so an agent clearing every reported finding still
+        # shipped the stale ones.
+        problems, _ = s.check_doors(*self._tree(self.CS, {"a.md": "`T.Run(a)` and `T.Gone`\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("T.Gone", problems[0])
+        self.assertIn("names no public static", problems[0])
+
+    def test_parenless_call_does_not_satisfy_coverage(self):
+        # Resolution reads a parenless mention; coverage must not. The missing-door message
+        # prescribes the paste-able form, so crediting a mention would make the check's own
+        # remedy unsatisfiable -- loosening while the diff reads as tightening.
+        problems, census = s.check_doors(*self._tree(self.CS, {"a.md": "`T.Run` does it.\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("T.Run is a door with no literal call", problems[0])
+        self.assertIn("0/1", census)
+
+    def test_a_paren_on_the_next_line_is_not_a_call(self):
+        # `\s*\(` would capture the paragraph break and credit coverage; `[ \t]*\(` does not.
+        problems, census = s.check_doors(
+            *self._tree(self.CS, {"a.md": "`T.Run`\n\n(See also the door roster.)\n"}))
+        self.assertIn("0/1", census)
+        self.assertTrue(any("no literal call" in p for p in problems))
+
+    def test_a_space_before_the_arg_list_still_counts(self):
+        problems, census = s.check_doors(*self._tree(self.CS, {"a.md": "`T.Run (a)`\n"}))
+        self.assertEqual(problems, [])
+        self.assertIn("1/1", census)
+
+    def test_a_nested_member_path_is_not_a_call(self):
+        # `UploadAvatar.UploadOutcome.Uploaded` is a shape `_depth1_body` exists to handle. An
+        # optional arg list would otherwise read it as a call to `UploadAvatar.UploadOutcome`
+        # and prescribe "fix the call or the doc", which fits nothing the author did.
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)` returns `T.Outcome.Ok`\n"}))
+        self.assertEqual(problems, [])
+
+    def test_a_call_at_the_end_of_a_sentence_is_still_checked(self):
+        # The path guard keys on a dot followed by a word character, so sentence punctuation
+        # after an unbackticked call does not buy silence.
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)` is the door. Never T.Gone.\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("T.Gone", problems[0])
+
+    def test_file_reference_is_not_a_parenless_call(self):
+        # The false red R19's finding declined the widening over. The uppercase-method guard
+        # carries it, and carries more now that the arg list is optional.
+        problems, _ = s.check_doors(
+            *self._tree(self.CS, {"a.md": "`T.Run(a)`, declared in `T.cs (line 40)`\n"}))
+        self.assertEqual(problems, [])
+
     def test_non_tool_host_is_not_resolved(self):
         # ArmatureLinkService.GetLinks( / Assembly.GetType( are live in the real docs.
         problems, _ = s.check_doors(*self._tree(
@@ -456,6 +517,54 @@ class TestCheckDoors(unittest.TestCase):
         problems, _ = s.check_doors(*self._tree(cs, {"a.md": "`TPlay.Run()`\n"}))
         self.assertEqual([p for p in problems if p.startswith("T.Run")], problems)
         self.assertEqual(len(problems), 1)
+
+    def test_stale_door_in_a_tools_md_row_is_a_finding(self):
+        # Six rows in the system tool index taught deleted door names through R19's rename and
+        # the gate stayed green: TOOLS.md is at the repo root, and the corpus globbed docs/.
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)`\n"}, tools_md=self.ROWS.format("`T.Gone` does it")))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("T.Gone", problems[0])
+        self.assertTrue(problems[0].startswith("TOOLS.md:"), problems[0])
+
+    def test_a_door_named_only_in_a_tools_md_row_is_still_undocumented(self):
+        # Same asymmetry the skills corpus has: routing rows are not the door roster.
+        problems, census = s.check_doors(*self._tree(
+            self.CS, {"a.md": "T does things.\n"}, tools_md=self.ROWS.format("`T.Run(a)` does it")))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("no literal call", problems[0])
+        self.assertIn("0/1", census)
+
+    def test_a_bare_door_in_its_own_rows_cell_is_a_finding(self):
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)`\n"}, tools_md=self.ROWS.format("`Run` does it")))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("`Run` is written bare in the T row", problems[0])
+        self.assertIn("`T.Run`", problems[0])
+
+    def test_a_bare_row_finding_does_not_name_an_owner_the_trigger_did_not_prove(self):
+        # Every [AgentTool] class declares `Run`, so a row legitimately naming a sibling tool's
+        # door bare trips this check too. The trigger proves the name resolves on THIS row's
+        # class and nothing more, so the message offers that class rather than asserting it.
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)`\n"}, tools_md=self.ROWS.format("see `Run`")))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("if this row's tool is the one meant", problems[0])
+        self.assertNotIn("names a T door", problems[0])
+
+    def test_one_bare_row_finding_per_issue_not_per_occurrence(self):
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)`\n"}, tools_md=self.ROWS.format("`Run`, and again `Run`")))
+        self.assertEqual(len(problems), 1)
+
+    def test_a_bare_token_that_is_not_a_member_of_its_row_class_is_clean(self):
+        # The whole-file reading of this rule runs ~13 false to 3 true: these rows are thick
+        # with Unity types, status values and sibling class names. Scoping the token to its own
+        # row's class is what turns a guess about meaning into an assertion about state.
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)`\n"},
+            tools_md=self.ROWS.format("takes a `Transform`; returns `PENDING`")))
+        self.assertEqual(problems, [])
 
     def test_a_class_with_no_run_door_is_a_finding(self):
         # The rule's power is that it has no exceptions: the kit once ran two conventions at
@@ -482,6 +591,14 @@ class TestCheckDoors(unittest.TestCase):
         # qualified form the docs prescribe is what makes a wrong one checkable.
         problems, _ = s.check_doors(*self._tree(
             self.NS_CS, {"a.md": "`Ryan6Vrc.AgentTools.Editor.T.Run(a)`\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("wrong kit", problems[0])
+
+    def test_a_parenless_wrong_kit_call_is_still_a_finding(self):
+        # `_call_re`'s namespace prefix swallows a parenless qualified ref and resolves it
+        # clean, so a paren-only namespace arm would leave a shape that reads as checked.
+        problems, _ = s.check_doors(*self._tree(
+            self.NS_CS, {"a.md": "`T.Run(a)` — see `Ryan6Vrc.AgentTools.Editor.T.Run`\n"}))
         self.assertEqual(len(problems), 1)
         self.assertIn("wrong kit", problems[0])
 
@@ -593,13 +710,14 @@ class TestSkillLiterals(unittest.TestCase):
         (d / "docs").mkdir()
         for name, body in docs.items():
             (d / "docs" / name).write_text(body, encoding="utf-8")
+        (d / "TOOLS.md").write_text("", encoding="utf-8")   # strict read; see TestCheckDoors._tree
         return code, d
 
     def test_a_broken_skill_literal_is_a_finding_naming_the_owning_repo(self):
         problems, _ = s.check_doors(*self._tree(
             {"a.md": "`T.Run(a)`\n"}, {"s": "call `T.Nope(a)` here\n"}))
         self.assertEqual(len(problems), 1)
-        self.assertIn("T.Nope(", problems[0])
+        self.assertIn("T.Nope", problems[0])
         # code_root-relative, and it says where the fix lands: this is the first finding
         # this check emits that an Atelier committer cannot clear in their own commit.
         self.assertIn("vrc-skills/skills/s/SKILL.md", problems[0])
