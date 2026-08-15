@@ -547,3 +547,107 @@ class TestCheckDoors(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSkillLiterals(unittest.TestCase):
+    """The resolution scan reaches `vrc-skills` skill bodies; the coverage scan does not."""
+
+    CS = ("[AgentTool]\npublic static class T {\n"
+          "  public static string Run(string a) { return a; }\n}")
+
+    def _tree(self, docs: dict, skills: dict = None, cs: str = None):
+        code = Path(tempfile.mkdtemp())
+        p = code / "vrc-unity-tools/packages/x/Editor/T.cs"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(cs or self.CS, encoding="utf-8")
+        for name, body in (skills or {}).items():
+            sp = code / "vrc-skills/skills" / name / "SKILL.md"
+            sp.parent.mkdir(parents=True, exist_ok=True)
+            sp.write_text(body, encoding="utf-8")
+        d = Path(tempfile.mkdtemp())
+        (d / "docs").mkdir()
+        for name, body in docs.items():
+            (d / "docs" / name).write_text(body, encoding="utf-8")
+        return code, d
+
+    def test_a_broken_skill_literal_is_a_finding_naming_the_owning_repo(self):
+        problems, _ = s.check_doors(*self._tree(
+            {"a.md": "`T.Run(a)`\n"}, {"s": "call `T.Nope(a)` here\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("T.Nope(", problems[0])
+        # code_root-relative, and it says where the fix lands: this is the first finding
+        # this check emits that an Atelier committer cannot clear in their own commit.
+        self.assertIn("vrc-skills/skills/s/SKILL.md", problems[0])
+        self.assertIn("fix in `vrc-skills`", problems[0])
+
+    def test_the_wrong_kit_arm_reaches_skills_too(self):
+        cs = ("namespace Ryan6Vrc.AvatarTools.Editor {\n[AgentTool]\n"
+              "public static class T {\n"
+              "  public static string Run(string a) { return a; }\n}\n}")
+        problems, _ = s.check_doors(*self._tree(
+            {"a.md": "`Ryan6Vrc.AvatarTools.Editor.T.Run(a)`\n"},
+            {"s": "`Ryan6Vrc.AgentTools.Editor.T.Run(a)`\n"}, cs=cs))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("wrong kit", problems[0])
+        self.assertIn("vrc-skills/skills/s/SKILL.md", problems[0])
+
+    def test_a_door_named_only_in_a_skill_is_still_undocumented(self):
+        """The load-bearing asymmetry. Feeding the skills corpus into the coverage
+        accumulator would let this door read as covered and delete its finding — the check
+        silently LOOSENING while the diff looks like it tightened."""
+        problems, census = s.check_doors(*self._tree(
+            {"a.md": "T does things.\n"}, {"s": "call `T.Run(a)` here\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("no literal call under docs/", problems[0])
+        self.assertIn("0/1", census)
+
+    def test_a_resolving_skill_literal_is_silent(self):
+        problems, _ = s.check_doors(*self._tree(
+            {"a.md": "`T.Run(a)`\n"}, {"s": "call `T.Run(a)` here\n"}))
+        self.assertEqual(problems, [])
+
+    def test_vendor_api_literals_in_skills_are_ignored(self):
+        """Roughly 7 of the 18 dotted literals across the skills name vendor APIs
+        (`AssetDatabase.ImportAsset`, `PrefabUtility.GetRemovedGameObjects`,
+        `ModularAvatarMenuItem.InitSettings`). No door census can adjudicate them, and
+        flagging them would be the false red that makes a check get switched off."""
+        problems, _ = s.check_doors(*self._tree({"a.md": "`T.Run(a)`\n"}, {"s": (
+            "`AssetDatabase.ImportAsset(p)` and `PrefabUtility.GetRemovedGameObjects(g)` "
+            "and `ModularAvatarMenuItem.InitSettings(x)`\n")}))
+        self.assertEqual(problems, [])
+
+    def test_a_missing_vrc_skills_sibling_is_skipped_not_an_error(self):
+        """`--code-root` legitimately points at a tree without the siblings. Requiring the
+        directory would turn that into exit 2, which the hook prints as "README was not
+        checked" — suppressing the mirror over a check that was never the point."""
+        code, docs = self._tree({"a.md": "`T.Run(a)`\n"})
+        self.assertEqual(s._skill_bodies(code), [])
+        problems, _ = s.check_doors(code, docs)
+        self.assertEqual(problems, [])
+
+    def test_skill_paths_survive_diverging_roots(self):
+        """docs_root and code_root diverge in a worktree by design. A skill path is under
+        code_root, so computing it against docs_root raises ValueError — an uncaught
+        traceback, not even the InventoryError exit-2 arm."""
+        code, docs = self._tree({"a.md": "`T.Run(a)`\n"}, {"s": "call `T.Nope(a)`\n"})
+        self.assertNotEqual(code, docs)
+        problems, _ = s.check_doors(code, docs)   # must not raise
+        self.assertTrue(any("vrc-skills" in p for p in problems))
+
+
+class TestLiveSkillLiterals(unittest.TestCase):
+    @needs_sibling("vrc-skills")
+    def test_live_skill_literals_all_resolve(self):
+        """The premise this check was built on, pinned: every kit literal in the shipped
+        skills resolves today. This is the check's only current job — it has caught no
+        drift, and is a lagging detector besides (the hook skips whenever the siblings are
+        absent, and a door rename lands in vrc-unity-tools, whose commits never run it)."""
+        code = main_checkout()
+        bodies = s._skill_bodies(code)
+        self.assertTrue(bodies, "no skill bodies found — the scan would be vacuously clean")
+        doors, statics, namespaces = s.extract_unity_doors(code / "vrc-unity-tools")
+        found = set()
+        s._resolution_scan(
+            [(p.relative_to(code).as_posix(), s._read(p)) for p in bodies],
+            statics, namespaces, found, fix_in="vrc-skills")
+        self.assertEqual(sorted(found), [])

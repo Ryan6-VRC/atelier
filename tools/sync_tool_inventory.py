@@ -306,6 +306,20 @@ def _governed_docs(docs_root: Path) -> list:
                   if "local" not in p.relative_to(docs_root).parts)
 
 
+def _skill_bodies(code_root: Path) -> list:
+    """Every `vrc-skills` skill body, for the RESOLUTION scan only.
+
+    Tolerant of absence by design, unlike `_governed_docs`' `_require_dir`: this reads a
+    sibling repo, and `--code-root` legitimately points somewhere without one (a worktree,
+    a partial checkout, a manual run). Requiring it would turn a missing sibling into the
+    exit-2 arm, which the pre-commit hook prints as "README was not checked" — suppressing
+    the mirror over a check that was never the point of the invocation."""
+    skills = code_root / "vrc-skills" / "skills"
+    if not skills.is_dir():
+        return []
+    return sorted(skills.glob("*/SKILL.md"))
+
+
 def _call_re(cls: str) -> re.Pattern:
     """`Tool.Method(`, with an optional namespace prefix so the fully-qualified form the docs
     prescribe (`Ryan6Vrc.AgentTools.Editor.Tool.Method(`) counts. The literal dot after the
@@ -322,35 +336,72 @@ def _call_re(cls: str) -> re.Pattern:
 _QUALIFIED_CALL = re.compile(r"Ryan6Vrc\.(?:Agent|Avatar)Tools\.Editor\.(\w+)\.([A-Z]\w*)\s*\(")
 
 
+def _resolution_scan(texts: list, statics: dict, namespaces: dict,
+                     found: set, seen: dict = None, fix_in: str = None) -> None:
+    """Both resolution arms over one corpus: every `Tool.Method(` names a real public static,
+    and every fully-qualified call names the kit that class actually lives in.
+
+    `seen` is the coverage accumulator and is **optional on purpose**. Coverage asks "is every
+    door named somewhere an agent reads it", and `docs/` is that somewhere — a door named only
+    in a skill body is still undocumented. Passing `seen` from a corpus that does not answer
+    the coverage question would let a door named only in a `SKILL.md` count as covered and its
+    finding vanish, which is the check silently *loosening* while the diff appears to tighten
+    it. So the skills pass supplies `found` and withholds `seen`; nothing else separates them.
+
+    `fix_in` names the repo a finding must be fixed in, when that is not the tree being
+    committed. Every finding this check emitted before was clearable in the same commit; a
+    `vrc-skills` one is not, and an unqualified message sends the committer hunting in the
+    wrong tree."""
+    where = f" (fix in `{fix_in}`)" if fix_in else ""
+    for cls in sorted(statics):
+        pat = _call_re(cls)
+        for rel, text in texts:
+            for m in pat.finditer(text):
+                if seen is not None:
+                    seen.setdefault(cls, set()).add(m.group(1))
+                if m.group(1) not in statics[cls]:
+                    found.add((rel, f"`{cls}.{m.group(1)}(` names no public static on {cls} — "
+                                    f"the declaration site is canon; fix the call or the "
+                                    f"doc{where}"))
+    for rel, text in texts:
+        for m in _QUALIFIED_CALL.finditer(text):
+            cls, method = m.group(1), m.group(2)
+            if cls not in statics:
+                found.add((rel, f"`{m.group(0)}…` names no [AgentTool] class `{cls}`{where}"))
+            elif namespaces.get(cls) and not m.group(0).startswith(namespaces[cls] + "."):
+                found.add((rel, f"`{cls}.{method}(` is qualified with the wrong kit — {cls} "
+                                f"lives in `{namespaces[cls]}`{where}"))
+
+
 def check_doors(code_root: Path, docs_root: Path) -> tuple:
     """(problems, census). Coverage: every door is named somewhere an agent reads it.
     Resolution: every documented call on a tool class names a real public static, and a
     fully-qualified one names the kit that class actually lives in.
 
     Pins entry-point NAMES and namespaces only — arguments, defaults and overloads are not
-    compared, so a doc's argument list is illustrative and the declaration site stays canon."""
+    compared, so a doc's argument list is illustrative and the declaration site stays canon.
+
+    Two corpora, deliberately asymmetric. `docs/` gets both scans. `vrc-skills`' skill bodies
+    get **resolution only**: they paste the same call literals and rot the same way, but they
+    are trigger-gated task bodies rather than the door roster, so demanding a literal call
+    there would be a false red. `_resolution_scan`'s docstring owns why the split has to be
+    structural rather than a promise.
+
+    Scope this does NOT claim: the hook skips the whole sync when the `vrc-*` siblings are
+    absent, which is every worktree — and a door rename lands in `vrc-unity-tools`, whose own
+    commits never run this hook at all. So this is a lagging detector that catches drift on
+    the next main-tree Atelier commit, not a gate that prevents it."""
     doors, statics, namespaces = extract_unity_doors(code_root / "vrc-unity-tools")
-    texts = [(p, _read(p)) for p in _governed_docs(docs_root)]
+    texts = [(p.relative_to(docs_root).as_posix(), _read(p)) for p in _governed_docs(docs_root)]
+    # Relative to CODE_root, not docs_root: the two diverge in a worktree by design (see
+    # main()'s two-root comment), and `relative_to` on a path outside its argument raises
+    # ValueError — an uncaught traceback, not even the InventoryError exit-2 arm.
+    skill_texts = [(p.relative_to(code_root).as_posix(), _read(p))
+                   for p in _skill_bodies(code_root)]
 
     seen, found = {}, set()          # found: dedupe by issue, not by occurrence
-    for cls in sorted(statics):
-        pat = _call_re(cls)
-        for path, text in texts:
-            rel = path.relative_to(docs_root).as_posix()
-            for m in pat.finditer(text):
-                seen.setdefault(cls, set()).add(m.group(1))
-                if m.group(1) not in statics[cls]:
-                    found.add((rel, f"`{cls}.{m.group(1)}(` names no public static on {cls} — "
-                                    f"the declaration site is canon; fix the call or the doc"))
-    for path, text in texts:
-        rel = path.relative_to(docs_root).as_posix()
-        for m in _QUALIFIED_CALL.finditer(text):
-            cls, method = m.group(1), m.group(2)
-            if cls not in statics:
-                found.add((rel, f"`{m.group(0)}…` names no [AgentTool] class `{cls}`"))
-            elif namespaces.get(cls) and not m.group(0).startswith(namespaces[cls] + "."):
-                found.add((rel, f"`{cls}.{method}(` is qualified with the wrong kit — {cls} "
-                                f"lives in `{namespaces[cls]}`"))
+    _resolution_scan(texts, statics, namespaces, found, seen=seen)
+    _resolution_scan(skill_texts, statics, namespaces, found, fix_in="vrc-skills")
     problems = [f"{rel}: {msg}" for rel, msg in sorted(found)]
     missing = [(c, n) for c in sorted(doors) for n in sorted(doors[c] - seen.get(c, set()))]
     for cls, name in missing:
