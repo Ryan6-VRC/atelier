@@ -336,7 +336,7 @@ class TestDoorExtraction(unittest.TestCase):
 
     def test_class_keyword_in_doc_comment_does_not_truncate(self):
         # CompileController.cs:51 — `/// (see class docs)`. This bug hid
-        # CompileController.Compile and DecompileController.Decompile from an earlier census.
+        # CompileController.Run and DecompileController.Run from an earlier census.
         doors, _, _ = s.extract_unity_doors(self._repo(
             "[AgentTool]\npublic static class T {\n"
             "  /// <summary>see class docs</summary>\n"
@@ -424,7 +424,7 @@ class TestCheckDoors(unittest.TestCase):
         self.assertEqual(problems, [])
 
     def test_call_in_any_governed_doc_counts(self):
-        # RenderThumbnailPlay.Begin is documented in emulator.md, not the contract pair.
+        # RenderThumbnailPlay.Run is documented in emulator.md, not the contract pair.
         problems, _ = s.check_doors(*self._tree(self.CS, {"a.md": "x\n", "emulator.md": "`T.Run(a)`\n"}))
         self.assertEqual(problems, [])
 
@@ -444,10 +444,29 @@ class TestCheckDoors(unittest.TestCase):
         cs = ("[AgentTool]\npublic static class T {\n"
               "  public static string Run() { return null; }\n}\n"
               "[AgentTool]\npublic static class TPlay {\n"
-              "  public static string Shoot() { return null; }\n}")
-        problems, _ = s.check_doors(*self._tree(cs, {"a.md": "`TPlay.Shoot()`\n"}))
+              "  public static string Run() { return null; }\n}")
+        # Both doors are `Run` (every primary is), so the prefix is the only thing separating
+        # `T` from `TPlay` — the case the guard actually has to survive.
+        problems, _ = s.check_doors(*self._tree(cs, {"a.md": "`TPlay.Run()`\n"}))
         self.assertEqual([p for p in problems if p.startswith("T.Run")], problems)
         self.assertEqual(len(problems), 1)
+
+    def test_a_class_with_no_run_door_is_a_finding(self):
+        # The rule's power is that it has no exceptions: the kit once ran two conventions at
+        # once and agents generalized whichever they met first onto the other half.
+        cs = ("[AgentTool]\npublic static class T {\n"
+              "  public static string Report() { return null; }\n}")
+        problems, _ = s.check_doors(*self._tree(cs, {"a.md": "`T.Report()`\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("declares no `Run` door", problems[0])
+
+    def test_a_secondary_door_alongside_run_is_clean(self):
+        cs = ("[AgentTool]\npublic static class T {\n"
+              "  public static string Run() { return null; }\n"
+              "  public static string CheckBare() { return null; }\n}")
+        problems, _ = s.check_doors(
+            *self._tree(cs, {"a.md": "`T.Run()` and `T.CheckBare()`\n"}))
+        self.assertEqual(problems, [])
 
     NS_CS = ("namespace Ryan6Vrc.AvatarTools.Editor {\n[AgentTool]\npublic static class T {\n"
              "  public static string Run(string a) { return a; }\n}\n}")
