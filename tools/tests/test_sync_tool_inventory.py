@@ -472,6 +472,22 @@ class TestCheckDoors(unittest.TestCase):
         self.assertEqual(problems, [])
         self.assertIn("1/1", census)
 
+    def test_a_nested_member_path_is_not_a_call(self):
+        # `UploadAvatar.UploadOutcome.Uploaded` is a shape `_depth1_body` exists to handle. An
+        # optional arg list would otherwise read it as a call to `UploadAvatar.UploadOutcome`
+        # and prescribe "fix the call or the doc", which fits nothing the author did.
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)` returns `T.Outcome.Ok`\n"}))
+        self.assertEqual(problems, [])
+
+    def test_a_call_at_the_end_of_a_sentence_is_still_checked(self):
+        # The path guard keys on a dot followed by a word character, so sentence punctuation
+        # after an unbackticked call does not buy silence.
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)` is the door. Never T.Gone.\n"}))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("T.Gone", problems[0])
+
     def test_file_reference_is_not_a_parenless_call(self):
         # The false red R19's finding declined the widening over. The uppercase-method guard
         # carries it, and carries more now that the arg list is optional.
@@ -517,7 +533,23 @@ class TestCheckDoors(unittest.TestCase):
         problems, _ = s.check_doors(*self._tree(
             self.CS, {"a.md": "`T.Run(a)`\n"}, tools_md=self.ROWS.format("`Run` does it")))
         self.assertEqual(len(problems), 1)
-        self.assertIn("names a T door bare", problems[0])
+        self.assertIn("`Run` is written bare in the T row", problems[0])
+        self.assertIn("`T.Run`", problems[0])
+
+    def test_a_bare_row_finding_does_not_name_an_owner_the_trigger_did_not_prove(self):
+        # Every [AgentTool] class declares `Run`, so a row legitimately naming a sibling tool's
+        # door bare trips this check too. The trigger proves the name resolves on THIS row's
+        # class and nothing more, so the message offers that class rather than asserting it.
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)`\n"}, tools_md=self.ROWS.format("see `Run`")))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("if this row's tool is the one meant", problems[0])
+        self.assertNotIn("names a T door", problems[0])
+
+    def test_one_bare_row_finding_per_issue_not_per_occurrence(self):
+        problems, _ = s.check_doors(*self._tree(
+            self.CS, {"a.md": "`T.Run(a)`\n"}, tools_md=self.ROWS.format("`Run`, and again `Run`")))
+        self.assertEqual(len(problems), 1)
 
     def test_a_bare_token_that_is_not_a_member_of_its_row_class_is_clean(self):
         # The whole-file reading of this rule runs ~13 false to 3 true: these rows are thick

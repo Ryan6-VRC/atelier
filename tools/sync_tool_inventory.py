@@ -320,15 +320,28 @@ def _skill_bodies(code_root: Path) -> list:
     return sorted(skills.glob("*/SKILL.md"))
 
 
-# The trailing paren, shared by both patterns below. Optional, and a CAPTURE group rather than
-# a match requirement: `Tool.Method` with no arg list is how much of the corpus names a door, and
+# The call tail, shared by both patterns below. The arg list is optional and a CAPTURE group
+# rather than a match requirement: `Tool.Method` with no arg list is how much of the corpus names a door, and
 # it rots on a rename exactly like `Tool.Method(` does, so resolution must see it. What the group
 # then reports is "this site was a paste-able call", which only coverage cares about.
 #
 # `[ \t]`, never `\s`: `\s` spans newlines, so `Tool.Run\n\n(See also …)` would capture `'\n\n('`
 # and credit a paragraph break as an argument list. Harmless while the group gated the match;
 # a false coverage credit once it is a flag.
-_PAREN = r"([ \t]*\()?"
+#
+# The trailing `(?!\.\w)` is what keeps an optional arg list from turning every dotted member
+# path into a call: `UploadAvatar.UploadOutcome.Uploaded` — a shape `_depth1_body` exists to
+# handle — would otherwise resolve as a call to `UploadAvatar.UploadOutcome` and be reported as
+# naming no public static, under a remedy ("fix the call or the doc") that fits nothing the
+# author did. A dot followed by a word character continues a path; a dot followed by anything
+# else is sentence punctuation, so `see T.Run.` stays checked.
+#
+# `(?!\w)` anchors the method name so the lookahead cannot be dodged by giving back characters:
+# without it `UploadOutcome` shortens to `UploadOutcom`, whose next char is `e` rather than `.`,
+# and the false positive returns wearing a truncated name. It is inert on its own — earlier
+# drafts credited it with guarding `RenderThumbnail` against `RenderThumbnailPlay`, which the
+# literal dot has always done — and load-bearing only in front of a lookahead that can fail.
+_CALL_TAIL = r"(?!\w)([ \t]*\()?(?!\.\w)"
 
 
 def _call_re(cls: str) -> re.Pattern:
@@ -340,12 +353,15 @@ def _call_re(cls: str) -> re.Pattern:
 
     The method must start uppercase: every door is PascalCase, while `CheckSeam.cs (line 40)`
     — a file reference the docs already make — otherwise reads as a call to a method `cs`. That
-    guard carries more weight since the arg list became optional: the false-positive surface is
-    now every capitalised word following a tool-class dot, so it grows with prose rather than
-    with call sites.
+    guard carries more weight since the arg list became optional, because what remains matchable
+    without one is any capitalised word following a tool-class dot. `_CALL_TAIL` excludes the
+    dotted member paths. What is left is a doc naming a nested type with no member after it
+    (`UploadAvatar.UploadOutcome`), which still reads as a call and would be reported as naming
+    no public static — the known residual false red, and the reason to reach for the extractor's
+    nested-type names if one ever lands in the corpus.
 
-    Group 2 is the paren — see `_PAREN`, and `_resolution_scan` for who reads it."""
-    return re.compile(r"(?<![\w])(?:\w+\.)*" + re.escape(cls) + r"\.([A-Z]\w*)" + _PAREN)
+    Group 2 is the paren — see `_CALL_TAIL`, and `_resolution_scan` for who reads it."""
+    return re.compile(r"(?<![\w])(?:\w+\.)*" + re.escape(cls) + r"\.([A-Z]\w*)" + _CALL_TAIL)
 
 
 # The qualified form the docs prescribe. Its prefix is what makes a wrong one checkable: a
@@ -356,7 +372,7 @@ def _call_re(cls: str) -> re.Pattern:
 # qualified ref and resolves it clean, so a paren-only arm here would leave a shape that reads
 # as namespace-checked and is not.
 _QUALIFIED_CALL = re.compile(
-    r"Ryan6Vrc\.(?:Agent|Avatar)Tools\.Editor\.(\w+)\.([A-Z]\w*)" + _PAREN)
+    r"Ryan6Vrc\.(?:Agent|Avatar)Tools\.Editor\.(\w+)\.([A-Z]\w*)" + _CALL_TAIL)
 
 
 def _resolution_scan(texts: list, statics: dict, namespaces: dict,
@@ -406,8 +422,8 @@ def _resolution_scan(texts: list, statics: dict, namespaces: dict,
 _BACKTICKED = re.compile(r"`([A-Z]\w*)(?:\([^`]*\))?`")
 
 
-def _bare_door_rows(tools_md: str, statics: dict) -> list:
-    """`TOOLS.md` rows that name one of their OWN class's doors without the class prefix.
+def _bare_door_rows(tools_md: str, statics: dict, found: set) -> None:
+    """`TOOLS.md` rows that name a member of their OWN key class without the class prefix.
 
     The file is a table keyed by class, so its rows once wrote door names bare — the key
     supplied the class to the reader, and to nothing else: a bare `` `Run` `` is invisible to
@@ -418,12 +434,16 @@ def _bare_door_rows(tools_md: str, statics: dict) -> list:
     and is unusable — these rows are thick with `Transform`, `PENDING`, `ReleaseStatus` and
     sibling class names, and it runs about 13 false to 3 true, inferring what a token means.
     Inverted, it asserts a state: a token that IS a declared static of the class its own row is
-    keyed by is a door reference, whatever else it might have been. Nothing else is touched.
+    keyed by resolves against a declaration site, whatever else it might have been. Nothing
+    else is touched, and the message stays inside what the trigger proved (see the emit site).
 
     This is what keeps the prefix a house style rather than a one-time cleanup — a new row
     written bare is caught when it is written, so every surviving token is prefixed and the
-    next rename is caught by the resolution scan above."""
-    problems, seen_delim, in_tools = [], False, False
+    next rename is caught by the resolution scan above.
+
+    Adds to `found` rather than returning, so these share the resolution scans' dedupe-by-issue
+    and their sort: a row naming `Run` twice is one finding, not two."""
+    seen_delim, in_tools = False, False
     for raw in tools_md.splitlines():
         line = raw.strip()
         if line.startswith("#"):
@@ -440,10 +460,18 @@ def _bare_door_rows(tools_md: str, statics: dict) -> list:
             continue
         for m in _BACKTICKED.finditer("|".join(line.split("|")[2:])):
             if m.group(1) in statics[key]:
-                problems.append(f"TOOLS.md: `{m.group(1)}` in the {key} row names a {key} door "
-                                f"bare — write `{key}.{m.group(1)}` so a rename cannot rot the "
-                                f"row unseen; the row key is not a prefix any check can read")
-    return problems
+                # "public static", not "door": the membership test is `statics`, which keeps the
+                # NOT_DOORS members this file elsewhere insists are not doors. And the prescribed
+                # class is offered, not asserted — the trigger only proves the name resolves on
+                # THIS row's class, and every [AgentTool] class declares `Run`, so a row
+                # mentioning a sibling tool's door bare would otherwise be handed a fix naming
+                # the wrong owner.
+                found.add(("TOOLS.md", f"`{m.group(1)}` is written bare in the {key} row, and it "
+                                       f"names a public static — prefix it with the class that "
+                                       f"declares it (`{key}.{m.group(1)}` if this row's tool is "
+                                       f"the one meant, otherwise that tool's class), so a rename "
+                                       f"cannot rot the row unseen; a row key is not a prefix any "
+                                       f"check can read"))
 
 
 def check_doors(code_root: Path, docs_root: Path) -> tuple:
@@ -484,8 +512,8 @@ def check_doors(code_root: Path, docs_root: Path) -> tuple:
     _resolution_scan(texts, statics, namespaces, found, seen=seen)
     _resolution_scan(skill_texts, statics, namespaces, found, fix_in="vrc-skills")
     _resolution_scan([("TOOLS.md", tools_md)], statics, namespaces, found)
+    _bare_door_rows(tools_md, statics, found)
     problems = [f"{rel}: {msg}" for rel, msg in sorted(found)]
-    problems += _bare_door_rows(tools_md, statics)
     missing = [(c, n) for c in sorted(doors) for n in sorted(doors[c] - seen.get(c, set()))]
     for cls, name in missing:
         problems.append(f"{cls}.{name} is a door with no literal call under docs/ — write "
