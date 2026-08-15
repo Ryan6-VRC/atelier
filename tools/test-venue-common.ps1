@@ -132,12 +132,24 @@ function Get-VenueToolPackageRoots([string]$Venue) {
     $found += [pscustomobject]@{ Package = $dir.Name; Path = $dir.FullName; Source = "embedded" }
   }
 
+  # Parsed as JSON, not scanned line-wise: a regex per line captures at most one ref per line, so a
+  # minified or hand-collapsed manifest would report a two-checkout venue as one root — defeating
+  # the half-repointed-venue answer Get-VenueToolsRoot exists to give, and defeating it by producing
+  # a confident wrong root rather than a refusal.
   $manifest = Join-Path $pkgDir "manifest.json"
   if (Test-Path $manifest) {
-    foreach ($line in (Get-Content $manifest -ErrorAction SilentlyContinue)) {
-      if ($line -notmatch '"(com\.ryan6vrc\.[^"]+)"\s*:\s*"file:([^"]+)"') { continue }
-      if ($embedded.ContainsKey($Matches[1])) { continue }  # shadowed; the embedded copy is what loads
-      $found += [pscustomobject]@{ Package = $Matches[1]; Path = $Matches[2]; Source = "manifest" }
+    $deps = $null
+    # A malformed manifest is a named unknown (an empty list), never a throw: this read happens
+    # inside a provisioning guard and at the end of a completed test run, and neither may die over it.
+    try { $deps = (Get-Content $manifest -Raw -ErrorAction Stop | ConvertFrom-Json).dependencies }
+    catch { $deps = $null }
+    if ($null -ne $deps) {
+      foreach ($prop in $deps.PSObject.Properties) {
+        if ($prop.Name -notlike "com.ryan6vrc.*") { continue }
+        if ($embedded.ContainsKey($prop.Name)) { continue }  # shadowed; the embedded copy is what loads
+        if ($prop.Value -isnot [string] -or $prop.Value -notmatch '^file:(.+)$') { continue }
+        $found += [pscustomobject]@{ Package = $prop.Name; Path = $Matches[1]; Source = "manifest" }
+      }
     }
   }
   return $found

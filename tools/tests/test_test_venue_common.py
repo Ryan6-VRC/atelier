@@ -95,6 +95,26 @@ class VenuePackageRoots(_VenueFixture, unittest.TestCase):
         (venue / "Packages" / "com.ryan6vrc.agent-tools").mkdir()
         self.assertEqual(self.run_ps(f"Get-VenueToolsRoot '{venue}'"), "C:/work/vrc-unity-tools")
 
+    def test_a_minified_manifest_still_yields_both_refs(self):
+        """A line-wise regex captures one ref per line, so a collapsed manifest would report a
+        two-checkout venue as one root — a confident wrong answer where the point is a refusal."""
+        venue = self.venue()
+        (venue / "Packages" / "manifest.json").write_text(
+            '{"dependencies":{"com.ryan6vrc.agent-tools":'
+            '"file:C:/one/vrc-unity-tools/packages/com.ryan6vrc.agent-tools",'
+            '"com.ryan6vrc.avatar-tools":'
+            '"file:C:/two/vrc-unity-tools/packages/com.ryan6vrc.avatar-tools"}}',
+            encoding="utf-8")
+        self.assertEqual(self.run_ps(f"@(Get-VenueToolPackageRoots '{venue}').Count"), "2")
+        self.assertEqual(self.run_ps(f"'[' + (Get-VenueToolsRoot '{venue}') + ']'"), "[]")
+
+    def test_a_malformed_manifest_is_an_empty_answer_not_a_throw(self):
+        """This read runs inside a provisioning guard and after a completed test run; neither may
+        die over a bookkeeping parse."""
+        venue = self.venue()
+        (venue / "Packages" / "manifest.json").write_text("{not json", encoding="utf-8")
+        self.assertEqual(self.run_ps(f"@(Get-VenueToolPackageRoots '{venue}').Count"), "0")
+
     def test_missing_packages_dir_is_empty_not_an_exception(self):
         venue = self.temp / "bare"
         venue.mkdir()
@@ -152,13 +172,57 @@ class SetupRefusesAStalePointer(_VenueFixture, unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
         self.assertIn("already exists", out.stdout)
 
-    def test_embedded_shadow_is_named_rather_than_reported_as_agreement(self):
+    def test_embedded_shadow_refuses_even_when_the_manifest_agrees(self):
+        """Unity loads the embedded copy, so a matching manifest ref is not what compiles. Checked
+        BEFORE the pointer comparison, or the refusal names a root that is false for that package."""
         wanted = self._tools_root("wanted-tools")
         ref = "file:" + str(wanted).replace("\\", "/") + "/packages/com.ryan6vrc.agent-tools"
         venue = self.venue({"com.ryan6vrc.agent-tools": ref}, embedded=["com.ryan6vrc.agent-tools"])
         out = self.run_setup(venue, wanted)
+        self.assertNotEqual(out.returncode, 0, "a shadowed venue must not exit 0")
+        combined = out.stdout + out.stderr
+        self.assertIn("EMBEDDED", combined)
+        # -Sync rewrites the manifest and never deletes a stray folder, so offering it here would
+        # send the operator through a remedy that leaves the shadow in place.
+        self.assertNotIn("Re-point it with -Sync", combined)
+
+    def test_shadow_is_named_before_a_mismatched_pointer(self):
+        """One package embedded, another pointing elsewhere: the shadow is the load-bearing fact,
+        and the mismatch message would assert a root that is false for the shadowed one."""
+        wanted = self._tools_root("wanted-tools")
+        venue = self.venue(
+            {"com.ryan6vrc.avatar-tools":
+                "file:C:/main-checkout/vrc-unity-tools/packages/com.ryan6vrc.avatar-tools"},
+            embedded=["com.ryan6vrc.agent-tools"])
+        out = self.run_setup(venue, wanted)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("EMBEDDED", out.stdout + out.stderr)
+
+    def test_unreadable_pointer_refuses_rather_than_exiting_green(self):
+        """No root, or two — either way what a run would compile cannot be established, and a
+        caller chaining setup -> tests on the exit code must not proceed."""
+        wanted = self._tools_root("wanted-tools")
+        venue = self.venue({
+            "com.ryan6vrc.agent-tools": "file:C:/one/vrc-unity-tools/packages/com.ryan6vrc.agent-tools",
+            "com.ryan6vrc.avatar-tools": "file:C:/two/vrc-unity-tools/packages/com.ryan6vrc.avatar-tools",
+        })
+        out = self.run_setup(venue, wanted)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("no readable", (out.stdout + out.stderr))
+
+    def test_relative_tools_root_matching_the_baked_path_is_not_a_mismatch(self):
+        """The manifest bakes a resolved absolute path; comparing a relative -ToolsRoot raw would
+        refuse over two spellings of one directory, and -Sync would re-bake the same path."""
+        wanted = self._tools_root("wanted-tools")
+        ref = "file:" + str(wanted).replace("\\", "/") + "/packages/com.ryan6vrc.agent-tools"
+        venue = self.venue({"com.ryan6vrc.agent-tools": ref})
+        relative = str(Path("..") / wanted.name)
+        out = subprocess.run(
+            [PWSH, "-NoProfile", "-NonInteractive", "-File", str(SETUP),
+             "-Dest", str(venue), "-ToolsRoot", relative,
+             "-SourceProject", str(self._source_project())],
+            capture_output=True, text=True, timeout=180, cwd=str(wanted))
         self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
-        self.assertIn("EMBEDDED", out.stdout)
 
 
 if __name__ == "__main__":

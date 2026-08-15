@@ -195,19 +195,6 @@ if ($compileErr) {
 # After the re-run, not before it: the re-run can ALSO fail to start, and with no log written
 # $compileErr/$crashed/$haveXml are all false and $r.code is $null, so it would fall through to the
 # bad -Assemblies/-Filter bucket — the exact misdiagnosis NOSTART exists to prevent.
-if ($r.outcome -eq "NOSTART") {
-  Write-Host "OUTCOME=RUN_ERROR Unity did not start from '$Editor' — the path resolved but the process could not be launched"
-  exit 5
-}
-if ($r.outcome -eq "TIMEOUT") { Write-Host "OUTCOME=TIMEOUT"; exit 3 }
-
-# CRASH = native fault: the log crash signature, or a negative native-fault exit code (e.g. 0xC0000005
-# → -1073741819) even when a results XML was flushed. Checked FIRST so a segfault-after-flush is never
-# misread as COMPLETED. Unity's normal exits are non-negative (0 pass / 2 failures / 3 run-error).
-$crashed = (Test-Path $r.log) -and (Select-String -Path $r.log -Pattern "Native Crash Reporting|Received signal SIGSEGV|Crash!!!" -Quiet)
-if ($null -ne $r.code -and $r.code -lt 0) { $crashed = $true }
-$haveXml = Test-Path $r.xml
-
 # WHICH TREE THIS RUN COMPILED, reported on the authoritative OUTCOME= line rather than left to the
 # reader to infer. $Project's package pointer is baked at provisioning time and a worktree does not get
 # its own by default (setup-test-editor.ps1 resolves -ToolsRoot to the MAIN checkout), so a run launched
@@ -230,8 +217,22 @@ if ($embedded.Count -gt 0) {
   $pkgNote = " packages=UNREADABLE"
 }
 
+if ($r.outcome -eq "NOSTART") {
+  Write-Host "OUTCOME=RUN_ERROR Unity did not start from '$Editor' — the path resolved but the process could not be launched"
+  exit 5
+}
+if ($r.outcome -eq "TIMEOUT") { Write-Host "OUTCOME=TIMEOUT$pkgNote"; exit 3 }
+
+# CRASH = native fault: the log crash signature, or a negative native-fault exit code (e.g. 0xC0000005
+# → -1073741819) even when a results XML was flushed. Checked FIRST so a segfault-after-flush is never
+# misread as COMPLETED. Unity's normal exits are non-negative (0 pass / 2 failures / 3 run-error).
+$crashed = (Test-Path $r.log) -and (Select-String -Path $r.log -Pattern "Native Crash Reporting|Received signal SIGSEGV|Crash!!!" -Quiet)
+if ($null -ne $r.code -and $r.code -lt 0) { $crashed = $true }
+$haveXml = Test-Path $r.xml
+
+
 if ($crashed) {
-  Write-Host "OUTCOME=CRASH exit=$($r.code) xml=$haveXml"; exit 1
+  Write-Host "OUTCOME=CRASH exit=$($r.code) xml=$haveXml$pkgNote"; exit 1
 } elseif ($compileErr) {
   # Persistent compile failure: any XML present is from the prior assembly — not trustworthy.
   Write-Host "OUTCOME=COMPILE_ERROR exit=$($r.code) (see $($r.log))$pkgNote"; exit 7
@@ -257,5 +258,5 @@ if ($crashed) {
   # failure) — NOT a native crash. Distinct bucket so it doesn't steer diagnosis into the crash narrative.
   Write-Host "OUTCOME=RUN_ERROR exit=$($r.code) (bad -Assemblies/-Filter or project load? see $($r.log))$pkgNote"; exit 5
 } else {
-  Write-Host "OUTCOME=UNKNOWN exit=$($r.code) xml=$haveXml (see $($r.log))"; exit 2
+  Write-Host "OUTCOME=UNKNOWN exit=$($r.code) xml=$haveXml (see $($r.log))$pkgNote"; exit 2
 }

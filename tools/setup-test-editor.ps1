@@ -25,6 +25,10 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "test-venue-common.ps1")
 if ([string]::IsNullOrWhiteSpace($SourceProject)) { $SourceProject = Resolve-AtelierChild "AvatarProject" "SourceProject" }
 if ([string]::IsNullOrWhiteSpace($ToolsRoot))     { $ToolsRoot     = Resolve-AtelierChild "vrc-unity-tools" "ToolsRoot" }
+# Canonicalize once. The manifest bakes the RESOLVED path, so a relative -ToolsRoot compared raw
+# against a baked ref reports a mismatch between two spellings of the same directory — and -Sync,
+# the remedy the refusal names, re-bakes the identical absolute path, so the next run refuses again.
+if (Test-Path $ToolsRoot) { $ToolsRoot = (Resolve-Path $ToolsRoot).Path }
 
 # Provisioned once from $SourceProject: the VRChat-pinned SDK plus the community packages the test
 # assemblies compile against. Both lists, and the fixture list below, live in test-venue-common.ps1
@@ -40,27 +44,34 @@ if ((Test-Path $Dest) -and -not $Sync) {
   # MAIN checkout's sources, and reads the green as evidence about their own edits. A supplied
   # argument that changes nothing must say so.
   #
-  # Silent only when the venue AGREES with the request, which is the ordinary re-run.
+  # Silent only when the venue AGREES with the request, which is the ordinary re-run. Every other
+  # branch here exits NON-ZERO: each one is a state where -ToolsRoot could not be honored, and a
+  # caller chaining setup -> tests on $LASTEXITCODE must not walk into the wrong-tree run.
+  #
+  # Shadow first, matching Unity's own precedence. An embedded Packages/<name>/ copy wins over the
+  # manifest, and Get-VenueToolsRoot excludes embedded entries — so a venue with one package
+  # embedded and another pointing at the main checkout would otherwise hit the mismatch below and
+  # assert a $baked root that is false for the shadowed package, while never naming the shadow.
+  # -Sync would not help either: it rewrites the manifest and never deletes a stray folder.
+  $shadowed = @(Get-VenueToolPackageRoots $Dest | Where-Object { $_.Source -eq "embedded" })
+  if ($shadowed.Count -gt 0) {
+    throw ("TestEditor at $Dest carries EMBEDDED copies of " + ($shadowed.Package -join ", ") +
+           " under Packages/, which shadow the manifest — Unity loads those, so -ToolsRoot cannot " +
+           "reach them and -Sync will not remove them. Delete those folders, or provision a venue " +
+           "of your own with -Dest <path> -ToolsRoot $ToolsRoot.")
+  }
   $baked = Get-VenueToolsRoot $Dest
-  if ($null -ne $baked -and (ConvertTo-ComparablePath $baked) -ne (ConvertTo-ComparablePath $ToolsRoot)) {
+  if ($null -eq $baked) {
+    # Unreadable is not agreement: no manifest refs, an unparseable ref, or refs spanning two
+    # checkouts (see Get-VenueToolsRoot). None of them may pass as "points where you asked".
+    throw ("TestEditor at $Dest has no readable com.ryan6vrc.* package pointer — it names no root, " +
+           "or more than one, so what a run against it would compile cannot be established. " +
+           "Re-provision with -Sync, or with -Dest <path> -ToolsRoot $ToolsRoot.")
+  }
+  if ((ConvertTo-ComparablePath $baked) -ne (ConvertTo-ComparablePath $ToolsRoot)) {
     throw ("TestEditor at $Dest compiles the com.ryan6vrc.* packages at $baked, not the requested " +
            "$ToolsRoot — a run against it would say nothing about $ToolsRoot. Re-point it with -Sync, " +
            "or provision a venue of your own with -Dest <path> -ToolsRoot $ToolsRoot.")
-  }
-  # $null is unreadable, not agreement (no manifest refs, an unparseable ref, or refs spanning two
-  # checkouts — see Get-VenueToolsRoot), and an embedded copy shadows the manifest entirely. Neither
-  # may pass as "points where you asked"; name it and let the operator decide.
-  $shadowed = @(Get-VenueToolPackageRoots $Dest | Where-Object { $_.Source -eq "embedded" })
-  if ($shadowed.Count -gt 0) {
-    Write-Host ("TestEditor already exists at $Dest. WARNING: " + ($shadowed.Package -join ", ") +
-                " are EMBEDDED copies under Packages/ and shadow the manifest — -ToolsRoot cannot " +
-                "reach them. Delete them, or re-provision to a clean -Dest.")
-    exit 0
-  }
-  if ($null -eq $baked) {
-    Write-Host ("TestEditor already exists at $Dest, but its com.ryan6vrc.* package pointer is not " +
-                "readable as one root — re-provision with -Sync rather than trusting a run against it.")
-    exit 0
   }
   Write-Host "TestEditor already exists at $Dest (packages: $baked). Use -Sync to refresh its SDK + manifest."
   exit 0
