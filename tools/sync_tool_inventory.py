@@ -413,6 +413,12 @@ def check_doors(code_root: Path, docs_root: Path) -> tuple:
     # classes, the class's own verb on 20), and agents generalized whichever they met first onto
     # the other half, at about one session in eighteen. Asserted against `doors` rather than
     # `statics` so a future NOT_DOORS entry can still suppress a member.
+    #
+    # Scope, stated because the message would otherwise overclaim: this asserts a `Run` door
+    # EXISTS. There is no machine notion of "primary" here -- a class that keeps `Report()` and
+    # adds a thin `Run()` beside it passes, which is the alias the canon clause ("rename to
+    # converge rather than alias") forbids. Existence is the necessary half and the checkable
+    # one; whether the `Run` is the real entry point stays a review question.
     for cls in sorted(doors):
         if "Run" not in doors[cls]:
             problems.append(f"{cls} declares no `Run` door — the primary door is always `Run`; "
