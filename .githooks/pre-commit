@@ -3,17 +3,24 @@
 # A sync problem must never gate committing real work.
 top="$(git rev-parse --show-toplevel)"
 if command -v python >/dev/null 2>&1; then
-  # The tool surfaces are sibling repos, gitignored by this meta-repo and therefore
-  # absent from any linked worktree (or partial checkout). Nothing to SYNC there —
-  # skip cleanly so doc-only worktree commits don't trip the check. Sync is reconciled
-  # in the main worktree, on merge or by a cleanup pass. Scoped to the sync alone: this
-  # guard used to skip the whole hook, which silently disabled the prose gate for every
-  # worktree commit, and worktrees are where most commits here are made.
-  if [ -d "$top/vrc-unity-tools" ] && [ -d "$top/vrc-blender-tools" ] && [ -d "$top/vrc-skills" ]; then
-    # Capture stdout (the "README-UPDATED" marker); stderr flows to the terminal. Exit 1
-    # means it ran and found real drift; exit 2 means it never adjudicated (same 0/1/2
-    # contract as check_prose.py below), which must not print as a drift verdict.
-    out="$(python "$top/tools/sync_tool_inventory.py")"; rc=$?
+  # The tool surfaces are sibling repos, gitignored by this meta-repo and therefore present
+  # only in the MAIN checkout. tools/atelier_paths.py resolves it (the one Python
+  # implementation of that resolver; sh consumes the door rather than carrying its own copy
+  # of the git incantation), so the check runs from every tree — worktrees are where most
+  # commits here are made, and a guard on this tree's own dirs silently disabled the door
+  # gate exactly there. Skipping remains only for a main checkout without the siblings (an
+  # unbootstrapped clone).
+  main="$(python "$top/tools/atelier_paths.py" 2>/dev/null)"
+  if [ -n "$main" ] && [ -d "$main/vrc-unity-tools" ] && [ -d "$main/vrc-blender-tools" ] && [ -d "$main/vrc-skills" ]; then
+    # From a worktree, --check only: the docs under test are this tree's, the code is the
+    # main checkout's (--code-root), and the README inject stays main-tree-only — staging a
+    # regenerated README block from a branch doubles the merge surface on the two
+    # highest-churn files for no adjudication gain. All drift findings print either way
+    # (stderr); stdout carries only the README-UPDATED marker, captured for the staging.
+    if [ "$main" = "$top" ]; then mode=""; else mode="--check"; fi
+    # Exit 1 means it ran and found real drift; exit 2 means it never adjudicated (same
+    # 0/1/2 contract as check_prose.py below), which must not print as a drift verdict.
+    out="$(python "$top/tools/sync_tool_inventory.py" $mode --code-root "$main")"; rc=$?
     case "$out" in
       *README-UPDATED*)
         git add "$top/README.md" || echo "pre-commit: could not stage README.md; continuing" >&2 ;;
@@ -26,9 +33,11 @@ if command -v python >/dev/null 2>&1; then
     elif [ "$rc" -ne 0 ]; then
       echo "pre-commit: sync_tool_inventory.py ABORTED (exit $rc) — README was not checked, not proven in sync" >&2
     fi
+  else
+    echo "pre-commit: vrc-* siblings absent from the main checkout (${main:-unresolved}); tool-inventory sync skipped" >&2
   fi
-  # The prose gate needs no sibling — its form pass reads this repo's own tracked .md,
-  # so it runs in every tree. Exit 1 means it ran and found something; any other
+  # The prose gate resolves its own sibling reads (check_prose.py imports atelier_paths),
+  # so it runs whole in every tree. Exit 1 means it ran and found something; any other
   # non-zero means it never adjudicated, which must not print as a prose verdict.
   python "$top/tools/check_prose.py"; rc=$?
   if [ "$rc" -eq 1 ]; then
@@ -39,4 +48,7 @@ if command -v python >/dev/null 2>&1; then
 else
   echo "pre-commit: python missing; skipping tool-inventory sync AND the prose gate" >&2
 fi
+# Unconditional 0 is load-bearing beyond "warn, don't block": the installed .git/hooks
+# wrapper (PII gate) chains this script with `|| exit $?`, so any non-zero escaping here
+# would both block the commit and skip that gate's own run.
 exit 0

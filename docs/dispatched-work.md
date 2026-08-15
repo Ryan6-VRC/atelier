@@ -28,6 +28,8 @@ The PR body is for review only — not a channel to the coordinator or the opera
 
 The session ends at an OPEN PR with the repo's gates green; never push or merge to main. A downstream PR waiting on yours is the coordinator's sequencing, not license to self-merge. There is no worker-initiated terminal handoff either — the operator closes the session and directs the merge.
 
+"Gates green" means green over this tree's own governed files. The commit gates resolve the `vrc-*` siblings from the main checkout, so their output can carry findings marked "(main checkout)" that another session's working state caused — report those (inbox if they need a block), but they are not yours to clear and do not hold your PR.
+
 ## The inbox
 
 Board-bound findings go to the **main tree's** `docs/local/inbox/<block>.md` before the session closes — `docs/local/` is gitignored, so a copy written inside a worktree is destroyed at reclaim and reads as silence. Write "nothing" when there is nothing.

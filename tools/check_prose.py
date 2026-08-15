@@ -1,10 +1,16 @@
 # tools/check_prose.py
-"""Workspace prose-governance check, run from the meta-repo root.
+"""Workspace prose-governance check, run from the meta-repo root or any linked worktree.
 
-Four passes over the assembled workspace. A pass with nothing to work on — an
-absent sibling repo, no governed skill directory — skips with a printed NOTE:
-absence is a valid workspace state, never a failure. A family whose repo IS
-present but whose directory is gone is the other thing, and fails loud
+Four passes over the assembled workspace, on two roots: everything under
+judgment (docs/, TOOLS.md, README.md, .claude/skills) reads from THIS tree,
+while the `vrc-*` siblings — gitignored, so present only in the main checkout —
+resolve there via atelier_paths. A worktree run therefore adjudicates the same
+corpus as a main-tree run; sibling-sourced findings carry a "(main checkout)"
+marker since that tree's state is not this commit's to fix. A pass with nothing
+to work on — a sibling absent from the main checkout too (unbootstrapped
+clone), no governed skill directory — skips with a printed NOTE: that absence
+is a valid workspace state, never a failure. A family whose repo IS present
+but whose directory is gone is the other thing, and fails loud
 (FAMILY_REQUIRED_BY).
 
   1. vrc-skills' own gate, tools/validate_skills.py (subprocess) — skill
@@ -45,7 +51,19 @@ try:
 except ImportError:
     yaml = None
 
+# Deferred to main() rather than raised here: an import-time crash in a script
+# run exits 1, the code this module reserves for lint findings.
+try:
+    from atelier_paths import resolve as _resolve_main
+except ImportError:
+    _resolve_main = None
+
 ROOT = Path(__file__).resolve().parent.parent
+# Where `vrc-*` sibling reads resolve; ROOT itself when resolution fell back
+# (git failed, exotic layout, atelier_paths missing). main() prints which tree
+# supplied the siblings unconditionally — in exactly the fallback case the two
+# roots coincide again, and a silent 28-file run would present as the real gate.
+SIBLINGS, SIBLINGS_FELL_BACK = _resolve_main() if _resolve_main else (ROOT, True)
 BACKTICK_RE = re.compile(r'`([^`\n]+)`')
 MD_NAME_RE = re.compile(r'^[\w-]+\.md$')
 MD_PATH_RE = re.compile(r'^[\w./-]+/[\w.-]+\.md$')
@@ -130,6 +148,13 @@ def _display(p):
     try:
         return p.relative_to(ROOT).as_posix()
     except ValueError:
+        pass
+    # Sibling-sourced: the file lives in the main checkout, not the tree under
+    # judgment — the marker lets a worktree committer tell a finding they can
+    # clear from one caused by another checkout's state.
+    try:
+        return f'{p.relative_to(SIBLINGS).as_posix()} (main checkout)'
+    except ValueError:
         return p.as_posix()
 
 
@@ -192,10 +217,11 @@ def all_skill_dirs(strict=True):
     the doc edits they actually made, which is the whole reason pass 1 runs last."""
     families = []
     for fam in SKILL_FAMILIES:
-        d = ROOT / fam
+        base = SIBLINGS if fam.startswith('vrc-') else ROOT
+        d = base / fam
         if d.is_dir():
             families.append(d)
-        elif (marker := FAMILY_REQUIRED_BY.get(fam)) and (ROOT / marker).is_dir():
+        elif (marker := FAMILY_REQUIRED_BY.get(fam)) and (base / marker).is_dir():
             msg = (f'{marker} is present but {fam}/ is missing — the skill family '
                    'vanished; refusing to score the remaining families as a clean run')
             if strict:
@@ -230,7 +256,7 @@ VALIDATE_SUMMARY_RE = re.compile(
 
 def pass_validate(out):
     out.start('validate_skills')
-    script = ROOT / 'vrc-skills' / 'tools' / 'validate_skills.py'
+    script = SIBLINGS / 'vrc-skills' / 'tools' / 'validate_skills.py'
     if not script.is_file():
         # The gate lives in the sibling, so its absence also silences anatomy
         # checking for THIS repo's project skills — name that casualty, or the
@@ -248,6 +274,8 @@ def pass_validate(out):
     # skills/ — one invocation, so the single-summary contract below still holds.
     p = subprocess.run([sys.executable, str(script)] + [str(d) for d in dirs],
                        capture_output=True, text=True, encoding='utf-8', errors='replace')
+    # Aborts below halt commits machine-wide once this runs from every tree, so the
+    # message must say whose checkout the crashed gate came from.
     rel = _display(script)
     out_lines = (p.stdout or '').splitlines()
     for line in out_lines + (p.stderr or '').splitlines():
@@ -277,7 +305,7 @@ def pass_doc_pointers(out, exempt, fence):
     if not dirs:
         print('NOTE  pass 2 (doc-pointers): no governed skill directories — skipped')
         return
-    vrc_skills = ROOT / 'vrc-skills'
+    vrc_skills = SIBLINGS / 'vrc-skills'
     known_names = ({p.name for p in (ROOT / 'docs').glob('*.md')} |
                    {p.name for p in ROOT.glob('*.md')} |
                    {p.name for p in vrc_skills.rglob('*.md') if '.git' not in p.parts})
@@ -307,17 +335,22 @@ def pass_doc_pointers(out, exempt, fence):
     # than reusing the form fence's exclude list — the fence answers "is this ours
     # to reflow", which is not the same question. references/ is excluded from the
     # fence yet references/README.md is tracked and cited by skills, so keying on
-    # the fence would have silently stopped checking a live pointer.
-    per_tree = git_ignored(ROOT, sorted({ref for _, _, _, ref in cited if '/' in ref}))
+    # the fence would have silently stopped checking a live pointer. Sibling-rooted
+    # refs are kept OUT of the batch: the meta-repo gitignores the sibling clones
+    # wholesale, so check-ignore answers "ignored" for every `vrc-*/…` ref — which
+    # is not the per-tree-scratch fact this asks, and quietly exempted all of them
+    # from adjudication; they resolve against SIBLINGS below instead.
+    per_tree = git_ignored(ROOT, sorted({ref for _, _, _, ref in cited if '/' in ref
+                                         and not ref.startswith('vrc-')}))
 
     for rel, i, d, ref in cited:
         if ref in per_tree:
             continue
         if '/' in ref:
             first = ref.split('/')[0]
-            if first.startswith('vrc-') and not (ROOT / first).is_dir():
-                continue  # sibling absent: not resolvable, not a finding
-            if not any((base / ref).exists() for base in (ROOT, vrc_skills, d)):
+            if first.startswith('vrc-') and not (SIBLINGS / first).is_dir():
+                continue  # sibling absent even from the main checkout: not resolvable
+            if not any((base / ref).exists() for base in (ROOT, SIBLINGS, d)):
                 out.warn(f'{rel}:{i}', f"doc pointer '{ref}' does not resolve in the workspace")
         elif ref not in known_names:
             # Bare names resolve partly out of vrc-skills, so with the sibling
@@ -368,12 +401,23 @@ def pass_tool_names(out, exempt, terminal_section):
 # ---- pass 4: one-line-per-paragraph form over the governed fence ----
 
 def git_ignored(repo, relpaths):
-    """The subset of relpaths git would ignore in repo (check-ignore batch)."""
+    """The subset of relpaths git would ignore in repo (check-ignore batch).
+
+    Repo-identity env is scrubbed because this runs under pre-commit: a linked
+    worktree's hook exports absolute GIT_DIR/GIT_INDEX_FILE (measured), under
+    which `git -C <sibling>` treats the sibling as a working tree of THIS repo —
+    its own excludes and index stop applying. Fires only under the hook, so no
+    manual run reproduces it. Config env (GIT_CONFIG_*) stays: the user's real
+    config legitimately applies at run time."""
     if not relpaths:
         return set()
+    env = dict(os.environ)
+    for var in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR',
+                'GIT_OBJECT_DIRECTORY', 'GIT_CEILING_DIRECTORIES'):
+        env.pop(var, None)
     p = subprocess.run(['git', '-C', str(repo), 'check-ignore', '--stdin', '-z'],
                        input='\0'.join(relpaths), capture_output=True, text=True,
-                       encoding='utf-8')
+                       encoding='utf-8', env=env)
     if p.returncode > 1:
         raise GateError(f'git check-ignore failed in {repo}: {p.stderr.strip()}')
     return {x for x in p.stdout.split('\0') if x}
@@ -419,7 +463,9 @@ def pass_form(out, fence):
 
     files = []
     for pat in fence['roots']:
-        repos = [ROOT] if pat == '.' else sorted(p for p in ROOT.glob(pat) if p.is_dir())
+        # "." is this tree (its .md are what the commit judges); sibling roots
+        # resolve against the main checkout, where the clones actually live.
+        repos = [ROOT] if pat == '.' else sorted(p for p in SIBLINGS.glob(pat) if p.is_dir())
         if not repos:
             print(f'NOTE  pass 4 (form): no sibling matches root "{pat}" — skipped')
         for repo in repos:
@@ -459,10 +505,18 @@ def main(argv=None):
     if yaml is None:
         raise GateError('pyyaml not installed — pip install pyyaml '
                         '(prerequisite: docs/bootstrap.md §2)')
+    if _resolve_main is None:
+        raise GateError('tools/atelier_paths.py missing beside this script — cannot '
+                        'resolve the main checkout the sibling reads need')
+    # Unconditional: in the fallback case SIBLINGS == ROOT again, and a silent
+    # sibling-less run would present as the resolved gate.
+    print(f'siblings: {SIBLINGS}'
+          + (' (FALLBACK — main-checkout resolution failed; a worktree run is '
+             'degraded to this tree)' if SIBLINGS_FELL_BACK else ''))
 
     out = Findings()
     exempt, terminal = [], 'Tools'
-    conv = ROOT / 'vrc-skills' / 'CONVENTIONS.md'
+    conv = SIBLINGS / 'vrc-skills' / 'CONVENTIONS.md'
     if conv.is_file():
         consts = read_constants(conv, 'description_prefix')
         exempt = consts.get('exempt_skills', [])
