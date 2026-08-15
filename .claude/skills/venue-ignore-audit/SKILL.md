@@ -27,9 +27,9 @@ Two passes per venue, **rooted at the venue directory** — rooting at `Assets/`
 rg --files . ; rg --files --no-ignore-vcs .
 ```
 
-Diff the two. The second pass disables the `.gitignore` side **only**: the venue's `.ignore` keeps pruning `Library/`, `Temp/`, `Obj/`, `Logs/`, `UserSettings/`, which is deliberate. Disabling `.ignore` too (`--no-ignore-dot`, `--no-ignore`) drops those prunes back into the hidden set — measured on AvatarProject, 27,410 of the resulting 44,236 "hidden" paths are regenerated `Library/` content — and step 3 then classifies `PackageCache`'s C# as text-bearing that must be re-included, walking the operator into signing off the exact regression the runbook's prunes prevent.
+Diff the two. The second pass disables the `.gitignore` side **only**: the venue's `.ignore` keeps pruning `Library/`, `Temp/`, `Obj/`, `Logs/`, `UserSettings/`, which is deliberate. Disabling `.ignore` too (`--no-ignore-dot`, `--no-ignore`) drops those prunes back into the hidden set, where regenerated `Library/` content outnumbers everything else by roughly an order of magnitude — and step 3 then classifies `PackageCache`'s C# as text-bearing that must be re-included, walking the operator into signing off the exact regression the runbook's prunes prevent.
 
-Measure, never infer from reading the two ignore files against each other — a textual pairing looks covered in exactly the cases that are blind (step 3's trap is one, and it is live in both venues today).
+Measure, never infer from reading the two ignore files against each other — a textual pairing looks covered in exactly the cases that are blind, step 3's trap being that shape.
 
 Assert the prune half too: pass 1 must list no `Library/`, `Temp/` or `Logs/` paths. An empty diff means nothing on a venue that never inherited a `.gitignore` at all — one placed outside the workspace root gets none, and its unpruned `Library/` times out every `Grep`. Report a venue with no `!` line in the *workspace* root's `.ignore` as the dominant finding whatever the diff says: it is invisible to every workspace-rooted search regardless of its own files.
 
