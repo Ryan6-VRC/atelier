@@ -692,6 +692,12 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     docs_root = args.docs_root
     code_root = args.code_root or docs_root
+    if code_root != docs_root:
+        # The DRIFT/DOORS lines below carry no per-line tree marker, so say once whose code
+        # this run judged: from a branch, roster drift can be another session's uncommitted
+        # sibling state, not this commit's to clear (dispatched-work.md §Terminal state).
+        print(f"tool-inventory: code read from {code_root} (live sibling state; docs from "
+              f"{docs_root})", file=sys.stderr)
     try:
         code_keys = extract_code_keys(code_root)
         doc_keys = parse_tools_md(docs_root / "TOOLS.md")

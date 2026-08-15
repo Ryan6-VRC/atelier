@@ -6,10 +6,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import sync_tool_inventory as s  # noqa: E402
-from atelier_paths import main_checkout  # noqa: E402
+from atelier_paths import resolve  # noqa: E402
 
 WORKSPACE = Path(__file__).resolve().parent.parent.parent
-MAIN = main_checkout()   # code surfaces; WORKSPACE stays the docs-under-test side
+MAIN, MAIN_FELL_BACK = resolve()   # code surfaces; WORKSPACE stays the docs-under-test side
 
 
 def setUpModule():
@@ -17,7 +17,8 @@ def setUpModule():
     # the trap is a green run that lied — an editable install can resolve `s` to a different
     # checkout than the one under test (dispatched-work.md worktree trap), and the live-
     # surface tests read a tree that is not this one.
-    print(f'\ntest_sync_tool_inventory: code surfaces = {MAIN}')
+    print(f'\ntest_sync_tool_inventory: code surfaces = {MAIN}'
+          + (' (FALLBACK — main-checkout resolution failed)' if MAIN_FELL_BACK else ''))
     print(f'test_sync_tool_inventory: docs under test = {WORKSPACE} | module = {s.__file__}')
 
 

@@ -10,8 +10,13 @@ if command -v python >/dev/null 2>&1; then
   # commits here are made, and a guard on this tree's own dirs silently disabled the door
   # gate exactly there. Skipping remains only for a main checkout without the siblings (an
   # unbootstrapped clone).
-  main="$(python "$top/tools/atelier_paths.py" 2>/dev/null)"
-  if [ -n "$main" ] && [ -d "$main/vrc-unity-tools" ] && [ -d "$main/vrc-blender-tools" ] && [ -d "$main/vrc-skills" ]; then
+  # Non-zero (exit 3 = resolver fell back to its own tree; any error = resolver missing,
+  # e.g. a branch predating it) empties $main: the printed path is then NOT the main
+  # checkout, and trusting it would take the write path inside a worktree.
+  main="$(python "$top/tools/atelier_paths.py" 2>/dev/null)" || main=""
+  if [ -z "$main" ]; then
+    echo "pre-commit: main checkout not resolved (tools/atelier_paths.py missing or fell back); tool-inventory sync skipped" >&2
+  elif [ -d "$main/vrc-unity-tools" ] && [ -d "$main/vrc-blender-tools" ] && [ -d "$main/vrc-skills" ]; then
     # From a worktree, --check only: the docs under test are this tree's, the code is the
     # main checkout's (--code-root), and the README inject stays main-tree-only — staging a
     # regenerated README block from a branch doubles the merge surface on the two
@@ -34,7 +39,7 @@ if command -v python >/dev/null 2>&1; then
       echo "pre-commit: sync_tool_inventory.py ABORTED (exit $rc) — README was not checked, not proven in sync" >&2
     fi
   else
-    echo "pre-commit: vrc-* siblings absent from the main checkout (${main:-unresolved}); tool-inventory sync skipped" >&2
+    echo "pre-commit: vrc-* siblings absent from the main checkout ($main); tool-inventory sync skipped" >&2
   fi
   # The prose gate resolves its own sibling reads (check_prose.py imports atelier_paths),
   # so it runs whole in every tree. Exit 1 means it ran and found something; any other

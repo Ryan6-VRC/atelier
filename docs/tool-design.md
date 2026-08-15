@@ -29,7 +29,7 @@ Multi-rooted, defined by residency and trigger — not a single chain of hops:
 
 Every fact has one canonical home; every other mention is a **route** — "X owns Y", "Contract: `unity-tools.md`" — paired with a guard against restating ("links, not restates"). A route without a guard is where drift starts. A high-fan-out fact names its canon at every echo: three files citing three different homes for one claim is a defect even while the copies still agree.
 
-One standing route for the workspace's own checks: a linked worktree carries only tracked files, so anything reading the gitignored `vrc-*` siblings (or `docs/local/`) resolves the **main checkout** first — canonical in `tools/atelier_paths.py` (Python; sh consumes its CLI door) and `Get-AtelierMainCheckout` in `tools/test-venue-common.ps1` (PowerShell). A new check imports one of those, never a fresh `__file__`/`$PSScriptRoot` walk.
+One standing route for the workspace's own checks: a linked worktree carries only tracked files, so anything reading the gitignored `vrc-*` siblings, the untracked working venues, or `docs/local/` resolves the **main checkout** first — canonical in `tools/atelier_paths.py` (Python; sh consumes its CLI door) and `Get-AtelierMainCheckout` in `tools/test-venue-common.ps1` (PowerShell). A new check imports one of those, never a fresh `__file__`/`$PSScriptRoot` walk.
 
 ## Duplication: managed echoes only
 

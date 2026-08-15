@@ -342,6 +342,15 @@ def pass_doc_pointers(out, exempt, fence):
     # from adjudication; they resolve against SIBLINGS below instead.
     per_tree = git_ignored(ROOT, sorted({ref for _, _, _, ref in cited if '/' in ref
                                          and not ref.startswith('vrc-')}))
+    # The same question for a pointer INTO a sibling (`vrc-patterns/test-output/x.md`) is
+    # the sibling repo's to answer, so ask it there.
+    by_sibling = {}
+    for ref in {r for _, _, _, r in cited if '/' in r and r.startswith('vrc-')}:
+        first, _, rest = ref.partition('/')
+        if rest and (SIBLINGS / first).is_dir():
+            by_sibling.setdefault(first, []).append(rest)
+    for first, rests in by_sibling.items():
+        per_tree |= {f'{first}/{r}' for r in git_ignored(SIBLINGS / first, sorted(rests))}
 
     for rel, i, d, ref in cited:
         if ref in per_tree:
@@ -350,7 +359,7 @@ def pass_doc_pointers(out, exempt, fence):
             first = ref.split('/')[0]
             if first.startswith('vrc-') and not (SIBLINGS / first).is_dir():
                 continue  # sibling absent even from the main checkout: not resolvable
-            if not any((base / ref).exists() for base in (ROOT, SIBLINGS, d)):
+            if not any((base / ref).exists() for base in (ROOT, SIBLINGS, vrc_skills, d)):
                 out.warn(f'{rel}:{i}', f"doc pointer '{ref}' does not resolve in the workspace")
         elif ref not in known_names:
             # Bare names resolve partly out of vrc-skills, so with the sibling
