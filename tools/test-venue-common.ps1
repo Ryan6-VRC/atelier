@@ -90,3 +90,94 @@ function Resolve-AtelierChild([string]$Name, [string]$ParamName) {
   }
   return (Resolve-Path $path).Path
 }
+
+<#
+  .SYNOPSIS
+  One path form for comparing two roots that came from different producers.
+
+  .DESCRIPTION
+  A baked manifest ref is forward-slashed (setup-test-editor.ps1 writes it that way); anything from
+  Resolve-Path is backslashed. Comparing them raw reports a mismatch between two spellings of the same
+  directory, which would turn the provisioning guard into a refusal nobody can satisfy.
+#>
+function ConvertTo-ComparablePath([string]$Path) {
+  if ([string]::IsNullOrWhiteSpace($Path)) { return "" }
+  return ($Path -replace '\\', '/').TrimEnd('/')
+}
+
+<#
+  .SYNOPSIS
+  Where a venue's com.ryan6vrc.* packages actually come from — one entry per package, each naming the
+  path Unity will load and which mechanism reached it.
+
+  .DESCRIPTION
+  Two mechanisms, returned in Unity's own precedence order. An EMBEDDED folder (Packages/<name>/ carrying
+  a package.json) wins outright and the manifest entry for that name is never consulted — the SDK payload
+  at the top of this file relies on exactly that behavior, so a stray embedded copy of a TOOL package
+  would shadow the manifest silently and every manifest-derived report about it would be a confident lie.
+  Checking embedded first is what keeps the answer honest.
+
+  Returns an empty array when the venue carries neither, rather than throwing: callers report a named
+  unknown instead of failing a provisioning step or a completed test run over a bookkeeping read.
+#>
+function Get-VenueToolPackageRoots([string]$Venue) {
+  $found = @()
+  $pkgDir = Join-Path $Venue "Packages"
+  if (-not (Test-Path $pkgDir)) { return $found }
+
+  $embedded = @{}
+  foreach ($dir in (Get-ChildItem $pkgDir -Directory -Filter "com.ryan6vrc.*" -ErrorAction SilentlyContinue)) {
+    if (-not (Test-Path (Join-Path $dir.FullName "package.json"))) { continue }
+    $embedded[$dir.Name] = $true
+    $found += [pscustomobject]@{ Package = $dir.Name; Path = $dir.FullName; Source = "embedded" }
+  }
+
+  # Parsed as JSON, not scanned line-wise: a regex per line captures at most one ref per line, so a
+  # minified or hand-collapsed manifest would report a two-checkout venue as one root — defeating
+  # the half-repointed-venue answer Get-VenueToolsRoot exists to give, and defeating it by producing
+  # a confident wrong root rather than a refusal.
+  $manifest = Join-Path $pkgDir "manifest.json"
+  if (Test-Path $manifest) {
+    $deps = $null
+    # A malformed manifest is a named unknown (an empty list), never a throw: this read happens
+    # inside a provisioning guard and at the end of a completed test run, and neither may die over it.
+    try { $deps = (Get-Content $manifest -Raw -ErrorAction Stop | ConvertFrom-Json).dependencies }
+    catch { $deps = $null }
+    if ($null -ne $deps) {
+      foreach ($prop in $deps.PSObject.Properties) {
+        if ($prop.Name -notlike "com.ryan6vrc.*") { continue }
+        if ($embedded.ContainsKey($prop.Name)) { continue }  # shadowed; the embedded copy is what loads
+        if ($prop.Value -isnot [string] -or $prop.Value -notmatch '^file:(.+)$') { continue }
+        $found += [pscustomobject]@{ Package = $prop.Name; Path = $Matches[1]; Source = "manifest" }
+      }
+    }
+  }
+  return $found
+}
+
+<#
+  .SYNOPSIS
+  The single vrc-unity-tools checkout a venue's manifest points at, or $null when that is not one
+  unambiguous answer.
+
+  .DESCRIPTION
+  $null covers three genuinely different situations that share one remedy (re-provision with -Sync), and
+  none of them may be reported as a root: no manifest refs at all, refs whose parent is not a `packages/`
+  directory this can strip, and refs spanning MORE than one checkout — the last being a venue left
+  half-repointed by an interrupted run, where naming either root would be a lie.
+
+  Embedded entries are excluded deliberately: they have no tools-root to speak of, and a caller that needs
+  to know about a shadow asks Get-VenueToolPackageRoots, which reports it as one.
+#>
+function Get-VenueToolsRoot([string]$Venue) {
+  $roots = @()
+  foreach ($entry in (Get-VenueToolPackageRoots $Venue)) {
+    if ($entry.Source -ne "manifest") { continue }
+    if ((ConvertTo-ComparablePath $entry.Path) -match '^(.*)/packages/com\.ryan6vrc\.[^/]+$') {
+      $roots += $Matches[1]
+    }
+  }
+  $unique = @($roots | Sort-Object -Unique)
+  if ($unique.Count -eq 1) { return $unique[0] }
+  return $null
+}

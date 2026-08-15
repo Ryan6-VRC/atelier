@@ -195,11 +195,33 @@ if ($compileErr) {
 # After the re-run, not before it: the re-run can ALSO fail to start, and with no log written
 # $compileErr/$crashed/$haveXml are all false and $r.code is $null, so it would fall through to the
 # bad -Assemblies/-Filter bucket — the exact misdiagnosis NOSTART exists to prevent.
+# WHICH TREE THIS RUN COMPILED, reported on the authoritative OUTCOME= line rather than left to the
+# reader to infer. $Project's package pointer is baked at provisioning time and a worktree does not get
+# its own by default (setup-test-editor.ps1 resolves -ToolsRoot to the MAIN checkout), so a run launched
+# from a sub-repo worktree can be green about sources the caller never edited. Nothing here can know
+# which tree the caller MEANT — no parameter carries it — so this reports the fact and refuses to guess
+# intent; setup-test-editor.ps1 owns the refusal, at the point the pointer is actually set.
+#
+# It rides COMPLETED, COMPILE_ERROR and RUN_ERROR because "which tree" is exactly as load-bearing when
+# the compile failed as when the suite passed. A green run is when nobody reads the log body, so it goes
+# on the line itself.
+$roots = @(Get-VenueToolPackageRoots $Project)
+$embedded = @($roots | Where-Object { $_.Source -eq "embedded" })
+if ($embedded.Count -gt 0) {
+  # An embedded copy wins over the manifest, so reporting the manifest ref here would name a path that
+  # did not load — the one case where a confident answer is worse than none.
+  $pkgNote = " packages=EMBEDDED:" + (($embedded.Package | Sort-Object) -join ",")
+} elseif ($null -ne (Get-VenueToolsRoot $Project)) {
+  $pkgNote = " packages=" + (Get-VenueToolsRoot $Project)
+} else {
+  $pkgNote = " packages=UNREADABLE"
+}
+
 if ($r.outcome -eq "NOSTART") {
   Write-Host "OUTCOME=RUN_ERROR Unity did not start from '$Editor' — the path resolved but the process could not be launched"
   exit 5
 }
-if ($r.outcome -eq "TIMEOUT") { Write-Host "OUTCOME=TIMEOUT"; exit 3 }
+if ($r.outcome -eq "TIMEOUT") { Write-Host "OUTCOME=TIMEOUT$pkgNote"; exit 3 }
 
 # CRASH = native fault: the log crash signature, or a negative native-fault exit code (e.g. 0xC0000005
 # → -1073741819) even when a results XML was flushed. Checked FIRST so a segfault-after-flush is never
@@ -208,14 +230,15 @@ $crashed = (Test-Path $r.log) -and (Select-String -Path $r.log -Pattern "Native 
 if ($null -ne $r.code -and $r.code -lt 0) { $crashed = $true }
 $haveXml = Test-Path $r.xml
 
+
 if ($crashed) {
-  Write-Host "OUTCOME=CRASH exit=$($r.code) xml=$haveXml"; exit 1
+  Write-Host "OUTCOME=CRASH exit=$($r.code) xml=$haveXml$pkgNote"; exit 1
 } elseif ($compileErr) {
   # Persistent compile failure: any XML present is from the prior assembly — not trustworthy.
-  Write-Host "OUTCOME=COMPILE_ERROR exit=$($r.code) (see $($r.log))"; exit 7
+  Write-Host "OUTCOME=COMPILE_ERROR exit=$($r.code) (see $($r.log))$pkgNote"; exit 7
 } elseif ($haveXml) {
   [xml]$x = Get-Content $r.xml; $tr = $x.'test-run'
-  Write-Host ("OUTCOME=COMPLETED exit={0} total={1} passed={2} failed={3} skipped={4}" -f $r.code,$tr.total,$tr.passed,$tr.failed,$tr.skipped)
+  Write-Host ("OUTCOME=COMPLETED exit={0} total={1} passed={2} failed={3} skipped={4}{5}" -f $r.code,$tr.total,$tr.passed,$tr.failed,$tr.skipped,$pkgNote)
   # A skip is not a pass, and a bare `skipped=N` reads as green. The suite carries deliberate
   # not-fabricable gaps (documented in their reasons) alongside cases that self-Ignore when an EXTERNAL
   # vendor fixture is absent — the latter silently withdraw an acceptance theorem, which is the rule-7
@@ -233,7 +256,7 @@ if ($crashed) {
 } elseif ($r.code -ne 0) {
   # Unity launched but could not execute tests (exit 3 run-error: bad -Assemblies/-Filter, project load
   # failure) — NOT a native crash. Distinct bucket so it doesn't steer diagnosis into the crash narrative.
-  Write-Host "OUTCOME=RUN_ERROR exit=$($r.code) (bad -Assemblies/-Filter or project load? see $($r.log))"; exit 5
+  Write-Host "OUTCOME=RUN_ERROR exit=$($r.code) (bad -Assemblies/-Filter or project load? see $($r.log))$pkgNote"; exit 5
 } else {
-  Write-Host "OUTCOME=UNKNOWN exit=$($r.code) xml=$haveXml (see $($r.log))"; exit 2
+  Write-Host "OUTCOME=UNKNOWN exit=$($r.code) xml=$haveXml (see $($r.log))$pkgNote"; exit 2
 }
