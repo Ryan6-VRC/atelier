@@ -17,7 +17,7 @@ The failure is silent and self-concealing: a sweep over a hidden tree returns a 
 
 A directory is a venue iff it holds `ProjectSettings/ProjectVersion.txt`, `Assets/`, and `Packages/vpm-manifest.json`. Scan the workspace root's immediate children for that signature and never name a venue in tracked code (`CLAUDE.md` §Layout) — venues are the operator's alone.
 
-List with `ls`, not `Grep`/`Glob`: the workspace root's own `.ignore` deliberately leaves an added venue hidden from ripgrep, so an rg-based discovery finds the sample venue and silently misses every personal one. From a worktree the venues are absent entirely — resolve the root from `git rev-parse --path-format=absolute --git-common-dir`'s parent, and audit there.
+List with `ls`, not `Grep`/`Glob`: the workspace root's own `.ignore` deliberately leaves an added venue hidden from ripgrep, so an rg-based discovery finds the sample venue and silently misses every personal one. From a worktree the venues are absent entirely — resolve the main checkout (`python tools/atelier_paths.py` prints it; that module owns the invariant), and audit there.
 
 ### 2. Measure what is hidden
 

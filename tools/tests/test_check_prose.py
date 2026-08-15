@@ -4,11 +4,11 @@
 # Not  `-t .` — this directory has no __init__.py, so the repo-root spelling dies with
 # "Start directory is not importable".
 #
-# Nearly every test here builds a synthetic workspace and patches check_prose.ROOT at it,
-# because the gate derives every path from its own __file__. That is also what makes this
-# suite honest in a linked worktree: the vrc-* siblings are gitignored and therefore absent
-# there, so any test that asserted against the live tree would either lie or skip. The few
-# that do read the live tree say so and guard on SIBLINGS_PRESENT.
+# Nearly every test here builds a synthetic workspace and patches check_prose.ROOT (and
+# SIBLINGS, the main-checkout root its vrc-* reads resolve through) at it, because the gate
+# derives every path from its own __file__. The few tests that read the live tree resolve it
+# the way the gate itself does — through the main checkout — so they run from a linked
+# worktree too, and guard on SIBLINGS_PRESENT only against an unbootstrapped clone.
 import contextlib
 import inspect
 import io
@@ -23,9 +23,11 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import check_prose as c  # noqa: E402
+from atelier_paths import main_checkout  # noqa: E402
 
 WORKSPACE = Path(__file__).resolve().parent.parent.parent
-SIBLINGS_PRESENT = (WORKSPACE / 'vrc-skills' / 'tools' / 'validate_skills.py').is_file()
+MAIN = main_checkout()
+SIBLINGS_PRESENT = (MAIN / 'vrc-skills' / 'tools' / 'validate_skills.py').is_file()
 DOTGIT = ('file' if (WORKSPACE / '.git').is_file()
           else 'dir' if (WORKSPACE / '.git').is_dir() else 'absent')
 
@@ -34,12 +36,11 @@ DRIFTED_MD = '# Title\n\nhard wrapped\nacross two lines.\n'   # reflow joins the
 
 
 def setUpModule():
-    # Which tree am I actually testing, and which guards were live? A worktree run and a
-    # main-tree run differ by four skipped tests, and without this line the two artifacts
-    # are indistinguishable — "green" and "green having checked nothing" read the same.
+    # Which tree am I actually testing, and which guards were live? Without this line a
+    # green run and "green having checked nothing" read the same.
     print(f'\ntest_check_prose: module under test = {c.__file__}')
-    print(f'test_check_prose: venue = {WORKSPACE} (.git is {DOTGIT}, '
-          f'siblings_present={SIBLINGS_PRESENT})')
+    print(f'test_check_prose: venue = {WORKSPACE} (.git is {DOTGIT}) | '
+          f'main checkout = {MAIN} (siblings_present={SIBLINGS_PRESENT})')
 
 
 class TestVenueClassification(unittest.TestCase):
@@ -48,13 +49,12 @@ class TestVenueClassification(unittest.TestCase):
     look exactly like a suite that passes."""
 
     def test_absent_siblings_are_explained_by_the_venue(self):
-        # Not "which of two shapes is this" — a worktree with the siblings linked in to
-        # exercise the guarded tests is a legitimate third. The thing worth failing on is
-        # siblings missing for a reason that ISN'T a worktree, i.e. an unbootstrapped clone
-        # or a rename that quietly turned the guard permanently false.
+        # The guard resolves through the main checkout, so a linked worktree no longer
+        # explains an absence — the only legitimate false is an unbootstrapped clone,
+        # and this machine's checkout is not one.
         self.assertIn(DOTGIT, ('file', 'dir'), f'{WORKSPACE} is not a git checkout')
-        self.assertTrue(SIBLINGS_PRESENT or DOTGIT == 'file',
-                        f'{WORKSPACE} has a real .git but no vrc-skills sibling. Every '
+        self.assertTrue(SIBLINGS_PRESENT,
+                        f'the main checkout ({MAIN}) has no vrc-skills sibling. Every '
                         'live-surface test here is then skipped, so a green run would prove '
                         'nothing — clone the siblings (docs/bootstrap.md) or check whether '
                         'the guard predicate still names the right path.')
@@ -100,6 +100,10 @@ class Fixture(unittest.TestCase):
         self._rootp = mock.patch.object(c, 'ROOT', self.root)
         self._rootp.start()
         self.addCleanup(self._rootp.stop)
+        # SIBLINGS too, or every synthetic vrc-* read escapes to the LIVE main checkout.
+        self._sibp = mock.patch.multiple(c, SIBLINGS=self.root, SIBLINGS_FELL_BACK=False)
+        self._sibp.start()
+        self.addCleanup(self._sibp.stop)
         self.out = c.Findings()
 
     # -- fixture builders --
@@ -339,14 +343,14 @@ class TestPassValidate(Fixture):
         self.assertIn('no governed skill directories', text)
         self.assertEqual(self.out.errors, 0)
 
-    @unittest.skipUnless(SIBLINGS_PRESENT, 'vrc-skills absent (linked worktree)')
+    @unittest.skipUnless(SIBLINGS_PRESENT, 'vrc-skills absent from the main checkout')
     def test_real_child_gate_reports_a_real_finding(self):
         # The stubs above never read their argv, so they cannot catch a mutation that stops
         # passing the skill directories through (all_skill_dirs -> skill_dirs would silently
         # drop the child's "no SKILL.md" error). Only the real child can.
-        shutil.copytree(WORKSPACE / 'vrc-skills' / 'tools',
+        shutil.copytree(MAIN / 'vrc-skills' / 'tools',
                         self.root / 'vrc-skills' / 'tools')
-        shutil.copy(WORKSPACE / 'vrc-skills' / 'CONVENTIONS.md',
+        shutil.copy(MAIN / 'vrc-skills' / 'CONVENTIONS.md',
                     self.root / 'vrc-skills' / 'CONVENTIONS.md')
         (self.root / 'vrc-skills' / 'skills').mkdir(parents=True, exist_ok=True)
         (self.root / '.claude' / 'skills' / 'empty-dir').mkdir(parents=True)
@@ -574,7 +578,9 @@ class TestMainExitCodes(Fixture):
     def build(self, child_body=None, drifted=False):
         tools = self.root / 'tools'
         tools.mkdir()
-        for name in ('check_prose.py', 'reflow_md.py'):
+        # atelier_paths.py travels with the gate: without it the copy dies at import
+        # with exit 1 — the code the 0/1/2 contract reserves for prose findings.
+        for name in ('check_prose.py', 'reflow_md.py', 'atelier_paths.py'):
             shutil.copy(WORKSPACE / 'tools' / name, tools / name)
         self.write('docs/tool-design.md',
                    '# D\n\n```yaml\ngoverned_fence:\n  roots:\n    - "."\n'
@@ -653,7 +659,7 @@ class TestMainExitCodes(Fixture):
 # ---------------------------------------------------------------- drift
 
 class TestSharedHelperDrift(unittest.TestCase):
-    @unittest.skipUnless(SIBLINGS_PRESENT, 'vrc-skills absent (linked worktree)')
+    @unittest.skipUnless(SIBLINGS_PRESENT, 'vrc-skills absent from the main checkout')
     def test_strip_fences_has_not_drifted_from_the_child_gates_copy(self):
         # strip_fences and FENCE_RE are duplicated in vrc-skills/tools/validate_skills.py.
         # Nothing forces them to stay in step, and a one-character divergence silently
@@ -663,7 +669,7 @@ class TestSharedHelperDrift(unittest.TestCase):
         # allowed to differ in comments and docstrings (the child's carries one, this repo's
         # does not), and both of those representations move when a docstring does. What has
         # to hold is that they answer the same for the same markdown.
-        sys.path.insert(0, str(WORKSPACE / 'vrc-skills' / 'tools'))
+        sys.path.insert(0, str(MAIN / 'vrc-skills' / 'tools'))
         import validate_skills as v   # noqa: E402
         cases = [
             ['plain', 'text'],

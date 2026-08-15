@@ -1,5 +1,4 @@
 # tools/tests/test_sync_tool_inventory.py
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -7,30 +6,31 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import sync_tool_inventory as s  # noqa: E402
+from atelier_paths import resolve  # noqa: E402
 
 WORKSPACE = Path(__file__).resolve().parent.parent.parent
+MAIN, MAIN_FELL_BACK = resolve()   # code surfaces; WORKSPACE stays the docs-under-test side
 
 
-def main_checkout() -> Path:
-    """The main working tree, where the gitignored `vrc-*` siblings actually live. In a linked
-    worktree `--git-common-dir` points at the main tree's `.git`, so its parent is that tree;
-    in the main tree it resolves to itself."""
-    try:
-        out = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-                             cwd=WORKSPACE, capture_output=True, text=True, check=True)
-        return Path(out.stdout.strip()).parent
-    except (OSError, subprocess.CalledProcessError):
-        return WORKSPACE
+def setUpModule():
+    # A green run must name what it measured: assertion messages only print on failure, and
+    # the trap is a green run that lied — an editable install can resolve `s` to a different
+    # checkout than the one under test (dispatched-work.md worktree trap), and the live-
+    # surface tests read a tree that is not this one.
+    print(f'\ntest_sync_tool_inventory: code surfaces = {MAIN}'
+          + (' (FALLBACK — main-checkout resolution failed)' if MAIN_FELL_BACK else ''))
+    print(f'test_sync_tool_inventory: docs under test = {WORKSPACE} | module = {s.__file__}')
 
 
 def needs_sibling(name):
-    """The tool surfaces are gitignored sibling repos, absent from every linked worktree —
-    which is where most work here happens. These tests used to ERROR there, leaving the suite
-    permanently red in a worktree and making any genuine new failure indistinguishable from
-    the inherited four. Skip instead, and let the skip count carry the honest signal."""
+    """The tool surfaces are gitignored sibling repos, present only in the main checkout —
+    which atelier_paths resolves, so these tests run from any linked worktree too. A skip
+    therefore means the main checkout itself lacks the sibling (an unbootstrapped clone,
+    docs/bootstrap.md), and the skip count carries that signal instead of ERRORing the
+    suite red."""
     return unittest.skipUnless(
-        (WORKSPACE / name).is_dir(),
-        f'{name} absent (linked worktree) — live-surface test skipped, not passed')
+        (MAIN / name).is_dir(),
+        f'{name} absent from the main checkout ({MAIN}) — live-surface test skipped, not passed')
 
 
 class TestUnityExtractor(unittest.TestCase):
@@ -70,7 +70,7 @@ class TestUnityExtractor(unittest.TestCase):
         # The exact census is enforced by TOOLS.md + --check, not here: tool names
         # churn under refactors, so this smoke test only proves the extractor reads
         # the real tree — stable tools present, non-tools (stubs) absent, sane floor.
-        keys = s.extract_unity_keys(WORKSPACE / "vrc-unity-tools")
+        keys = s.extract_unity_keys(MAIN / "vrc-unity-tools")
         for expected in ("CopyComponents", "GraftHierarchy", "ReportPackage",
                          "CopyDescriptor", "MoveComponents"):
             self.assertIn(expected, keys)
@@ -106,7 +106,7 @@ class TestBlenderExtractor(unittest.TestCase):
         # A count never carried the dedup this test is named for: every operator
         # short-name is also a cli stem, so the union's size is the stem count either
         # way — apply_pose surviving as ONE key is the whole assertion.
-        keys = s.extract_blender_keys(WORKSPACE / "vrc-blender-tools")
+        keys = s.extract_blender_keys(MAIN / "vrc-blender-tools")
         self.assertIn("apply_pose", keys)   # operator == cli stem (one key)
         self.assertIn("import_fbx", keys)
         self.assertGreaterEqual(len(keys), 11)
@@ -133,7 +133,7 @@ class TestSkillsExtractor(unittest.TestCase):
         # Smoke test only (mirrors the Unity extractor): skill names churn, so prove
         # the extractor reads the real tree — a few stable skills present + a sane
         # floor — not an exact census (that is enforced by TOOLS.md + --check).
-        keys = s.extract_skills_keys(WORKSPACE / "vrc-skills")
+        keys = s.extract_skills_keys(MAIN / "vrc-skills")
         for expected in ("import-vendor-asset", "own-base", "reproportion",
                          "own-mergeable"):
             self.assertIn(expected, keys)
@@ -218,12 +218,17 @@ class TestReadmeSkills(unittest.TestCase):
         with self.assertRaises(s.InventoryError):
             s.parse_readme_skills(self._readme("# Repo\n\n## Skills\n\nprose only\n\n## Next\n"))
 
+    @unittest.skipUnless(MAIN == WORKSPACE, "main tree only — this README is branch-pinned, "
+                         "vrc-skills' HEAD is not, so only the main tree can assert lockstep")
     @needs_sibling("vrc-skills")
     def test_live_readme_matches_frontmatter(self):
-        # The real README roster stays in lockstep with the plugin's skill names —
-        # the check the hook runs, asserted here so a test run alone catches drift.
+        # The real README roster stays in lockstep with the plugin's skill names — the check
+        # the hook runs, asserted here so a main-tree test run alone catches drift. Main tree
+        # only, deliberately: from a branch older than a roster change this red would clear
+        # only by merging main into an unrelated PR, while the hook's --code-root run already
+        # covers a worktree's README as a warning on every commit.
         readme = s.parse_readme_skills(WORKSPACE / "README.md")
-        code = s.extract_skills_keys(WORKSPACE / "vrc-skills")
+        code = s.extract_skills_keys(MAIN / "vrc-skills")
         self.assertEqual(readme, code)
 
 
@@ -672,23 +677,14 @@ class TestCheckDoors(unittest.TestCase):
         w = self._workspace(door_documented=True)
         self.assertEqual(s.main(["--docs-root", str(w), "--code-root", str(w)]), 0)
 
+    @needs_sibling("vrc-unity-tools")
     def test_live_docs_name_every_live_door(self):
         # The teeth: the hook only warns, so this is what actually catches the rot — which
         # means it has to run in a worktree, where most commits here are made and where the
         # gitignored siblings are absent. Docs come from THIS tree, code from the main
-        # checkout, which is what the two roots are for.
-        code_root = main_checkout()
-        if not (code_root / "vrc-unity-tools").is_dir():
-            self.skipTest(f"vrc-unity-tools absent from the main checkout ({code_root})")
-        problems, census = s.check_doors(code_root, WORKSPACE)
-        # Report which module was imported — an editable install can resolve `s` to a
-        # different checkout than the one under test (dispatched-work.md worktree trap).
-        self.assertEqual(problems, [],
-                         f"{census} | docs: {WORKSPACE} | code: {code_root} | module: {s.__file__}")
-
-
-if __name__ == "__main__":
-    unittest.main()
+        # checkout, which is what the two roots are for (setUpModule names both).
+        problems, census = s.check_doors(MAIN, WORKSPACE)
+        self.assertEqual(problems, [], census)
 
 
 class TestSkillLiterals(unittest.TestCase):
@@ -783,14 +779,17 @@ class TestLiveSkillLiterals(unittest.TestCase):
     def test_live_skill_literals_all_resolve(self):
         """The premise this check was built on, pinned: every kit literal in the shipped
         skills resolves today. This is the check's only current job — it has caught no
-        drift, and is a lagging detector besides (the hook skips whenever the siblings are
-        absent, and a door rename lands in vrc-unity-tools, whose commits never run it)."""
-        code = main_checkout()
-        bodies = s._skill_bodies(code)
+        drift, and is a lagging detector besides (a door rename lands in vrc-unity-tools,
+        whose own commits never run the hook that carries it)."""
+        bodies = s._skill_bodies(MAIN)
         self.assertTrue(bodies, "no skill bodies found — the scan would be vacuously clean")
-        doors, statics, namespaces = s.extract_unity_doors(code / "vrc-unity-tools")
+        doors, statics, namespaces = s.extract_unity_doors(MAIN / "vrc-unity-tools")
         found = set()
         s._resolution_scan(
-            [(p.relative_to(code).as_posix(), s._read(p)) for p in bodies],
+            [(p.relative_to(MAIN).as_posix(), s._read(p)) for p in bodies],
             statics, namespaces, found, fix_in="vrc-skills")
         self.assertEqual(sorted(found), [])
+
+
+if __name__ == "__main__":
+    unittest.main()

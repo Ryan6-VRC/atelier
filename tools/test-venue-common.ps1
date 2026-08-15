@@ -35,20 +35,14 @@ $TestVenueFixtures = @("gogoloco")
   Absolute path of this repo's MAIN checkout, or $null when that cannot be established.
 
   .DESCRIPTION
-  AvatarProject and vrc-unity-tools sit INSIDE the main checkout (`Atelier/AvatarProject`), as untracked
-  working venues and gitignored sibling clones. Being untracked is what makes $PSScriptRoot/.. wrong: from
-  the main checkout that path is the checkout root and does resolve, but from a worktree it is the
-  worktree root, which carries only tracked files and therefore has neither of them. That is why these
-  defaults were absolute in the first place. --git-common-dir maps any worktree back to the main
-  checkout's .git, so its parent is the main checkout.
+  The PowerShell twin of tools/atelier_paths.py, which owns the invariant and the measured git facts
+  (--git-common-dir's parent is the main checkout from any tree; why --path-format=absolute is
+  load-bearing) — a separate implementation only because PowerShell cannot import it. -C anchors the
+  query on the script rather than wherever the caller happens to be standing.
 
-  --path-format=absolute is load-bearing, not decoration: plain --git-common-dir answers a bare relative
-  ".git" when run from the main checkout itself (measured, git 2.54), and joining ".." onto that resolves
-  against the CALLER's working directory rather than the repo. -C anchors the query on the script rather
-  than wherever the caller happens to be standing.
-
-  Returns $null rather than throwing when git is absent or this is not a checkout, so each caller can
-  refuse in its own vocabulary and name the parameter the operator should pass instead.
+  The contract difference from the Python canon is deliberate: this returns $null rather than falling
+  back to its own tree, because its callers provision venues — each refuses in its own vocabulary and
+  names the parameter the operator should pass instead, where a commit gate wants best-effort.
 #>
 function Get-AtelierMainCheckout {
   # setup-test-editor.ps1 sets $ErrorActionPreference = "Stop" before dot-sourcing this, a host profile

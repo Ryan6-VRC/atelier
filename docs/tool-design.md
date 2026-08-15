@@ -29,6 +29,8 @@ Multi-rooted, defined by residency and trigger — not a single chain of hops:
 
 Every fact has one canonical home; every other mention is a **route** — "X owns Y", "Contract: `unity-tools.md`" — paired with a guard against restating ("links, not restates"). A route without a guard is where drift starts. A high-fan-out fact names its canon at every echo: three files citing three different homes for one claim is a defect even while the copies still agree.
 
+One standing route for the workspace's own checks: a linked worktree carries only tracked files, so anything reading the gitignored `vrc-*` siblings, the untracked working venues, or `docs/local/` resolves the **main checkout** first — canonical in `tools/atelier_paths.py` (Python; sh consumes its CLI door) and `Get-AtelierMainCheckout` in `tools/test-venue-common.ps1` (PowerShell). A new check imports one of those, never a fresh `__file__`/`$PSScriptRoot` walk.
+
 ## Duplication: managed echoes only
 
 Unmanaged duplication — one fact grown into two homes, neither owning it — is a violation; route instead. Durable, salience-requiring content may be deliberately **echoed**: the echo names its canonical home, is intentionally the compressed form, and the pair's drift is checkable — by machine (README ↔ TOOLS.md, pre-commit-mirrored) or by a declared review invariant (vrc-patterns catalog row ↔ entry lead). Both criteria are required: churning content makes every echo a liability, and rare-but-important content fails salience by definition — it routes, never echoes. Verbatim strings (format strings, exact constants) are quoted once, at the canon; every other site routes to the quote.

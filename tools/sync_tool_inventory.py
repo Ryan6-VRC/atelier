@@ -495,10 +495,10 @@ def check_doors(code_root: Path, docs_root: Path) -> tuple:
     source. The rows only became reachable at all once they carried the class prefix that
     `_bare_door_rows` now pins.
 
-    Scope this does NOT claim: the hook skips the whole sync when the `vrc-*` siblings are
-    absent, which is every worktree — and a door rename lands in `vrc-unity-tools`, whose own
-    commits never run this hook at all. So this is a lagging detector that catches drift on
-    the next main-tree Atelier commit, not a gate that prevents it."""
+    Scope this does NOT claim: a door rename lands in `vrc-unity-tools`, whose own commits
+    never run this hook at all. So this is a lagging detector that catches drift on the next
+    Atelier commit — from any tree, since the hook resolves the main checkout for
+    `--code-root` — not a gate that prevents it."""
     doors, statics, namespaces = extract_unity_doors(code_root / "vrc-unity-tools")
     texts = [(p.relative_to(docs_root).as_posix(), _read(p)) for p in _governed_docs(docs_root)]
     # Relative to CODE_root, not docs_root: the two diverge in a worktree by design (see
@@ -692,6 +692,12 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     docs_root = args.docs_root
     code_root = args.code_root or docs_root
+    if code_root != docs_root:
+        # The DRIFT/DOORS lines below carry no per-line tree marker, so say once whose code
+        # this run judged: from a branch, roster drift can be another session's uncommitted
+        # sibling state, not this commit's to clear (dispatched-work.md §Terminal state).
+        print(f"tool-inventory: code read from {code_root} (live sibling state; docs from "
+              f"{docs_root})", file=sys.stderr)
     try:
         code_keys = extract_code_keys(code_root)
         doc_keys = parse_tools_md(docs_root / "TOOLS.md")
