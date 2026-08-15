@@ -33,7 +33,36 @@ $sdk = $TestVenueSdk + $TestVenueCommunity
 $fixtures = $TestVenueFixtures
 
 if ((Test-Path $Dest) -and -not $Sync) {
-  Write-Host "TestEditor already exists at $Dest. Use -Sync to refresh its SDK + manifest."
+  # -ToolsRoot is baked into the venue's manifest at PROVISIONING time, so an existing venue keeps
+  # pointing wherever it was first pointed and this early return would drop the argument in silence
+  # under a success exit. That is the trap this refusal exists for: a worktree worker passes
+  # -ToolsRoot, reads "already exists" + exit 0 as provisioned-as-asked, runs the suite against the
+  # MAIN checkout's sources, and reads the green as evidence about their own edits. A supplied
+  # argument that changes nothing must say so.
+  #
+  # Silent only when the venue AGREES with the request, which is the ordinary re-run.
+  $baked = Get-VenueToolsRoot $Dest
+  if ($null -ne $baked -and (ConvertTo-ComparablePath $baked) -ne (ConvertTo-ComparablePath $ToolsRoot)) {
+    throw ("TestEditor at $Dest compiles the com.ryan6vrc.* packages at $baked, not the requested " +
+           "$ToolsRoot — a run against it would say nothing about $ToolsRoot. Re-point it with -Sync, " +
+           "or provision a venue of your own with -Dest <path> -ToolsRoot $ToolsRoot.")
+  }
+  # $null is unreadable, not agreement (no manifest refs, an unparseable ref, or refs spanning two
+  # checkouts — see Get-VenueToolsRoot), and an embedded copy shadows the manifest entirely. Neither
+  # may pass as "points where you asked"; name it and let the operator decide.
+  $shadowed = @(Get-VenueToolPackageRoots $Dest | Where-Object { $_.Source -eq "embedded" })
+  if ($shadowed.Count -gt 0) {
+    Write-Host ("TestEditor already exists at $Dest. WARNING: " + ($shadowed.Package -join ", ") +
+                " are EMBEDDED copies under Packages/ and shadow the manifest — -ToolsRoot cannot " +
+                "reach them. Delete them, or re-provision to a clean -Dest.")
+    exit 0
+  }
+  if ($null -eq $baked) {
+    Write-Host ("TestEditor already exists at $Dest, but its com.ryan6vrc.* package pointer is not " +
+                "readable as one root — re-provision with -Sync rather than trusting a run against it.")
+    exit 0
+  }
+  Write-Host "TestEditor already exists at $Dest (packages: $baked). Use -Sync to refresh its SDK + manifest."
   exit 0
 }
 New-Item -ItemType Directory -Force -Path "$Dest/Assets", "$Dest/Packages" | Out-Null
