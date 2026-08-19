@@ -8,6 +8,10 @@ Verify → brainstorm → plan → sign-off → build → open PR. The gates bel
 
 **Verify the premise first.** A block sounds authoritative however thin its research was — don't inherit that confidence. Check the stated problem holds before planning around it; a backing anchor's transcript shows the problem was *seen*, not that it was characterized right or still holds. Scale skepticism to the block's stated provenance: an auto-triaged finding gets the full verify-the-premise pass; an operator ruling gets little — don't re-litigate it.
 
+**A predecessor's handoff gets the same treatment.** It is a self-report: honest about state, quiet about its own cost and retractions. Inherit a measured fact only with the build and measurement method that produced it attached, and re-derive any figure that crossed a design change since — a number true of a build that no longer exists reads exactly like a current one.
+
+**Rulings carry their provenance.** A handoff or plan recording an operator ruling quotes the operator's words or timestamps the utterance; a decision you derived *from* a ruling is labeled your inference, however confident. An unattributed "operator-ruled" makes your own design call un-relitigatable to every downstream session — fabricated provenance, not shorthand.
+
 **Plan with receipts, then WAIT.** Post the plan in your own transcript and wait for explicit operator sign-off — "no questions" is not sign-off. The plan quotes one load-bearing line from each doc the block or launch prompt names as a prerequisite, this one included; no quotes, no sign-off. Sessions have cited doc sections verbatim-unread — reconstructed from the block's own description of them — and then edited the exact invariant the unread doc stated.
 
 ## Before sign-off
