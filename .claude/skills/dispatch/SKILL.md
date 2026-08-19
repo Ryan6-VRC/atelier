@@ -10,7 +10,7 @@ You are the coordinator: author each launch prompt, sequence workers around the 
 
 ## The launch prompt
 
-2–4 sentences wrapped around two pointers: the block (by file + ID — workers run at the workspace root, so don't paste it; paste only a block the worker genuinely cannot reach) and `docs/dispatched-work.md`, named as a read-before-planning prerequisite so the receipt gate covers it. Worker policy lives in that doc — the prompt adds only what is per-launch: the singleton/venue assignment, tier, and any provenance the block doesn't state.
+2–4 sentences wrapped around two pointers: the block (by file + ID — workers run at the workspace root, so don't paste it; paste only a block the worker genuinely cannot reach) and `docs/dispatched-work.md`, named as a read-before-planning prerequisite so the receipt gate covers it. Worker policy lives in that doc — the prompt adds only what is per-launch: the singleton/venue assignment and any provenance the block doesn't state.
 
 Four checks, each a real failure compressed — run every assembled prompt, and every mid-wave resume message, against all four:
 
@@ -25,8 +25,7 @@ Four checks, each a real failure compressed — run every assembled prompt, and 
 - An **on-request**-gated block (kickoff skill vocabulary) never fills a wave slot on its own — it's launchable, but only when the operator names it by ID.
 - Assigning singletons is your job, not the worker's — hosts of the same kind carry different state and capabilities. Name the assignment in the launch prompt; keep the roster's distinguishing traits in the tracker, and cite them rather than restating them.
 - After presenting launch prompts, present the **singleton board**: each singleton and venue, who holds it, what's free, what launches now versus waits. The operator sequences from that board, not from prose above it.
-- Tier is your call per block — cheaper tier for mechanical work, top tier for heavy design — recorded in the tracker, never a silent uniform default.
-- Your own gates go to the operator per `docs/workflow.md` §No operator to ask? — a dispatch session is interactive, so the operator is always the channel; sequencing and tier are yours, launch/merge/drop decisions on contested blocks are not.
+- Your own gates go to the operator per `docs/workflow.md` §No operator to ask? — a dispatch session is interactive, so the operator is always the channel; sequencing is yours, launch/merge/drop decisions on contested blocks are not.
 - Don't ground a block in coordinator context: one or two greps to see the premise is plausible, then the research belongs to the worker. One exception: a cheap check that might kill or invert the block earns its tokens.
 - Don't mine PR bodies for bookkeeping — read the inbox file; review is a separate job you are not always doing.
 - A worktree's green Python test run can lie (editable-install path aliasing — `docs/dispatched-work.md` §Worktree mechanics has the worker report the tested module's `__file__`): before trusting a pass count, check the reported path is the worktree's.
