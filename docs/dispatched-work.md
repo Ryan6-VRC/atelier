@@ -36,7 +36,7 @@ The session ends at an OPEN PR with the repo's gates green; never push or merge 
 
 ## The inbox
 
-Board-bound findings go to the **main tree's** `docs/local/inbox/<block>.md` before the session closes — `docs/local/` is gitignored, so a copy written inside a worktree is destroyed at reclaim and reads as silence. Write "nothing" when there is nothing. It is write-only for you: write your own file, never read the directory — other blocks' files are the coordinator's queue to drain, and reporting on what sits there audits bookkeeping you have no authority over.
+Board-bound findings go to the **main tree's** `docs/local/inbox/<block>.md` before the session closes — `docs/local/` is gitignored, so a copy written inside a worktree is destroyed at reclaim and reads as silence. Nothing owed, no file: most blocks owe nothing, and a file saying "nothing" is a receipt for work not done that the coordinator still has to open and delete. It is write-only for you: write your own file, never read the directory — other blocks' files are the coordinator's queue to drain, and reporting on what sits there audits bookkeeping you have no authority over.
 
 The inbox is for findings that need their own block: a new design call, a cross-repo or cross-worker concern, work outside this session's blast radius. A small in-scope finding (a stale doc line, a one-line skill fix) is not inbox material — fix it directly, in the open PR if the file's already in scope, or in a second small PR otherwise; expanding scope this way is normal, not creep. A long inbox is a signal the bar was applied too loosely, not thoroughness.
 

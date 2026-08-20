@@ -27,7 +27,7 @@ Four checks, each a real failure compressed — run every assembled prompt, and 
 - After presenting launch prompts, present the **singleton board**: each singleton and venue, who holds it, what's free, what launches now versus waits. The operator sequences from that board, not from prose above it.
 - Your own gates go to the operator per `docs/workflow.md` §No operator to ask? — a dispatch session is interactive, so the operator is always the channel; sequencing is yours, launch/merge/drop decisions on contested blocks are not.
 - Don't ground a block in coordinator context: one or two greps to see the premise is plausible, then the research belongs to the worker. One exception: a cheap check that might kill or invert the block earns its tokens.
-- Don't mine PR bodies for bookkeeping — read the inbox file; review is a separate job you are not always doing.
+- Don't mine PR bodies for bookkeeping — read the inbox file; review is a separate job you are not always doing. No file means the block owed nothing, which is the common case; don't read absence as a worker that skipped the step, and don't chase one.
 - A worktree's green Python test run can lie (editable-install path aliasing — `docs/dispatched-work.md` §Worktree mechanics has the worker report the tested module's `__file__`): before trusting a pass count, check the reported path is the worktree's.
 
 ## Draining a repair queue
