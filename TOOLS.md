@@ -59,6 +59,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | --- | --- |
 | `RemapMaterials` | Swap materials by asset path across a hierarchy. |
 | `ConstrainedDuplicate` | Clone a hierarchy and wire VRC constraints between original and duplicate bones. |
+| `GrabPhysBone` | Simulate player manipulation of a physbone in play mode: `Run`/`Reach` grab, `Move`, `Release`, `Advance` steps an exact frame count, `Held` reports state. A held grab pauses the venue. Contract: `unity-tools.md`. |
 
 ### vrc-unity-tools · publish
 
