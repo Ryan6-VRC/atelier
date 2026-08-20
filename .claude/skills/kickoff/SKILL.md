@@ -26,4 +26,10 @@ Include each that applies, in the shortest form that works:
 
 **Distinguish directive from hypothesis explicitly.** Operator rulings and measured facts are firm — say so, so the worker doesn't re-litigate them. Everything else is the worker's to stress-test, and a block that states a guess in a directive voice manufactures false confidence downstream.
 
+**Attribute in the register it was said in.** An operator ruling quotes the words or timestamps the utterance; a remark made in passing stays a remark, and never becomes a firm dated ruling in a gate line. Inflating register manufactures the same false confidence as inventing the words outright, and is far easier to do without noticing.
+
+**Write the gap; don't fill it.** "The operator flagged this from observation and does not know the mechanism" is a complete gate line — it tells the worker its job is diagnosis. Supplying a mechanism you merely inferred converts a genuine brainstorm into a job with a false target, and the worker spends its session confirming your guess instead of finding the cause. A block is authored interactively, so when the gap is load-bearing, ask the operator rather than closing it yourself.
+
+**Uncertainty markers are load-bearing — never revise one out.** "None recorded", "not yet ruled", "the operator does not know the mechanism": these are removable only by someone supplying the missing fact, not by a later session tightening the prose. Compression is where they die — shortening an attributed claim into a bare assertion drops exactly the attribution that made it honest.
+
 Open by directing the agent to **brainstorm** — that's the job being handed off. Don't head the text with a `Kickoff:` label; a receiver reads that as a cue to author another kickoff instead of thinking. Keep the whole block short — a kickoff, not a design doc.

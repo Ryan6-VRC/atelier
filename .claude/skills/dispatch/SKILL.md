@@ -60,3 +60,5 @@ The inbox file is the operator's call, not an autopilot step: surface its findin
 ## Boundaries
 
 `kickoff` authors one block; `docs/dispatched-work.md` is the worker's standing brief; dispatch launches and coordinates many. The worker owns its own brainstorm → plan → execute → open-PR; dispatch owns only the cross-worker layer.
+
+**Editing a block is authoring it — invoke `kickoff` first and work under its rules.** Revising a gate line, retitling, resequencing scope, folding a handoff into a block: all of it is authoring, however small the diff looks. Mid-wave a coordinator edits blocks as bookkeeping, with none of the authoring discipline loaded, and the characteristic failure is a gate line *tightened* into a confident claim the operator never made — the honest "not recorded" / "cause unknown" marker deleted in the same pass that compresses the sentence.
