@@ -303,7 +303,7 @@ Each is a flat field map; the enum fields use the tokens shown (fail-loud on an 
 
 ## menu
 
-An optional ordered list of expression-menu controls, emitted as `<controller>_Menu.asset` beside the params asset. A module's menu is thus regenerable from its YAML rather than hand-maintained (`vrc-patterns/CONVENTIONS.md` §The Interface stanza owns when an entry ships one).
+An optional ordered list of expression-menu controls, emitted as `<controller>_Menu.asset` beside the params asset. A module's menu is thus regenerable from its YAML rather than hand-maintained (`vrc-patterns/CONVENTIONS.md` §The README owns when an entry ships one).
 
 ```yaml
 menu:
