@@ -59,6 +59,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | --- | --- |
 | `RemapMaterials` | Swap materials by asset path across a hierarchy. |
 | `ConstrainedDuplicate` | Clone a hierarchy and wire VRC constraints between original and duplicate bones. |
+| `GrabPhysBone` | The physbone manipulation primitives for play mode: `Run`/`Reach` grab (by chain address or reach point), `Move` retargets, `Release` lets go, `Advance` steps an exact frame count, `Held` reports what is held. A grab freezes the venue so the frame count means something; `Release(resume: true)` hands it back. Releases only grabs it minted — the SDK mouse helper's is named, never taken. Contract: `unity-tools.md`. |
 
 ### vrc-unity-tools · publish
 
