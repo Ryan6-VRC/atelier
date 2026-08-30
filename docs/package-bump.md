@@ -10,7 +10,7 @@ Our tooling reflects into MA / VRCFury / NDMF / the emulator by design (no vendo
 
 ## Pin-surface map (which upgrade obliges which re-read)
 
-Route to the homes — each file's own comments carry the member-level detail; do not restate it here.
+Route to the homes — each file's own comments carry the member-level detail; do not restate it here. Files sit under `com.ryan6vrc.agent-tools/Editor/` except `CauReflect.cs` / `AvatarRecord.cs` / `OwnMaterial.cs`, which are `com.ryan6vrc.avatar-tools/Editor/`.
 
 | Package | Pin homes |
 |---|---|
@@ -19,7 +19,8 @@ Route to the homes — each file's own comments carry the member-level detail; d
 | NDMF | `RenderAvatar.cs` settle/attribution set (private internals — highest drift risk per release) |
 | Av3Emulator | `EmulatorBinding.cs` (canary-tested, fail-don't-skip) |
 | CAU / Poiyomi / lilToon | `CauReflect.cs`, `AvatarRecord.cs`, `OwnMaterial.cs` — **no headless coverage** (TestEditor carries none of them), so a bump of these is verified only by using the door live |
-| d4rk / AAO / limitex | no reflection pins; `ReportPackageTests` pins their assembly names only |
+| d4rk / limitex | no reflection pins; `ReportPackageTests` pins their assembly names only |
+| AAO | no reflection pins and no coverage of any kind — nothing here notices an AAO change |
 
 ## Beyond the pins: behavior the docs measured
 
