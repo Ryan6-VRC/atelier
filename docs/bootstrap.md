@@ -45,7 +45,7 @@ Install per your host; all must exist before wiring:
 ```powershell
 vrc-get resolve  -p .\AvatarProject      # restore packages from the manifest
 vrc-get outdated -p .\AvatarProject      # list updatable
-vrc-get upgrade  -p .\AvatarProject <id> # bump one
+vrc-get upgrade  -p .\AvatarProject <id> # bump one — the `package-bump` skill owns the arc around this; never run it bare
 vrc-get install  -p .\AvatarProject <id> # ADD a package — the verb is install; there is no `add`
 ```
 

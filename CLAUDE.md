@@ -48,7 +48,6 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 - **`docs/LAYOUT.md`** — Unity venue conventions: the vendor untouched/copy-on-write principles, durable-vs-disposable, the filing trees, and **§Vendor mutation** — the enumerated cases where writing under `Vendor/` is sanctioned. Read before creating, filing, or writing any asset in a Unity venue.
 - **`docs/bootstrap.md`** — from-zero workspace assembly: clone the sub-repos, install + wire Unity·Blender·MCP, verify. Point a fresh agent here to stand the workspace up.
 - **`docs/new-project.md`** — runbook for adding another Unity project (an untracked working venue: seed the folder, VPM restore, wire the Editor). Skip in normal sessions.
-- **`docs/mochifitter.md`** — MochiFitter tool facts for cross-base outfit refits; the `mochifit` skill owns the process. Read for any refit work.
 - **`references/README.md`** — routing table of open-source projects we learn from.
 
 ## Rules
