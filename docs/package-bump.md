@@ -1,6 +1,6 @@
-# VPM package bump — upgrading vendor packages under reflection pins
+# VPM package bump — the fact home
 
-Our tooling reflects into MA / VRCFury / NDMF / the emulator by design (no vendor assembly is a compile-time reference of shipped code), so a package bump is a checklist, not a `vrc-get upgrade` and a shrug: the pins are exact member signatures that vendors have moved before, and the EditMode suite's canaries catch most — not all — of what can drift. Commands live in `bootstrap.md` §3; this runbook owns the order and the re-validation surface.
+Our tooling reflects into MA / VRCFury / NDMF / the emulator by design (no vendor assembly is a compile-time reference of shipped code), so a package bump re-validates exact member signatures that vendors have moved before. The **`package-bump` skill owns the process** — the staged arc, its gates, and the report shape; this doc holds the facts the arc consumes. Commands live in `bootstrap.md` §3.
 
 ## Command facts the help text does not surface
 
@@ -8,23 +8,13 @@ Our tooling reflects into MA / VRCFury / NDMF / the emulator by design (no vendo
 - It rewrites only the `locked` block; `dependencies` is the *requested range* and staying below `locked` is the tool's normal shape, not drift to repair.
 - No live Editor on the venue during any `vrc-get` operation (`bootstrap.md` §3 owns the churn trap).
 
-## The staged arc
-
-1. **Baseline.** Run the EditMode suite unfiltered (`tools/run-editmode-tests.ps1`) and require green *before* touching anything — a bump on a red baseline cannot be attributed. Copy `vpm-manifest.json` aside (`vpm-manifest.json.pre-bump-<date>`); rollback is restoring it + `vrc-get resolve`.
-2. **Snapshot the old payloads.** Copy each package dir being bumped (at minimum MA, NDMF, VRCFury) out of `Packages/` to scratch before upgrading — the upgrade deletes the old source, and the source diff below is the cheapest drift detector that exists.
-3. **Stage the risky vendor alone.** Upgrade the low-pin-surface packages together, run the suite, then the heavily-pinned vendor (historically VRCFury) by itself and run it again — a red run then names its stage.
-4. **Source-check the pins per stage** (rule 10: assert from the source on disk, never a changelog). `diff -rq` snapshot vs new payload, then read every changed file that carries a pin — the map below says which files pin what. A pinned file absent from the diff needs no read.
-5. **Live rungs** (headless cannot prove these): open the Editor, `ReportConsole` must verdict OK — its benign families absorb the known vendor noise (MACS, VRCFury build-progress), so the bar is *no new errors*, not literal zero; delete stale bakes under `Packages/com.vrcfury.temp/Builds/` (`verify.md` owns why a stale bake is non-evidence); PlayGate PASS → play entry → fresh bake with console still OK; `CheckAvatar` PASS on the scene avatar; `RenderAvatar` smoke with `canary=live`.
-6. **Reconcile anchors.** Grep the tools repo for the old version literals; move only the anchors whose claim you re-measured against the new source (the ReactiveMarkers completeness re-derivation is the canonical one — its own doc names the two MA files to re-read). Historical version references (a comment recording *when* a signature moved) are history, not anchors — leave them.
-7. **Other venues.** Each venue bumps by the same arc; the suite only guards the venue `setup-test-editor.ps1` syncs from.
-
 ## Pin-surface map (which upgrade obliges which re-read)
 
 Route to the homes — each file's own comments carry the member-level detail; do not restate it here.
 
 | Package | Pin homes |
 |---|---|
-| VRCFury | `VendorReflect.cs` (the ArmatureLink set + RewriteRelativePath), `PlayGateCore.cs` (FixWriteDefaults), `CheckAnimator.cs` (`rewriteBindings`), `ReportConsole.cs` (VF.Exceptions label strings) |
+| VRCFury | `VendorReflect.cs` (the ArmatureLink set + RewriteRelativePath), `PlayGateCore.cs` (FixWriteDefaults), `CheckAnimator.cs` (`rewriteBindings`), `ReportConsole.cs` (VF.Exceptions label strings) — the highest pin count; the stage-alone vendor |
 | Modular Avatar | `ReactiveMarkers.md` (the completeness blind spot — re-derive, no test covers it), `ReportShapeOverlap.cs` §Build-effective active state, `CheckAvatar.cs` / `CheckSeam.cs` type tables |
 | NDMF | `RenderAvatar.cs` settle/attribution set (private internals — highest drift risk per release) |
 | Av3Emulator | `EmulatorBinding.cs` (canary-tested, fail-don't-skip) |
