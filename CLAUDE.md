@@ -47,6 +47,7 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 - **`docs/outfits.md`** — base-body (kisekae) clothing conventions: layered toggleable clothing meshes, the clothing↔body-blendshape coupling and the body-morph sliders that gate dynamics alongside it, and the FX controller as its authoritative map. Read before de-conflicting a base under a composed outfit, and before dropping or baking down any layer a base's own FX drives.
 - **`docs/LAYOUT.md`** — Unity venue conventions: the vendor untouched/copy-on-write principles, durable-vs-disposable, the filing trees, and **§Vendor mutation** — the enumerated cases where writing under `Vendor/` is sanctioned. Read before creating, filing, or writing any asset in a Unity venue.
 - **`docs/bootstrap.md`** — from-zero workspace assembly: clone the sub-repos, install + wire Unity·Blender·MCP, verify. Point a fresh agent here to stand the workspace up.
+- **`docs/package-bump.md`** — runbook for upgrading a venue's VPM packages: the staged arc, the vendor reflection-pin map, and the re-validation each bump obliges. Read before any `vrc-get upgrade`.
 - **`docs/new-project.md`** — runbook for adding another Unity project (an untracked working venue: seed the folder, VPM restore, wire the Editor). Skip in normal sessions.
 - **`docs/mochifitter.md`** — MochiFitter tool facts for cross-base outfit refits; the `mochifit` skill owns the process. Read for any refit work.
 - **`references/README.md`** — routing table of open-source projects we learn from.
