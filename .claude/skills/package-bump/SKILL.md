@@ -7,6 +7,8 @@ description: Use when upgrading a Unity venue's VPM/ALCOM packages — "upgrade/
 
 Our tooling reflects into MA / VRCFury / NDMF / the emulator by exact member signature, and vendors have moved those members before — so a bump is a staged arc with verification between stages, not one `vrc-get upgrade` and a green suite at the end. `docs/package-bump.md` is the fact home this skill drives from: the `vrc-get` command facts its help omits, the pin-surface map (which upgrade obliges which re-read), and the hook-tree lesson. Read it before step 1; this skill owns the order and the gates.
 
+**No operator to ask?** `docs/workflow.md` §No operator to ask? owns the protocol. The derivable default: a red baseline ends the task as a report, and a red stage rolls back (restore the manifest copy + `vrc-get resolve`) rather than shipping a fix unattended — never leave a venue between stages, where its packages match no suite run.
+
 ## The arc
 
 ### 1. Baseline before touching anything
@@ -31,7 +33,7 @@ Headless proves the pins resolve; these prove the venue works. Open the Editor o
 
 ### 6. Reconcile the anchors
 
-Grep the tools repo for the old version literals. Move **only** the anchors whose claim you re-measured against the new source in step 4 (`ReactiveMarkers.md` names its own re-derivation — the completeness check no test covers). A comment recording *when* a signature moved is history, not an anchor — leave it. Land the moves as their own PR naming what was re-measured.
+Grep the tools repo for the old version literals. Move **only** the anchors whose claim you re-measured against the new source in step 4 (`agent-tools`' `Tests/Editor/ReactiveMarkers.md` names its own re-derivation — the completeness check no test covers). A comment recording *when* a signature moved is history, not an anchor — leave it. Land the moves as their own PR naming what was re-measured.
 
 ### 7. Remaining venues
 
