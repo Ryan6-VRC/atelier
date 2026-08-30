@@ -33,7 +33,7 @@ Headless proves the pins resolve; these prove the venue works. Open the Editor o
 
 ### 6. Reconcile the anchors
 
-Grep the tools repo for the old version literals. Move **only** the anchors whose claim you re-measured against the new source in step 4 (`agent-tools`' `Tests/Editor/ReactiveMarkers.md` names its own re-derivation — the completeness check no test covers). A comment recording *when* a signature moved is history, not an anchor — leave it. Land the moves as their own PR naming what was re-measured.
+Grep the tools repo for the old version literals. Move **only** the anchors whose claim you re-measured against the new source in step 4 (`vrc-unity-tools/packages/com.ryan6vrc.agent-tools/Tests/Editor/ReactiveMarkers.md` names its own re-derivation — the completeness check no test covers). A comment recording *when* a signature moved is history, not an anchor — leave it. Land the moves as their own PR naming what was re-measured.
 
 ### 7. Remaining venues
 
