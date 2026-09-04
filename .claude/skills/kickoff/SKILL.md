@@ -26,7 +26,7 @@ Include each that applies, in the shortest form that works:
 
 **Distinguish directive from hypothesis explicitly.** Operator rulings and measured facts are firm — say so, so the worker doesn't re-litigate them. Everything else is the worker's to stress-test, and a block that states a guess in a directive voice manufactures false confidence downstream.
 
-**Attribute in the register it was said in.** An operator ruling quotes the words or timestamps the utterance; a remark made in passing stays a remark, and never becomes a firm dated ruling in a gate line. Inflating register manufactures the same false confidence as inventing the words outright, and is far easier to do without noticing.
+**Attribute in the register it was said in.** An operator ruling quotes the words or timestamps the utterance; a remark made in passing stays a remark, and never becomes a firm dated ruling in a gate line. Inflating register manufactures the same false confidence as inventing the words outright, and is far easier to do without noticing. **The register stays in the block**: the receiver commits code and a one-line why, never the ruling, its number, its date, or the operator's name (CLAUDE.md rule 11).
 
 **Write the gap; don't fill it.** "The operator flagged this from observation and does not know the mechanism" is a complete gate line — it tells the worker its job is diagnosis. Supplying a mechanism you merely inferred converts a genuine brainstorm into a job with a false target, and the worker spends its session confirming your guess instead of finding the cause. A block is authored interactively, so when the gap is load-bearing, ask the operator rather than closing it yourself.
 
