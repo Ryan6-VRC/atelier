@@ -14,7 +14,7 @@ Blocks live in `docs/local/kickoffs.md` — untracked, and main-working-tree onl
 Include each that applies, in the shortest form that works:
 
 - **Problem** — what's wrong and why it matters, grounded in `path:line` anchors and concrete facts; the receiver starts from zero and cannot see what you've seen. A problem observed in a recorded session also carries a **backing anchor**: a distinctive verbatim phrase to grep the session store for (an error string, a symbol, the observer's words), plus the session id if known. None recorded? Say so.
-- **Read before planning** — the docs the worker may not plan without, closing with the receipt clause: *your plan quotes one load-bearing line from each*. Any block touching an avatar, pattern entry, or controller names `docs/nondestructive.md` and its domain doc here itself — the workspace-level read-first rule loses to a dense block under task pressure, so the block carries its own prerequisites.
+- **Read before planning** — the docs the worker may not plan without, closing with the receipt clause: *your plan states, for each, the one constraint in it that binds this job*. Any block touching an avatar, pattern entry, or controller names `docs/nondestructive.md` and its domain doc here itself — the workspace-level read-first rule loses to a dense block under task pressure, so the block carries its own prerequisites.
 - **Useful facts** — the non-derivable context that saves a rediscovery: half-made decisions, ruled-out paths and why, the worked precedent already in a repo.
 - **Where to look** — reference surface beyond the prerequisites: files, non-code config, and the docs to keep honest.
 - **Constraints** — the hard rails, stated firmly; they are the boundary, not a suggestion.

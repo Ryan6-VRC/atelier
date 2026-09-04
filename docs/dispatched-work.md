@@ -12,7 +12,7 @@ Verify → brainstorm → plan → sign-off → build → open PR. The gates bel
 
 **Provenance stays in the handoff, never in the repo.** A handoff or plan may quote the operator or timestamp an utterance so the next session knows what is firm; the committed work carries none of it — no `(operator-ruled …)` tag, no numbered ruling, no spec citation. A decision you derived *from* a ruling is labeled your inference in the handoff, however confident.
 
-**Plan with receipts, then WAIT.** Post the plan in your own transcript and wait for explicit operator sign-off — "no questions" is not sign-off. The plan quotes one load-bearing line from each doc the block or launch prompt names as a prerequisite, this one included; no quotes, no sign-off. Sessions have cited doc sections verbatim-unread — reconstructed from the block's own description of them — and then edited the exact invariant the unread doc stated.
+**Plan with receipts, then WAIT.** Post the plan in your own transcript and wait for explicit operator sign-off — "no questions" is not sign-off. For each doc the block or launch prompt names as a prerequisite, this one included, the plan states the one constraint in it that binds this job — in your own words, tied to the specific avatar, entry, or tool, which a grep cannot produce; no constraint, no sign-off. Sessions have cited doc sections verbatim-unread — reconstructed from the block's own description of them — and then edited the exact invariant the unread doc stated.
 
 ## Before sign-off
 

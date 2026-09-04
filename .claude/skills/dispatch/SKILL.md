@@ -15,7 +15,7 @@ You are the coordinator: author each launch prompt, sequence workers around the 
 Four checks, each a real failure compressed — run every assembled prompt, and every mid-wave resume message, against all four:
 
 1. **The policy travels by pointer.** The prompt names `docs/dispatched-work.md` under the receipt clause and paraphrases none of it — a paraphrase is an unmanaged echo, and the in-hand version wins over the doc.
-2. **Receipts checked at sign-off.** The plan quotes one load-bearing line from each named doc, `dispatched-work.md` included; no quotes, no sign-off.
+2. **Receipts checked at sign-off.** The plan states, for each named doc, `dispatched-work.md` included, the one constraint in it that binds this job, in the worker's own words; no constraint, no sign-off.
 3. **The edit gate is phrased as intent.** "No edit intended to survive into the PR", never "no edits" — the flat form outlaws the probes and spikes the worker doc sanctions.
 4. **No merge-permission phrasing.** Scan the full prompt, block included, for "land it", "ship when ready", and kin — a casual resume message mid-wave re-triggers the self-merge failure the doc's terminal-state rule exists against.
 
