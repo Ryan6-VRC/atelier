@@ -117,7 +117,7 @@ A live chain re-asserts `_IsGrabbed` every frame, so writing the mirror bool sil
 
 ## Verify mirror-detection
 
-The MirrorReflection clone runs its animator but skips the local avatar's init drivers, so driver-set params (a `MirrorDetection/IsMirror` flag, constant-1 params) stay permanently at their un-driven defaults while local shows the driven value — diff local-vs-mirror.
+The MirrorReflection clone runs no parameter drivers of its own, but it copies the local runtime's whole `Ints`/`Floats`/`Bools` lists every frame, synced or not, and pushes them into its playables — so a driver-set value reads identically on the mirror (measured: a synced bool the local's driver stamped read true in the mirror's list and playable, `IsLocal` true on both, both animators in the same state). A local-vs-mirror param diff therefore shows nothing. The asymmetry that survives is routing: the mirror traverses from Entry with the driven value already set, so a branch the local passed before its driver fired is the one the mirror takes — assert the state each animator occupies (read the clone's playable as §Observation channels reads the local's), never the param. `vrc-patterns/mirror-detect` §Behavior owns which of its outputs that reaches.
 
 ## What the emulator reproduces — and doesn't
 
