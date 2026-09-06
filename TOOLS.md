@@ -77,7 +77,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 
 | Key | Purpose |
 | --- | --- |
-| `report_stamps` | Read a `.blend`'s avatarprep provenance: per-armature base/state (plus kind) and each bound mesh's `avatarprep_baked` map; `--shapekeys [SUBSTR]` additionally lists shape-key **names** per mesh, not just counts. The query counterpart of `stamp_base`. |
+| `report_stamps` | Read a `.blend`'s avatarprep provenance: per-armature base/state (plus kind) and each bound mesh's `avatarprep_baked` map, every entry carrying `library` / `data_library` so a linked fit reference reads as one; `--shapekeys [SUBSTR]` additionally lists shape-key **names** per mesh, not just counts. The query counterpart of `stamp_base`. |
 | `compare_armatures` | Seam check: do two rigs share bone names, parents, positions, base, and state? The merge dry-run; `--merge-in` compares across two files. Behavior: `blender.md`. |
 | `render_mesh` | Headless contact-sheet render of the scene's render-visible meshes from named world-axis angles (`front,back,left,right,top,bottom` — an unknown one FAILs in-grammar), solid or vertex-color shading; `RenderAvatar`'s Blender sibling. Writes to a pruned temp home by default, or `--out`. |
 
@@ -98,4 +98,4 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | --- | --- |
 | `apply_proportion_edge` | Apply one declarative proportion edge, validating first and stamping state; `--whatif` validates, then reports the geometry the edge would produce — measured by an in-memory trial, never saved. Behavior: `blender.md`. |
 | `import_fbx` | Import an FBX via Blender's current importer (never the legacy one, which reorients bones); stamps new armatures state="unproportioned" and returns a sanity snapshot, including the source file's `unit_scale_factor` (read from the file — the importer normalizes both unit classes into identical scene state). `export_unity_fbx`'s counterpart. |
-| `export_unity_fbx` | Export with the Unity/VRChat FBX recipe onto the canonical meter-unit layout; **permanently mutates the scene it exports** (bakes parked object scale), and serves at most one armature (`--armature` scopes; a multi-rig whole-scene export refuses). Canon: `fbx_export.py`'s Orientation and Scale docstrings. |
+| `export_unity_fbx` | Export with the Unity/VRChat FBX recipe onto the canonical meter-unit layout; **permanently mutates the scene it exports** (bakes parked object scale), and serves at most one armature (`--armature` scopes; a multi-rig whole-scene export refuses, as does one with a linked object or linked collection instance in scope). Canon: `fbx_export.py`'s Orientation, Scale and Linked data docstrings. |
