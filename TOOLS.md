@@ -77,7 +77,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 
 | Key | Purpose |
 | --- | --- |
-| `report_stamps` | Read a `.blend`'s avatarprep provenance: per-armature base/state (plus kind) and each bound mesh's `avatarprep_baked` map, every entry carrying `library` / `data_library` so a linked fit reference reads as one; `--shapekeys [SUBSTR]` additionally lists shape-key **names** per mesh, not just counts. The query counterpart of `stamp_base`. |
+| `report_stamps` | Read a `.blend`'s avatarprep provenance: per-armature base/state (plus kind) and each bound mesh's `avatarprep_baked` map, every entry carrying `library` / `data_library` so a linked fit reference reads as one; `--shapekeys [SUBSTR]` additionally lists shape-key **names** per mesh, not just counts, each mesh line carrying the same `linked=` / `data-linked=` marker, so an override head with no baked stamp still reads as linked. The query counterpart of `stamp_base`. |
 | `compare_armatures` | Seam check: do two rigs share bone names, parents, positions, base, and state? The merge dry-run; `--merge-in` compares across two files. Behavior: `blender.md`. |
 | `render_mesh` | Headless contact-sheet render of the scene's render-visible meshes from named world-axis angles (`front,back,left,right,top,bottom` — an unknown one FAILs in-grammar), solid or vertex-color shading; `RenderAvatar`'s Blender sibling. Writes to a pruned temp home by default, or `--out`. |
 
