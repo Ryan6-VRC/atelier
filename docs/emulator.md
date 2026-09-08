@@ -6,7 +6,7 @@ Driving and observing an avatar in play mode with Av3Emulator — the emulator r
 
 **Emulator control object enabled** — the emulator does not auto-spawn; the scene needs an enabled `Avatars 3.0 Emulator Control` object (the `LyumaAv3Emulator` component). **Tools → Avatars 3.0 Emulator → Enable** creates it, per-scene — no scene ships it pre-enabled, so run the recipe yourself (play then spawns the three runtimes). The play-entry gate (`verify.md`) does not check for it — absence is a legitimate bake-only check — but driving the emulator without it spawns no runtimes and the harness reads empty.
 
-**`RunPreprocessAvatarHook` reads `False` in play on every VRCFury-composed avatar, by VRCFury's own hand** (`Av3EmuAnimatorFixHook` clears it before forcing the emulator restart, so the hooks do not loop), and reads `True` again in edit mode; an in-play `PlayGateCore.Evaluate` therefore names that offender on a healthy session and is not a detector of a dead build. What discriminates a build whose hooks never ran is the built avatar itself: null materials on its renderers and a `CalcTotalCost()` / prefix read that does not match the composition.
+`PlayGateCore.Evaluate` is an entry gate: called inside play it names offenders on a healthy VRCFury session (the emulator's own clones, a hook flag VRCFury clears itself), so a dead build is judged from the built avatar, not from the gate.
 
 And capture every observation — runtime reads, `RenderAvatar` shots — **before exiting play**: exit reverts the scene to authoring state, so anything captured after proves nothing about driven behavior.
 
