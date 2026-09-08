@@ -6,7 +6,7 @@ Driving and observing an avatar in play mode with Av3Emulator — the emulator r
 
 **Emulator control object enabled** — the emulator does not auto-spawn; the scene needs an enabled `Avatars 3.0 Emulator Control` object (the `LyumaAv3Emulator` component). **Tools → Avatars 3.0 Emulator → Enable** creates it, per-scene — no scene ships it pre-enabled, so run the recipe yourself (play then spawns the three runtimes). The play-entry gate (`verify.md`) does not check for it — absence is a legitimate bake-only check — but driving the emulator without it spawns no runtimes and the harness reads empty.
 
-`PlayGateCore.Evaluate` is an entry gate: called inside play it names offenders on a healthy VRCFury session (the emulator's own clones, a hook flag VRCFury clears itself), so a dead build is judged from the built avatar, not from the gate.
+**Judge a dead build from the built avatar, not from the play-entry gate** (`PlayGateCore.Evaluate` is entry-only): read the built local root's renderer materials, since null ones are the only known discriminator and a VRCFury prefix, parameter or layer read is not — a dead build carries all three correct. The mechanism is undiagnosed, so this is a symptom, not a settled test.
 
 And capture every observation — runtime reads, `RenderAvatar` shots — **before exiting play**: exit reverts the scene to authoring state, so anything captured after proves nothing about driven behavior.
 
