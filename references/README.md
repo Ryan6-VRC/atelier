@@ -31,16 +31,19 @@ Match your task → project (`file`).
 
 **Constraints**
 - Convert/bake Unity↔VRC constraints; weld to a skinned mesh → `constraint-tools` (`SkinnedMeshConstraintBuilderEditor.cs`)
-- Secondary motion (bounce, positional/rotational lag) from constraints alone, no PhysBone → `spring-constraint` / `damping-constraints` (the self-referencing-source rigs and their tuned weights; reproduced as `vrc-patterns/spring-damping`)
+- Secondary motion (bounce, positional/rotational lag) from constraints alone, no PhysBone → `spring-constraint` / `damping-constraints`; reproduced as `vrc-patterns/spring-damping`
+
+**Particles**
+- Re-fire a particle burst from an FX animator without clearing bursts still in flight → `Particle-Bufferer` (`Editor/BufferParticleCreator.cs`)
 
 **Network sync & contacts**
 - Sync an object's world position/rotation across the network (contacts+drivers, float→bool packing for cheap params) → `Custom-Object-Sync` (`CustomObjectSyncCreator.cs`, `ControllerGenerationMethods.cs`)
 - Attach an object to another player's contact (6 proximity contacts + parent constraint) → `Contact-Tracker` (`Contact Tracker.prefab`, `Contact Tracker FX.controller`)
-- Read another player's **hand pose** from contacts — per-finger proximity cages plus a self-shrinking calibration pass that normalizes hand-size variation into a motion-time float → `Gesture-Tracker` (`Gesture Tracker.prefab`, `FX.controller`, `Resources/Animations/{L,R}{hand,index,middle,ring,pinky}/`)
-- Let a **remote** player grab, rotate, and world-drop a prop off *your* avatar — two finger-contact trackers, one physbone, FinalIK `AimIK` for the held orientation → `Avatar-Prop` (`Modular avatar prefab/Avatar Prop.prefab`, `!Resources/Controllers/Avatar prop FX*.controller`)
-- Play an animation for one targeted player only, pre-`VRCRaycast` (two offset FinalIK raycasts plus a contact pair standing in for a hit flag) → `Selective-Animation` (`Selective Animation.prefab`)
+- Read another player's **hand pose** from contacts → `Gesture-Tracker` (`Gesture Tracker.prefab`, `FX.controller`, `Resources/Animations/{L,R}{hand,index,middle,ring,pinky}/`)
+- Let a **remote** player grab, rotate, and world-drop a prop off *your* avatar → `Avatar-Prop` (`Modular avatar prefab/Avatar Prop.prefab`, `!Resources/Controllers/Avatar prop FX*.controller`)
+- Play an animation for one targeted player only, pre-`VRCRaycast` → `Selective-Animation` (`Selective Animation.prefab`)
 - Smooth OSC-driven floats over network sync + binary-encode them as cheap synced bools (the `Name{1,2,4}`/`NameNegative` wire convention) → `OSCmooth` (`Script/Editor/OSCmoothAnimationHandler.cs`)
-- The sender side of that wire convention — how VRCFaceTracking adapts its binary encoding to the avatar's declared params → `VRCFaceTracking` (`VRCFaceTracking.Core/OSC/DataTypes/BinaryBaseParameter.cs`)
+- The sender side of that wire convention — binary encoding against declared params → `VRCFaceTracking` (`VRCFaceTracking.Core/OSC/DataTypes/BinaryBaseParameter.cs`)
 
 **Blender prep (headless bpy)**
 - Shape-key-safe rest-pose bake → `Cats` (`tools/armature_manual.py` `PoseToRest`); FBX export `tools/importer.py`; visemes `tools/viseme.py`; eyes `tools/eyetracking.py`; fix model `tools/armature.py`
@@ -57,7 +60,7 @@ Match your task → project (`file`).
 - Manipulate Poiyomi materials (animate locked props via `<prop>Animated` tag) → `poiyomi` (`ShaderOptimizer`)
 - Manipulate lilToon materials → `liltoon` (`Editor/lilMaterialProperties.cs`)
 - Make a shader react to audio → `audiolink` (`AudioLink.cginc`, `ALPASS_*`)
-- Draw text or a numeric readout in a shader; ray-trace a virtual billboard plane in the fragment stage → `unity-shaders` (`Shaders/Overlay_HUD.shader` for the MSDF font struct and the plane trace, `Shaders/overlay_common.hlsl` for the shared-include idiom; reproduced and generalized as `vrc-patterns/debug-shaders`)
+- Draw text or a numeric readout in a shader; ray-trace a virtual billboard plane in the fragment stage → `unity-shaders` (`Shaders/Overlay_HUD.shader`, `Shaders/overlay_common.hlsl`); reproduced as `vrc-patterns/debug-shaders`
 
 **Learn the concepts (prose knowledge base, not code)**
 - Avatar 3.0 + Unity-animation reference — Write-Defaults, AAPs, DBT-Combining, Network-Sync, Scale-Friendly, Benchmarks, PhysBones/Contacts/puppets → `VRCSchool` (`docs/{Unity-Animations,Avatars,Other}/*.md`, images inline as sibling `.png`)
@@ -89,6 +92,7 @@ Match your task → project (`file`).
 | [VRCSchool](https://github.com/VRLabs/VRCSchool) | M | MIT — prose knowledge base, read `docs/*.md` |
 | [OSCmooth](https://github.com/regzo2/OSCmooth) | M | MIT |
 | [VRCFaceTracking](https://github.com/benaclejames/VRCFaceTracking) | M | Apache-2.0 |
+| [Particle-Bufferer](https://github.com/VRLabs/Particle-Bufferer) | M | MIT — ships as VPM `dev.vrlabs.particle-bufferer` off VRLabs' `Components` listing (`https://api.vrlabs.dev/listings/category/Components`), but it is in no project's manifest here, so a clone is the only way to read it |
 | [unity-shaders](https://github.com/lereldarion/unity-shaders) | M | MIT — © 2025 Lereldarion. Ships as the VPM package `lereldarion.unity-shaders`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/debug-shaders` is derived from it |
 
 ## POINT
