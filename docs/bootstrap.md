@@ -19,7 +19,7 @@ Atelier/
 └─ vrc-skills/          github.com/Ryan6-VRC/vrc-skills
 ```
 
-The **folder names are load-bearing**: the VPM `file:` refs, `AvatarProject`'s `../../vrc-unity-tools` package refs, and the SessionStart hook's `vrc-mcp-proxy` preflight all resolve by these exact paths. Clone each as a sibling under `Atelier/`. **`AvatarProject` is the exception**: its GitHub repo is a stripped sample skeleton — clone it as the seed, then **remove its `.git`** so it becomes an untracked working venue (CLAUDE.md §Layout), not a tracked project. Add it to the meta-repo's local `.git/info/exclude`, and give it the venue-local `.ignore` every venue needs (`new-project.md` step 1 — removing the `.git` is exactly what costs it ripgrep's `Library/` exclusion).
+The **folder names are load-bearing**: the VPM `file:` refs, `AvatarProject`'s `../../vrc-unity-tools` package refs, and the SessionStart hook's `vrc-mcp-proxy` preflight all resolve by these exact paths. Clone each as a sibling under `Atelier/`. **`AvatarProject` is the exception**: its GitHub repo is a stripped sample skeleton — clone it as the seed, then **remove its `.git`**, which is the sample's history and not yours. Add it to the meta-repo's local `.git/info/exclude`, then give it its own local-only venue repo and the venue-local `.ignore` that pairs with it (`new-project.md` step 1; the ruleset is `LAYOUT.md` §Principles). The `.ignore` is not optional and does not depend on that repo existing: ripgrep honors a `.gitignore` wherever it finds a `.git` in an *ancestor*, which a venue sitting under the workspace root already has, so the venue's own pruning has to be stated in a file ripgrep honors unconditionally.
 
 ## 2. Prerequisites
 

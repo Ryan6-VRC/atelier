@@ -5,7 +5,7 @@ description: Use when a Unity venue's search visibility is in question — audit
 
 # Audit a venue's search visibility
 
-A venue's `.gitignore` decides what `Grep` can see, because ripgrep honors it wherever a `.git` sits in an ancestor directory — which every venue under the workspace root inherits by accident of where it sits. The venue's own `.ignore` is the only file that can re-include what it drops. The mechanics live in `docs/unity.md` §Sharp edges and `docs/new-project.md` step 1; this skill owns the audit and its judgment calls.
+A venue's `.gitignore` decides what `Grep` can see, because ripgrep honors it wherever a `.git` sits in the venue or any ancestor — a venue has its own now, and one under the workspace root would inherit the workspace's regardless. The venue's own `.ignore` is the only file that can re-include what it drops, and under an allowlist `.gitignore` that is not a repair job but the whole visibility surface (§3). The mechanics live in `docs/unity.md` §Sharp edges and `docs/new-project.md` step 1; this skill owns the audit and its judgment calls.
 
 The failure is silent and self-concealing: a sweep over a hidden tree returns a confident zero, and nothing inside the search result says a tree was skipped. Measured on both live venues, a venue missing its `.ignore` re-includes hides over 90% of everything under its `Assets/` from every search. That is why this runs on a schedule of suspicion rather than on a verdict — no check fires it.
 
@@ -49,13 +49,15 @@ Split the hidden set by whether an agent searching the venue would be misled:
 - **Binary payloads may stay hidden, but the loss is enumeration, not just content.** A content search stops at the first NUL byte either way, but hiding also costs `rg --files`, so "does texture X exist" answers falsely. Accept that trade deliberately per venue, don't assume it.
 - **Generated output is a real hide.** Shader-lock output and similar regenerated trees are noise an agent should not be reading.
 
-**The trap that survives a careless fix is a granularity mismatch, and it cuts both ways.** `!dir/` only stops `dir` being pruned; against a rule matching the files *inside* it (`/Assets/Agent/RunLogs/*`) the directory is walked and every file stays hidden, so the line reads as a re-include and contributes nothing — `!dir/*` is the form that answers such a rule. Against a rule pruning the directory itself (`/Assets/Agent/Scratch/`) the mapping inverts: `!dir/*` whitelists children ripgrep never descends to reach, and `!dir/` is the working form. Writing both is not a safe hedge — on a directory-pruning rule the `/*` line additionally overrides the venue's extension rules, dragging binaries back into the visible set that step 3 just declared should stay hidden. One form per rule, chosen by the rule's shape, and confirmed in the step-5 re-measure rather than by reading the pair.
+**A venue `.gitignore` is an allowlist (`docs/LAYOUT.md` §Principles), and that decides the `.ignore`'s whole shape.** Under a leading `*`, every file at every depth is denied at once, so there is no file-level rule left for a targeted re-include to answer and no granularity judgment to make: the working form is `!**` to cancel the allowlist wholesale, then the venue's own prunes re-denied beneath it. Do not port a per-directory re-include (`!/Assets/Vendor/`) into this shape — measured, it changes nothing, and it reads like coverage. `!**` also overrides ripgrep's skip-hidden rule, so `/.git/` must be re-denied or every search reads git internals.
+
+The re-include forms matter only on a venue whose `.gitignore` is still a denylist, where the trap is a granularity mismatch that cuts both ways: `!dir/` only stops `dir` being pruned, so against a rule matching the files *inside* it (`/Assets/Agent/RunLogs/*`) every file stays hidden and `!dir/*` is the answering form; against a rule pruning the directory itself the mapping inverts. Writing both is not a hedge — on a directory-pruning rule the `/*` line also overrides the venue's extension rules, dragging back binaries step 3 declared should stay hidden. Either way the form is confirmed in the step-5 re-measure, never by reading the pair.
 
 ### 4. Propose, gate, apply
 
 Bring the operator the hidden text-bearing paths, the `.ignore` lines that would re-include them, and what you propose to leave hidden with the reason. **The `.ignore` edit is the operator's sign-off** — it changes what every later agent in that venue can see.
 
-The edit lands in an untracked venue file, so no PR carries it and git holds no history of it; say so when you report, and keep the audit's before/after counts in your own transcript as the only record.
+The edit lands in the venue's own local-only repo — tracked there, so commit it at the checkpoint, but no PR carries it and nothing outside that machine ever sees it. Keep the audit's before/after counts in your own transcript and in the commit message.
 
 ### 5. Verify
 
