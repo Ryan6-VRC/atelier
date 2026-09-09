@@ -26,7 +26,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | Key | Purpose |
 | --- | --- |
 | `ImportPackage` | The heavy-import door, **two-phase** so the result survives a transport timeout: `ImportPackage.Run(path)` kicks off the async `.unitypackage` import and returns `PENDING` at a stable RunLog path; `ImportPackage.Verify(path, expectedRoot?)` re-reads that log for a PASS/PENDING/FAIL verdict — re-read rather than re-import. Contract: `unity-tools.md`. |
-| `ConformImportSettings` | Corrects the import settings that hard-fail a driven upload, folder-scoped and recursive: `ConformImportSettings.Run(folder, whatIf)` over five rows (mip streaming, texture cap, mesh read/write, legacy blendshape normals, audio background load). `.meta`-only, re-runnable, no `force`; the two rows that change what ships name their paths in the summary. |
+| `ConformImportSettings` | Corrects the import settings that hard-fail a driven upload: `ConformImportSettings.Run(scope, whatIf)` over five rows (mip streaming, texture cap, mesh read/write, legacy blendshape normals, audio background load), where the scope is an asset folder (recursive) or a placed avatar root (the SDK panel's own asset walk, so `whatIf` on a root previews the panel's importer errors pre-build). `.meta`-only, re-runnable, no `force`. Contract: `unity-tools.md`. |
 
 ### vrc-unity-tools · transplant kit (vendor → owned)
 
