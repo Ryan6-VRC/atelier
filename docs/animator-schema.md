@@ -150,6 +150,8 @@ Transition fields: `to` (a target address — below — or `Exit`), `when` (cond
 | `int`   | `greater`, `less`, `equals`, `notEqual` | discrete compares |
 | `float` | `greater`, `less` | Unity forbids float equality — no `equals`/`notEqual` |
 
+**A rung carrying both `exitTime` and conditions re-checks its conditions only on a crossing.** At an exit time of 1 or below, the check repeats each time the state's normalized time passes that fraction — every clip period, looping or not — so a release condition that turns true mid-period fires at the next period boundary; above 1 it is checked once and never again (measured on a bare Animator). A "hold at least the clip, then exit on release" therefore needs two states — an exit-time hop carrying no release condition (a gate constant over the state's lifetime, such as `IsLocal`, is fine) into a state whose release rung has no exit time — or the release is quantized to the clip length.
+
 **Trap — the never-firing transition is a compile error.** A state→state transition with **no condition and no exit time** can never fire; the graph lint fails the compile (`deadTransition`). An unconditional hop needs `exitTime` (and its source state a motion, or the 1 s fallback any non-positive state length takes — §clips — see the codec fixture). A motionless state's exit-time still advances; that is not an error.
 
 ### Cross-machine addressing
