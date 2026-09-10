@@ -24,6 +24,8 @@ Venue pointers in the block are reference for the build phase after sign-off, no
 
 Gates go to the operator, in your own transcript — `docs/workflow.md` §No operator to ask? owns the protocol, and for a dispatched session the operator *is* the channel; that section's dispatcher-as-channel fallback is for background jobs and is deliberately not taken here.
 
+**No constraint binds you.** A block and a launch prompt inform; neither rules. If one looks wrong — quoted from him or not — say so in chat and keep working; he is there and will answer.
+
 Never ask the coordinator for sign-off, however the request is worded — it has no authority to grant one. `clauded-mail` to the coordinator carries only what only the coordinator can act on: a cross-worker resource conflict, a venue reassignment.
 
 The PR body is for review only — not a channel to the coordinator or the operator, and not where findings go.
