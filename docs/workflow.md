@@ -39,21 +39,6 @@ Skills mark a step mandatory because the cheap substitute is known-insufficient 
 
 Blender owns mesh/armature work (FBX import + observe, drop/rename, prune, rest-pose bake, proportion-profile reshaping, FBX export via `avatarprep`); Unity owns assembly, components, and upload. Tasks pass between them as an exported **FBX + Git diffs**. The FBX carries geometry + morph deltas *and* the shape-key value as each blendshape's import weight (`blender.md`) — so body-shape morphs set in Blender cross the seam; **keep them coherent across body + outfit meshes.**
 
-## The coverage cut — trimming the body under a costume's unconditional garments
-
-Run only where a composed row's built triangle count (the `tris` line of `ReportComposition bake:true`) misses the rank line the operator wants **and** the operator has agreed to touch the shared base: the carrier lands in the base body's blend and FBX, so every row wearing that body re-imports it. Most composes never run it.
-
-**The unit is the costume, never the configuration or a single garment.** Coverage is a function of the whole unconditional garment set (a ray one garment lets past, another blocks) plus the shapes that set carries, and both are the costume's facts; hair and form change no body coverage. So one carrier per costume per body, `Cover_<CostumeStem>`, consumed by one Delete row on the costume prefab root, unconditioned — every configuration wearing the costume inherits the cut. A costume shipped in two unconditional states takes the shared set's carrier on the root and the selectable garment's increment as `Cover_<CostumeStem>_<Garment>`, its Delete row declared on that garment's own object, so a configuration that drops the object leaves the row inactive (`outfits.md`: the garment that covers owns the hide).
-
-The sequence, two substrates and one operator gate:
-
-1. **Unity — read the composition.** Garments: the costume's pieces active with no `Clothing` leaf or toggle reaching them, less the base pieces the costume turns off and any extra it ships inactive. Shapes: `map-outfit-shapes`' resolution table is the input — each Set row's resolved value is a `--shape`, each unconditional Delete a `--cut-shape`; a raw index-addressed `m_BlendShapeWeights` override is the one entry that table cannot name, so read that mesh live.
-2. **Blender — measure.** `mark_coverage --whatif` with `--render` and `--out-marked` (`blender.md`). Turn `--fold-bones` and `--cone-deg` only against a named swing or a loose boot.
-3. **Operator gate.** The renders and the inspect blend are the operator's to approve; nothing writes before that word.
-4. **Blender — write.** The same run without `--whatif`, after a venue git checkpoint.
-5. **Unity — the base tail** (`blender.md`), plus the triangle diff on every row wearing the body, all expected identical: the unused shape is stripped at build.
-6. **Unity — compose.** The Delete row, then the target row's triangle diff, `CheckAvatar` at the recorded offender set, the play-mode bake, and the row's record.
-
 ## Validate with a play-mode build
 
 Entering play mode runs the full non-destructive stack on the transient play copy — the one bake path and the universal comprehensive check (`nondestructive.md`; the play-entry gate is enforced — `verify.md`).
