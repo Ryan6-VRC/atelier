@@ -47,6 +47,7 @@ Match your task → project (`file`).
 
 **Blender prep (headless bpy)**
 - Shape-key-safe rest-pose bake → `Cats` (`tools/armature_manual.py` `PoseToRest`); FBX export `tools/importer.py`; visemes `tools/viseme.py`; eyes `tools/eyetracking.py`; fix model `tools/armature.py`
+- Decide whether two surfaces are coincident, and transfer skin weights across them → `robust-weight-transfer` (`weighttransfer.py` `find_matches_closest_surface` for the match test, `inpaint` for the vertices it rejects, `smooth_weigths` for the pass after)
 
 **Optimization techniques (learn, don't import)**
 - Mesh/material merge, atlas, blendshape prune, shader-rewrite → `d4rkAvatarOptimizer` (`d4rkAvatarOptimizer.cs`, `ShaderAnalyzer.cs`); `anatawa12 AvatarOptimizer` (`Processors/TraceAndOptimize/`, `ObjectMapping/`)
@@ -94,6 +95,7 @@ Match your task → project (`file`).
 | [VRCFaceTracking](https://github.com/benaclejames/VRCFaceTracking) | M | Apache-2.0 |
 | [Particle-Bufferer](https://github.com/VRLabs/Particle-Bufferer) | M | MIT — ships as VPM `dev.vrlabs.particle-bufferer` off VRLabs' `Components` listing (`https://api.vrlabs.dev/listings/category/Components`), but it is in no project's manifest here, so a clone is the only way to read it |
 | [unity-shaders](https://github.com/lereldarion/unity-shaders) | M | MIT — © 2025 Lereldarion. Ships as the VPM package `lereldarion.unity-shaders`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/debug-shaders` is derived from it |
+| [robust-weight-transfer](https://github.com/sentfromspacevr/robust-weight-transfer) | M | **GPL-3.0 — clean-room only.** The algorithm is published independently of this code: Abdrashitov, Raichstat, Monsen & Hill, *Robust Skin Weights Transfer via Weight Inpainting*, SIGGRAPH Asia 2023 — read the paper for anything we implement, and this clone only to see what a working implementation chose. Ships on Jinxxy as a paid one-click addon; the repo is the same code |
 
 ## POINT
 
