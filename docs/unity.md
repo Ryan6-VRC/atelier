@@ -36,7 +36,7 @@ Changing avatar geometry leaves Unity-side state stale — it holds frozen refer
 
 ## Non-destructive avatar build
 
-Modular Avatar (on NDMF), VRCFury, the **d4rk Avatar Optimizer**, and the **Limitex (LAC) texture compressor** compose non-destructively — nothing touches the editor scene; a throwaway copy is rebuilt at Play/upload (`nondestructive.md` owns the model). The Unity-side consequence: there's no Add-Component menu over MCP, so discover a tool's exact component type with an `AppDomain` `MonoBehaviour` scan — `d4rkAvatarOptimizer`, `dev.limitex.avatar.compressor.TextureCompressor`, VRCFury features under `VF.Model.Feature.*` held by a `VF.Model.VRCFury` component.
+Modular Avatar (on NDMF), VRCFury, the **d4rk Avatar Optimizer**, and the **Limitex (LAC) texture compressor** compose non-destructively — nothing touches the editor scene; a throwaway copy is rebuilt at Play/upload (`nondestructive.md` owns the model). What the optimizers move on the performance rank, and what each lever costs, is `optimization.md`. The Unity-side consequence: there's no Add-Component menu over MCP, so discover a tool's exact component type with an `AppDomain` `MonoBehaviour` scan — `d4rkAvatarOptimizer`, `dev.limitex.avatar.compressor.TextureCompressor`, VRCFury features under `VF.Model.Feature.*` held by a `VF.Model.VRCFury` component.
 
 Validate the baked result without uploading: **enter play mode** — it runs the whole non-destructive stack on the transient play copy, removed on exit (`nondestructive.md` owns the claim). One session is both the baked read (the built clone + `VRCFuryDebugInfo`) and the live drive (av3emulator). The **play-entry gate** is enforced on entry; `verify.md` owns the preconditions, `emulator.md` the recipes.
 
