@@ -69,7 +69,7 @@ Transform levers, graded by what they do to the chain. **Nothing that changes a 
 
 ## Bones
 
-`boneCount` is the SDK's count of the rig's bones over the built skinned renderers; the scanner is compiled and whether a bone two renderers share counts once is unmeasured — do not plan a bone budget on the assumption that it does. Levers: `prune_bones` (`blender.md`) for zero-weight chains at the source, MA `Merge Armature` for a mergeable's duplicate skeleton (the seam already does this), AAO `MergeBone` outside physbone chains for bones no weight needs. A bone a physbone rides is not free to merge even at zero weight if it has a child: the child reparents and the chain shortens (§PhysBones).
+`boneCount` is the set of distinct transforms across every built skinned renderer's bones array — a bone two renderers share counts once, a transform listed twice counts once, and a bone no renderer binds counts not at all (measured; the scanner is compiled). Levers: `prune_bones` (`blender.md`) for zero-weight chains at the source, MA `Merge Armature` for a mergeable's duplicate skeleton (the seam already does this), AAO `MergeBone` outside physbone chains for bones no weight needs. A bone a physbone rides is not free to merge even at zero weight if it has a child: the child reparents and the chain shortens (§PhysBones).
 
 ## Renderers and materials
 
