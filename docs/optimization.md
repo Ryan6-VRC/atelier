@@ -14,7 +14,7 @@ The only number that counts is the SDK's own, read off a fresh preprocess bake �
 
 Canon: `Packages/com.vrchat.base/Runtime/VRCSDK/Dependencies/VRChat/Resources/Validation/Performance/StatsLevels/Windows/{Excellent,Good,Medium,Poor}_Windows.asset`. Above Poor is Very Poor. Echoed here because a budget is planned against the distance to the next rung.
 
-| stat | Excellent | Good | Medium | Poor | moved by |
+| stat | Excellent | Good | Medium | Poor | owned lever |
 |---|---|---|---|---|---|
 | polyCount | 32000 | 70000 | 70000 | 70000 | §Polygons |
 | skinnedMeshCount | 1 | 2 | 8 | 16 | §Renderers and materials |
@@ -26,17 +26,17 @@ Canon: `Packages/com.vrchat.base/Runtime/VRCSDK/Dependencies/VRChat/Resources/Va
 | physBone.colliderCount | 4 | 8 | 16 | 32 | §PhysBones |
 | physBone.collisionCheckCount | 32 | 128 | 256 | 512 | §PhysBones |
 | textureMegabytes | 40 | 75 | 110 | 150 | §Texture memory |
-| contactCount | 8 | 16 | 24 | 32 | removal, or §One component, many roles |
-| constraintsCount / constraintDepth | 100 / 20 | 250 / 50 | 300 / 80 | 350 / 100 | removal, or §One component, many roles |
+| contactCount | 8 | 16 | 24 | 32 | none owned; §One component, many roles |
+| constraintsCount / constraintDepth | 100 / 20 | 250 / 50 | 300 / 80 | 350 / 100 | none owned; §One component, many roles |
 | animatorCount | 1 | 4 | 16 | 32 | merge into the FX layer (MA `Merge Animator`, VRCFury `FullController`); the count falls only when the child `Animator` is deleted (MA's `deleteAttachedAnimator`) |
-| lightCount | 0 | 0 | 0 | 1 | removal, or §One component, many roles |
-| audioSourceCount | 1 | 4 | 8 | 8 | removal, or §One component, many roles |
-| particleSystemCount / particleTotalCount / particleMaxMeshPolyCount | 0 / 0 / 0 | 4 / 300 / 1000 | 8 / 1000 / 2000 | 16 / 2500 / 5000 | removal, or §One component, many roles |
-| particleTrailsEnabled / particleCollisionEnabled | off | off | on | on | removal |
-| trailRendererCount / lineRendererCount | 1 / 1 | 2 / 2 | 4 / 4 | 8 / 8 | removal, or §One component, many roles |
-| clothCount / clothMaxVertices | 0 / 0 | 1 / 50 | 1 / 100 | 1 / 200 | removal |
-| physicsColliderCount / physicsRigidbodyCount | 0 / 0 | 1 / 1 | 8 / 8 | 8 / 8 | removal |
-| raycastCount | 1 | 4 | 8 | 15 | removal |
+| lightCount | 0 | 0 | 0 | 1 | none owned; §One component, many roles |
+| audioSourceCount | 1 | 4 | 8 | 8 | none owned; §One component, many roles |
+| particleSystemCount / particleTotalCount / particleMaxMeshPolyCount | 0 / 0 / 0 | 4 / 300 / 1000 | 8 / 1000 / 2000 | 16 / 2500 / 5000 | none owned; §One component, many roles |
+| particleTrailsEnabled / particleCollisionEnabled | off | off | on | on | none owned |
+| trailRendererCount / lineRendererCount | 1 / 1 | 2 / 2 | 4 / 4 | 8 / 8 | none owned; §One component, many roles |
+| clothCount / clothMaxVertices | 0 / 0 | 1 / 50 | 1 / 100 | 1 / 200 | none owned |
+| physicsColliderCount / physicsRigidbodyCount | 0 / 0 | 1 / 1 | 8 / 8 | 8 / 8 | none owned |
+| raycastCount | 1 | 4 | 8 | 15 | none owned |
 | aabb extent | 1.25 | 2 | 2.5 / 3 / 2.5 | 2.5 / 3 / 2.5 | renderer bounds (VRCFury `BoundingBoxFix`, MA `Mesh Settings`) |
 
 **Every count is taken over the built avatar with inactive objects included.** An inactive renderer, an inactive physbone, a garment behind a toggle — all count at full weight. The only thing that removes an always-inactive object from the count is an unused-object sweep deleting it at build: d4rk's `DeleteUnusedComponents` (on in the house profile; `DeleteUnusedGameObjects` is a separate default-off pass over unreferenced objects and not what this rides on), or AAO `TraceAndOptimize`'s `removeUnusedObjects` where one is placed. A saving taken by deactivation is conditional on whichever sweep the avatar actually carries. Where a toggle only selects between two states the avatar could ship as separate uploads, ship two configurations: the absent piece leaves the build entirely.
@@ -48,7 +48,7 @@ Counted per renderer under the root, inactive included, after every build-time d
 - **Hidden body under an unconditional garment set.** `mark_coverage` (`blender.md`) measures the covered body polygons and writes the Delete carrier shape; the costume's unconditioned MA `Shape Changer` Delete row removes them at build (`outfits.md` §The garment that covers a region owns the hide). Only an unconditioned Delete buys triangles: a row any toggle can reach NaNimates instead — it hides, at the cost of extra bones and an FX layer, but the vertices stay in the mesh and in `polyCount`. Prove the drop by the built-renderer triangle diff, never by a built blendshape name (`ReportComposition` bake mode; the optimizers rename and bake shapes with the triangles intact).
 - **A vendor's own delete shapes** (`*_OFF`, the vendor's delete mark) applied the same way, before authoring any new cut.
 - **An always-inactive renderer** leaves through the unused-object sweep, at the conditionality above; a renderer's departure keeps its bones and physbone, so a removed accessory still costs transforms until its chain goes too.
-- **Decimation.** Unowned. Blender refuses to *apply* any geometry-changing modifier to a mesh carrying shape keys (Decimate evaluates, the apply fails), so the process is a keyless copy decimated then shapes transferred back, and every downstream index-addressed override (blendshape weights on prefabs, `RemoveMeshByBlendShape`, the coverage carrier) is invalid afterward. A polygon delete is nearly always the cheaper cut.
+- **Decimation.** Unowned, and tool-agnostic: whatever does it, the output must keep the blendshapes the FX and the reactive rows drive and every index-addressed override on the wearing prefabs valid, or those re-author with it. A polygon delete is usually the cheaper cut.
 
 ## PhysBones
 
@@ -77,7 +77,7 @@ Transform levers, graded by what they do to the chain. **Nothing that changes a 
 
 Where d4rk declines, AAO `MergeSkinnedMesh` on its own empty container merges the listed renderers before d4rk runs (it discards the target's own mesh, so it cannot sit on a renderer you keep), and AAO `MergeMaterial` atlas-packs listed materials into one, rewriting the UVs into the atlas rect (it wraps out-of-range UVs, so tiling breaks). A merge is load-bearing for colour where the merged renderers must share an animated slot, so a merge is never dropped on rank grounds alone.
 
-Atlasing beyond those two is unowned: it rewrites UVs, so every mask, matcap and texture-driven FX on the material re-authors with it.
+Atlasing beyond those two is unowned and tool-agnostic; whatever does it, the material's masks, matcaps and any UV- or property-driven FX must still read on the output, or they re-author with it.
 
 ## Texture memory
 
