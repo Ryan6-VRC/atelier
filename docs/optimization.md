@@ -26,7 +26,7 @@ Canon: `Packages/com.vrchat.base/Runtime/VRCSDK/Dependencies/VRChat/Resources/Va
 | physBone.colliderCount | 4 | 8 | 16 | 32 | §PhysBones |
 | physBone.collisionCheckCount | 32 | 128 | 256 | 512 | §PhysBones |
 | textureMegabytes | 40 | 75 | 110 | 150 | §Texture memory |
-| contactCount | 8 | 16 | 24 | 32 | none owned; §One component, many roles |
+| contactCount | 8 | 16 | 24 | 32 | non-local components only: `localOnly` on a sender or receiver exempts it, and `contactCompleteCount` is the unrated total; §One component, many roles |
 | constraintsCount / constraintDepth | 100 / 20 | 250 / 50 | 300 / 80 | 350 / 100 | none owned; §One component, many roles |
 | animatorCount | 1 | 4 | 16 | 32 | merge into the FX layer (MA `Merge Animator`, VRCFury `FullController`); the count falls only when the child `Animator` is deleted (MA's `deleteAttachedAnimator`) |
 | lightCount | 0 | 0 | 0 | 1 | none owned; §One component, many roles |
@@ -100,6 +100,8 @@ Two bakes turn uniforms into literals, and each exempts animated properties its 
 ## One component, many roles
 
 A counted component that no two configurations need live at once can serve every one of them: one light, audio source, particle system, constraint or contact reparented, retargeted or moved by animation to whichever role the current state wants — two glowing sources lit by one light read as two to anyone watching. Count stats only; a physbone is bound to its bones and cannot be shared. The cost is on the animator and parameter side (`menus.md`, `gimmicks.md`), and the boundary is exact: the moment two roles must be live in the same state the lever is gone.
+
+A counted contact has a second lever the rank does not see: switch the receiver to `localOnly` and sync its parameter. The wearer's client is then the only one sensing, remotes read the synced value, and the component leaves `contactCount` entirely (the SDK labels the stat "Non-Local Contact Component Count" and its sub-select filters `ContactBase` on `!IsLocalOnly`). It trades the stat for a network tick of latency on every remote reaction, and buys a single source of truth on top: one reading instead of one per client, so remotes can never disagree with the wearer about whether the contact fired (`runtime.md` §Contacts owns the sensing rule and the latency-sensitive exception that keeps remote-firing receivers as a fast path). It does not reach a receiver whose job is a per-client reading of another player's body against that client's own view, which stays non-local by construction.
 
 ## Division of labour
 
