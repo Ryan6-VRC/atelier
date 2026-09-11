@@ -26,7 +26,7 @@ Canon: `Packages/com.vrchat.base/Runtime/VRCSDK/Dependencies/VRChat/Resources/Va
 | physBone.colliderCount | 4 | 8 | 16 | 32 | §PhysBones |
 | physBone.collisionCheckCount | 32 | 128 | 256 | 512 | §PhysBones |
 | textureMegabytes | 40 | 75 | 110 | 150 | §Texture memory |
-| contactCount | 8 | 16 | 24 | 32 | none owned; §One component, many roles |
+| contactCount | 8 | 16 | 24 | 32 | counts **non-local** components only — a sender or receiver with `localOnly` on is exempt (the SDK labels the stat "Non-Local Contact Component Count" and its sub-select filters `ContactBase` on `!IsLocalOnly`; `contactCompleteCount` is the total, unrated); a measurement rig that senses only on the wearer is free here, so mark it local before trading a receiver; §One component, many roles |
 | constraintsCount / constraintDepth | 100 / 20 | 250 / 50 | 300 / 80 | 350 / 100 | none owned; §One component, many roles |
 | animatorCount | 1 | 4 | 16 | 32 | merge into the FX layer (MA `Merge Animator`, VRCFury `FullController`); the count falls only when the child `Animator` is deleted (MA's `deleteAttachedAnimator`) |
 | lightCount | 0 | 0 | 0 | 1 | none owned; §One component, many roles |
