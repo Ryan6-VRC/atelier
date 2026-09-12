@@ -206,7 +206,7 @@ Tree `kind` (case-sensitive): `1d`, `simpleDirectional2d`, `freeformDirectional2
 
 - **1D**: `threshold: <n>`
 - **2D**: `x`/`posX` and `y`/`posY`
-- **Direct**: `directWeight: <paramName>`
+- **Direct**: `directWeight: <paramName>` — a weight param left at its default `0` weights every child 0, and the document still compiles and lints clean.
 - any child: `timeScale` (negative is legal — reversed motion), `mirror`, `cycleOffset`.
 
 **Trap — a `direct` tree's state duration is data, and every child curve plays against it.** A state whose motion is a direct tree with weight-sum ≥ 1 takes effective length Σ(child weight × child length) — live weights make it change per frame's readings — and each child clip's curves are sampled at normalizedTime × that child's own length, so a curve keyed in seconds plays stretched by the duration ratio (measured: a 0.1 s ease beside 0.5 s siblings at reading-driven weights ran ~11× slow, stretching MORE as the weights rose); below a weight-sum of 1 the duration normalizes instead. `set:` values are immune. `exitTime` reads the same data-dependent duration — exploitable as a weight-scaled dwell, and the reason a dwell child gets padded deliberately. Author timing intent inside such a state only three ways: every child tiny and near-equal (the stretch collapses toward real frames), a deliberate exitTime dwell built on the formula, or move the timed curve to a plain single-clip state.
