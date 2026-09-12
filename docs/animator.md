@@ -52,6 +52,8 @@ layers=… states=… orphans=… unresolved=… => OK | log=<path>`, writing th
 is `[DecompileController] <leaf>: … => FAIL | log=<path>` naming each — a Snapshot artifact records the
 failure, and no `.yaml` is written (the compile door's refusals carry the same grammar on the RunLog channel). A **READ** tool — it never mutates the controller, so it self-logs to the **Snapshot** dir (read-capture channel), not the verdict RunLog dir. Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) rides in the document's `_notes:` block, which re-compiles inert.
 
+**A decompile emits `basis: avatar-root` unconditionally and recovers no `vrc:` flags or `menu:` block** — all three live outside the `.controller`; restore them by hand.
+
 **The refusal is document-scoped** — a partial document would recompile into a controller silently missing a layer. It carries `refusedLayers=N/M` (a layer *carrying* a refusal, not one absent from the document) and `documentScope=` for refusals owned by no layer, and names two routes: `ReportController` to read one, or trim the named layers with `CleanController` and decompile again to own the rest.
 
 **A dangling motion survives the document, not the asset.** It decompiles as `motion: { ref: { guid: …, unresolved: true } }` — the verbatim handle, so it re-resolves if the asset returns — but no C# API writes a broken object reference, so the rebuild gets a null slot, which is the clean-empty idiom every lint is whitelisted against. **A round-tripped controller is therefore verdict-cleaner than its source**, and its `CheckAnimator` result is not evidence about the original. The compile door will not certify that: `unresolvedRefs=N` and **`CLASSIFY`**, with the RunLog naming each state and GUID.
@@ -90,3 +92,14 @@ Additive behavior (a new toggle, slider, or gimmick layer) can go two ways: **ed
 ## Trap — the playable-layer enum
 
 Reading `VRCAvatarDescriptor.baseAnimationLayers` from YAML: the `type` field is the `AnimLayerType` enum *value*, and **array index ≠ enum value** — the enum skips `1` (`Deprecated0`), so FX is value 5 at a lower index. An off-by-one read that trusts position misattributes the FX slot as Sitting (a real past misread): read the `type`, not the array position. These slots are what `animator-schema.md`'s `role:` names.
+
+## What the VRCFury build rewrites before a controller runs
+
+Four rewrites land between the controller you authored and the one that runs, none of them reported:
+
+- A transition condition naming a parameter the built controller does not declare is replaced by an always-false bool — the rung never fires, and nothing logs it.
+- An authored bool is widened to Float wherever another merged surface declares that name as a float, so read a parameter back by the type the build settled on, not the one you wrote.
+- Every controller load forces layer 0 to weight 1, so an authored weight-0 layer 0 is live anyway. Author every layer's weight explicitly.
+- Managed toggle layers that are zero-duration and behaviour-free fold into one shared Direct tree; the fold is refused when an equal-or-higher-index layer animates one of the layer's own bindings.
+
+Identify a state at runtime by hashing `"<StateMachine>.<state>"`. The build renames only the *layer*, so the VRCFury-prefixed name the playable reports (`[VF###] …`) is not the segment the hash uses.
