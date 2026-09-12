@@ -40,7 +40,7 @@ The **clip-repathing pair** rewrites *clip binding paths* / motion refs in on-di
 - `Ryan6Vrc.AvatarTools.Editor.OwnControllerClips.Run(controller, outDir, scope=VendorOnly, force=false, whatIf=false)` — closes the CleanController gap (owned controller still referencing **vendor clips by GUID**): copies in-scope clips
   (`VendorOnly` default | `All`) to owned `.anim` copies under `outDir` (absent-only reuse) and **mutates
   the controller**, repointing every motion slot; disk-truthful residual post-condition. `UC2 = OwnControllerClips → RepathClips`.
-- `Ryan6Vrc.AvatarTools.Editor.NormalizeExpressionClips.Run(clipAssetPaths, limitToBlendshapeCurves=true, normalizeOnly=true, repairKeys=true, nonZeroEpsilon=0.001, whatIf=false)` — makes a set of expression `.anim` clips share **one binding + key-time set** (union the curves and key times across the clips), so a toggle's on/off pair drives the same bindings and no blendshape is left un-driven in one state (on a WD-off layer a binding one clip writes and another omits holds its last value after the state exits, until an avatar reset); `normalizeOnly=false` additionally prunes curves unused across the set. Refuses non-editable clips (imported / FBX-embedded / read-only `.anim` — a write would silently not persist, so it FAILs rather than report a false PASS). Reports `+curves/+keys/-curves` counts; `whatIf` previews them.
+- `Ryan6Vrc.AvatarTools.Editor.NormalizeExpressionClips.Run(clipAssetPaths, limitToBlendshapeCurves=true, normalizeOnly=true, repairKeys=true, nonZeroEpsilon=0.001, whatIf=false)` — makes a set of expression `.anim` clips share **one binding + key-time set** (union the curves and key times across the clips), so a toggle's on/off pair drives the same bindings and no blendshape is left un-driven in one state; `normalizeOnly=false` additionally prunes curves unused across the set. Refuses non-editable clips (imported / FBX-embedded / read-only `.anim` — a write would silently not persist, so it FAILs rather than report a false PASS). Reports `+curves/+keys/-curves` counts; `whatIf` previews them.
 
 ## The compile/decompile substrate
 
@@ -51,8 +51,6 @@ layers=… states=… orphans=… unresolved=… => OK | log=<path>`, writing th
 `whatIf` runs the whole walk but writes no `.yaml`; `stripLayout` (default off) drops all graph-layout capture — the own-a-vendor path, where the vendor's node arrangement is noise; a refusal (an out-of-vocabulary or malformed construct)
 is `[DecompileController] <leaf>: … => FAIL | log=<path>` naming each — a Snapshot artifact records the
 failure, and no `.yaml` is written (the compile door's refusals carry the same grammar on the RunLog channel). A **READ** tool — it never mutates the controller, so it self-logs to the **Snapshot** dir (read-capture channel), not the verdict RunLog dir. Incidental walk data (orphans dropped, unresolved GUIDs, import tolerances) rides in the document's `_notes:` block, which re-compiles inert.
-
-**A decompile emits `basis: avatar-root` unconditionally and recovers no `vrc:` flags or `menu:` block** — all three live outside the `.controller`; restore them by hand.
 
 **The refusal is document-scoped** — a partial document would recompile into a controller silently missing a layer. It carries `refusedLayers=N/M` (a layer *carrying* a refusal, not one absent from the document) and `documentScope=` for refusals owned by no layer, and names two routes: `ReportController` to read one, or trim the named layers with `CleanController` and decompile again to own the rest.
 
@@ -88,14 +86,6 @@ Additive behavior (a new toggle, slider, or gimmick layer) can go two ways: **ed
 - **Is the behavior modular — something to take in and out?** A merged controller is a clean removable unit (delete the component, it's gone); inline entangles it with the rest of the FX.
 - **Whose is it?** Behavior keyed to an outfit/accessory with no base dependency belongs *on that mergeable* — a Merge Animator on the outfit prefab (relative `pathMode`) — so it composes and decomposes with the outfit, not the base's FX.
 - **Does it modify existing FX logic?** Then inline is forced — merge is additive (appends layers, can't rewrite one).
-
-## What the VRCFury build rewrites before a controller runs
-
-- `RemoveWrongParamTypes` replaces a transition condition naming a parameter the built controller does not declare with an always-false bool: the rung never fires, and nothing reports it.
-- `UpgradeWrongParamTypes` widens an authored bool to Float wherever another merged surface declares the name as float, so read a parameter back by the type the build settled on.
-- `VFController.Load` runs `FixLayer0Weight` on every controller it loads, so an authored weight-0 layer 0 is live anyway; author every layer's weight explicitly.
-- `LayerToTreeService` folds each managed two-state, zero-duration, behaviour-free toggle layer into one shared Direct tree, but `OptimizeLayer` refuses when an equal-or-higher-index layer animates one of its bindings.
-- Identify a state at runtime by hashing `"<StateMachine>.<state>"` — the state-machine segment, not the VRCFury-prefixed layer name (`[VF###] …`) the playable reports.
 
 ## Trap — the playable-layer enum
 
