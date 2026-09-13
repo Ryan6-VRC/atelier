@@ -13,7 +13,7 @@ Our tooling reflects into MA / VRCFury / NDMF / the emulator by exact member sig
 
 ### 1. Baseline before touching anything
 
-Run the EditMode suite unfiltered — `tools/run-editmode-tests.ps1 -Tag bump-baseline` (`-Tag` is mandatory and names the run's output file; unfiltered means leaving `-Filter` empty) — and require green — a bump on a red baseline cannot be attributed, so a red one ends the task with a report, not a workaround. Copy the venue's `vpm-manifest.json` aside (`vpm-manifest.json.pre-bump-<date>`, beside it); rollback at any later step is restoring that file + `vrc-get resolve`. Confirm no live Editor has the venue open, and `vrc-get update` + `vrc-get outdated -p <venue>` to fix the upgrade set.
+Run the EditMode suite unfiltered — `tools/run-editmode-tests.ps1 -Tag bump-baseline`, leaving `-Filter` empty — and require green — a bump on a red baseline cannot be attributed, so a red one ends the task with a report, not a workaround. Copy the venue's `vpm-manifest.json` aside (`vpm-manifest.json.pre-bump-<date>`, beside it); rollback at any later step is restoring that file + `vrc-get resolve`. Confirm no live Editor has the venue open, and `vrc-get update` + `vrc-get outdated -p <venue>` to fix the upgrade set.
 
 ### 2. Snapshot the old payloads
 
@@ -21,7 +21,7 @@ Copy each package directory being bumped out of `Packages/` to scratch **before*
 
 ### 3. Upgrade in stages, suite between
 
-Low-pin-surface packages together first; then the heavily-pinned vendor (the pin map names it — historically VRCFury) **alone**, so a red run names its stage. Run the suite unfiltered after each stage (`-Tag bump-stage-<n>`) — it auto-syncs the **community** set into the test venue, and its vendor canaries fail rather than skip. The SDK trio does not auto-sync: a bumped SDK exits `SDK_DRIFT`, and `tools/setup-test-editor.ps1 -Sync` re-provisions before the re-run. Do not start the next stage on a red run: fix or roll the stage back first.
+Low-pin-surface packages together first; then the heavily-pinned vendor (the pin map names it — historically VRCFury) **alone**, so a red run names its stage. Run the suite unfiltered after each stage (`-Tag bump-stage-<n>`) — it auto-syncs the **community** set into the test venue, and its vendor canaries fail rather than skip. The SDK trio does not auto-sync: a bumped SDK makes the run exit naming the drift, and `tools/setup-test-editor.ps1 -Sync` re-provisions before the re-run. Do not start the next stage on a red run: fix or roll the stage back first.
 
 ### 4. Source-check the pins per stage
 

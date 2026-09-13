@@ -33,7 +33,7 @@ One standing route for the workspace's own checks: a linked worktree carries onl
 
 ## Duplication: managed echoes only
 
-Unmanaged duplication — one fact grown into two homes, neither owning it — is a violation; route instead. Durable, salience-requiring content may be deliberately **echoed**: the echo names its canonical home, is intentionally the compressed form, and the pair's drift is checkable — by machine (README ↔ TOOLS.md, pre-commit-mirrored) or by a declared review invariant (vrc-patterns catalog row ↔ entry lead). Both criteria are required, so churning content and rare-but-important content both route rather than echo. Verbatim strings (format strings, exact constants) are quoted once, at the canon; every other site routes to the quote.
+Unmanaged duplication — one fact grown into two homes, neither owning it — is a violation; route instead. Durable, salience-requiring content may be deliberately **echoed**: the echo names its canonical home, is intentionally the compressed form, and the pair's drift is checkable — by machine (README ↔ TOOLS.md, pre-commit-mirrored) or by a declared review invariant (vrc-patterns catalog row ↔ entry lead). Both criteria are required, so churning content and rare-but-important content both route rather than echo. Verbatim strings (format strings, exact constants) are quoted once, at the canon; every other site routes to the quote. Within one trigger-gated body, canon and echo share a single read, so an echo cannot buy salience; route within the file instead.
 
 ## What the call already teaches
 
