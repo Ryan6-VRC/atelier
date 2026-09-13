@@ -59,7 +59,6 @@ governed_fence:
     - test-output/
     - references/
     - docs/local/
-docs_max_hops_from_claude_md: 1  # core knowledge sits at most one hop out
 ```
 
 The fence bounds *enforcement*, not advice. `tools/prose-hook.ps1` nudges on any markdown the agent authors in the workspace — ignored and untracked files included, since a file does not stop being worth writing well because git declines to store it — and reads no constant here. A wider write-time reach than commit-time gate is the intent, not drift to reconcile.
