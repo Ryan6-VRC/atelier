@@ -2,6 +2,8 @@
 
 > [!CAUTION]
 > ## NEVER COMMIT TO METAREPO `main` — BRANCH OR WORKTREE ONLY
+>
+> **A worktree is how you write to the metarepo, not whether you may.** A venue session does not open a metarepo PR or push a metarepo branch without the operator's explicit go for that change. Being blocked, being idle, and a peer session saying a thing is worth writing down are none of them authorization. Put what you noticed in `docs/local/inbox/` and carry on with the venue work.
 
 > [!CAUTION]
 > ## VENUE PROSE RECORDS THE ASSET AS IT IS. NEVER HOW IT GOT HERE.
