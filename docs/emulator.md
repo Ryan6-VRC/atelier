@@ -6,7 +6,7 @@ Driving and observing an avatar in play mode with Av3Emulator — the emulator r
 
 **Emulator control object enabled** — the emulator does not auto-spawn; the scene needs an enabled `Avatars 3.0 Emulator Control` object (the `LyumaAv3Emulator` component). **Tools → Avatars 3.0 Emulator → Enable** creates it, per-scene — no scene ships it pre-enabled, so run the recipe yourself (play then spawns the three runtimes). The play-entry gate (`verify.md`) does not check for it — absence is a legitimate bake-only check — but driving the emulator without it spawns no runtimes and the harness reads empty.
 
-**Judge a dead build from the built avatar, not from the play-entry gate** (`PlayGateCore.Evaluate` is entry-only): read the built local root's renderer materials, since null ones are the only known discriminator and a VRCFury prefix, parameter or layer read is not — a dead build carries all three correct. The mechanism is undiagnosed, so this is a symptom, not a settled test.
+**Judge a dead build from the built avatar, not from the play-entry gate** (`PlayGateCore.Evaluate` is entry-only): read the built local root's renderer materials, since null ones are the only known discriminator and a VRCFury prefix, parameter or layer read is not — a dead build carries all three correct. This is a symptom, not a settled test.
 
 And capture every observation — runtime reads, `RenderAvatar` shots — **before exiting play**: exit reverts the scene to authoring state, so anything captured after proves nothing about driven behavior.
 
@@ -117,7 +117,7 @@ A live chain re-asserts `_IsGrabbed` every frame, so writing the mirror bool sil
 
 **Nothing here is bit-reproducible.** Two runs of one choreography from an identical settled rest at the same pinned `dt` diverged ~0.011 m at the tip of a 6-bone, 0.15 m-per-bone chain over 25 frames. At n=2 that is a floor, not a bound, and no longer chain has reason to sit under it. Frame counts and `dt` reproduce; trajectories reproduce only to a tolerance you measure on your own rig.
 
-**`grabberId` is the grabbing player's id, and under the emulator it is inert.** Measured: `0`, `-1`, `7` and `123456` all returned a grab on both doors, each carrying the id passed, with `Networking.LocalPlayer` null. (That `grabFilter` therefore has no identity to key on is the likely mechanism, not the measurement.) So **no self/other grab permission claim is testable here, whatever id you pass** — that needs the shipping client, and nothing here predicts what it does.
+**`grabberId` is the grabbing player's id, and under the emulator it is inert.** Measured: `0`, `-1`, `7` and `123456` all returned a grab on both doors, each carrying the id passed, with `Networking.LocalPlayer` null. (That `grabFilter` therefore has no identity to key on is the mechanism.) So **no self/other grab permission claim is testable here, whatever id you pass** — that needs the shipping client, and nothing here predicts what it does.
 
 ## Verify mirror-detection
 
