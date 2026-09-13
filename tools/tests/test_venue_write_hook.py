@@ -11,10 +11,12 @@ operator's real venues.
 pwsh is required; without it the whole fixture skips rather than passing vacuously."""
 import json
 import os
+import time
 import shutil
 import subprocess
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 HOOK = Path(__file__).resolve().parent.parent / "venue-write-hook.ps1"
@@ -103,6 +105,19 @@ class VenueWriteHook(unittest.TestCase):
         cmd = f"rm {str(self.venue)}\\Assets\\x.png"
         self.assertIsNotNone(self.fire("Bash", {"command": cmd}, session="b2"))
 
+    def test_bash_workspace_relative_path_fires(self):
+        """`cp a.png MyVenue/Assets/x.png` from the workspace root carries no absolute path and is
+        the commonest shape there is."""
+        self.assertIsNotNone(self.fire("Bash", {"command": "cp a.png MyVenue/Assets/x.png"}, session="b4"))
+        self.assertIsNotNone(self.fire("Bash", {"command": "cp a.png ./MyVenue/Assets/x.png"}, session="b6"))
+
+    def test_bare_venue_name_without_a_separator_is_a_known_miss(self):
+        """The segment guard requires a following path separator, so prose does not fire — and
+        neither does `<vcs> -C MyVenue <subcommand>`, which IS a venue write. Pinned as a known
+        miss rather than left to be rediscovered: loosening the guard to bare-name would fire on
+        every sentence mentioning a venue. This is the net, not the fence."""
+        self.assertIsNone(self.fire("Bash", {"command": "echo 'MyVenue is the venue'"}, session="b7"))
+
     def test_bash_not_naming_a_venue_is_silent(self):
         self.assertIsNone(self.fire("Bash", {"command": "git status"}, session="b3"))
 
@@ -111,10 +126,24 @@ class VenueWriteHook(unittest.TestCase):
     def test_unity_mutator_fires_with_no_path(self):
         self.assertIsNotNone(self.fire("mcp__UnityMCP__manage_asset", {}, session="m1"))
 
-    def test_unity_read_only_door_is_silent(self):
-        """Observing before changing (CLAUDE.md rule 1) must not cost a wall of rules."""
+    def test_non_kit_read_tools_are_silent(self):
+        """Only the non-kit read tools stay silent. NOT "read-only doors stay silent" — every
+        agent-tools/avatar-tools door is invoked through execute_code, so a pure read like
+        CheckAvatar fires this hook. The leaf name carries no mutation information; that
+        false-positive side was chosen over missing the main mutation path."""
         self.assertIsNone(self.fire("mcp__UnityMCP__find_gameobjects", {}, session="m2"))
         self.assertIsNone(self.fire("mcp__UnityMCP__unity_reflect", {}, session="m3"))
+
+    def test_execute_code_fires_even_for_a_read_only_door(self):
+        """Pins the known false positive, so nobody "fixes" it into missing real mutation."""
+        body = {"code": "return Ryan6Vrc.AgentTools.Editor.CheckAvatar.Run();"}
+        self.assertIsNotNone(self.fire("mcp__UnityMCP__execute_code", body, session="m4"))
+
+    def test_manage_camera_fires(self):
+        """It writes PNGs and their .meta into the venue's Assets/ — real undisclosed litter."""
+        self.assertIsNotNone(
+            self.fire("mcp__UnityMCP__manage_camera", {"action": "screenshot"}, session="m5")
+        )
 
     # --- dedupe ---
 
@@ -130,6 +159,64 @@ class VenueWriteHook(unittest.TestCase):
         self.assertIsNotNone(
             self.fire("Write", {"file_path": str(self.venue / "Assets" / "b.prefab")}, session="d2", agent="sub")
         )
+
+    def test_stale_marker_dumps_again(self):
+        """Compaction drops injected context but leaves the session id, so a never-expiring marker
+        would run a long venue session permanently without the rules. 45 min, per the sibling hook."""
+        self.fire("Write", {"file_path": str(self.venue / "Assets" / "a.prefab")}, session="stale")
+        marker = self.markers / "claude-venue-write-hook" / "stale.marker"
+        old = time.time() - 60 * 60
+        os.utime(marker, (old, old))
+        self.assertIsNotNone(self.fire("Write", {"file_path": str(self.venue / "Assets" / "b.prefab")}, session="stale"))
+
+    # --- the heartbeat arm: the only one that reaches a venue outside the workspace ---
+
+    def _heartbeat(self, name, project_path, age_seconds=0):
+        d = self.home / ".unity-mcp"
+        d.mkdir(exist_ok=True)
+        stamp = datetime.now(timezone.utc) - timedelta(seconds=age_seconds)
+        (d / f"unity-mcp-status-{name}.json").write_text(json.dumps({
+            "project_name": name, "unity_port": 6400,
+            "project_path": project_path,
+            "last_heartbeat": stamp.isoformat().replace("+00:00", "Z"),
+        }), encoding="utf-8")
+
+    def test_heartbeat_root_outside_the_workspace_fires(self):
+        outside = self.temp / "Elsewhere" / "OtherVenue"
+        (outside / "Assets").mkdir(parents=True)
+        self._heartbeat("Other", outside.as_posix() + "/Assets")
+        self.assertIsNotNone(
+            self.fire("Bash", {"command": f"rm {outside.as_posix()}/Assets/x.png"}, session="h1")
+        )
+
+    def test_stale_heartbeat_is_not_a_root(self):
+        outside = self.temp / "Gone" / "DeadVenue"
+        (outside / "Assets").mkdir(parents=True)
+        self._heartbeat("Dead", outside.as_posix() + "/Assets", age_seconds=9999)
+        self.assertIsNone(
+            self.fire("Bash", {"command": f"rm {outside.as_posix()}/Assets/x.png"}, session="h2")
+        )
+
+    def test_corrupt_heartbeat_drops_only_itself(self):
+        """unity-instances-hook.sh's contract for the same files: a bad entry drops itself, never
+        the whole table. A Unity crash mid-write is the trigger."""
+        (self.home / ".unity-mcp").mkdir(exist_ok=True)
+        (self.home / ".unity-mcp" / "unity-mcp-status-bad.json").write_text("{truncated", encoding="utf-8")
+        outside = self.temp / "Live" / "LiveVenue"
+        (outside / "Assets").mkdir(parents=True)
+        self._heartbeat("Live", outside.as_posix() + "/Assets")
+        self.assertIsNotNone(
+            self.fire("Bash", {"command": f"rm {outside.as_posix()}/Assets/x.png"}, session="h3")
+        )
+
+    def test_venue_doc_fits_the_host_additional_context_cap(self):
+        """The host truncates additionalContext at 8000 chars / 200 lines, silently. "Dump it whole"
+        with a silently truncated dump is the exact failure this hook exists to prevent, so the real
+        doc's size is asserted here rather than left to be discovered."""
+        real = Path(__file__).resolve().parent.parent.parent / "docs" / "VENUE.md"
+        text = real.read_text(encoding="utf-8")
+        self.assertLess(len(text), 7000, "VENUE.md is approaching the 8000-char additionalContext cap")
+        self.assertLess(len(text.splitlines()), 180, "VENUE.md is approaching the 200-line cap")
 
     # --- never block ---
 
