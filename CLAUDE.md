@@ -29,26 +29,26 @@ Atelier/                        (this folder = session cwd; workspace docs + lau
 
 Per-system operating details and domain knowledge — install paths, MCP wiring, build commands, runtime behavior — live in `docs/`. Read the relevant file before operating in that domain:
 
-- **`docs/nondestructive.md`** — How NDMF / Modular Avatar / VRCFury compose avatars non-destructively (build-on-a-clone), and the reference-hardening facts all avatar tooling depends on.
-- **`docs/unity.md`** — Unity operating knowledge (always-read): MCP usage, the tool invocation/preview grammar, geometry-change reconcile, sharp edges. (Controller tooling lives in `animator.md`.)
-- **`docs/unity-tools.md`** — per-tool contracts for the agent inspection harness (`agent-tools`) and the vendor→owned avatar kit (`avatar-tools`); read when driving one of those tools, alongside `unity.md`'s conventions.
-- **`docs/animator.md`** + **`docs/animator-schema.md`** — animator-controller work: the tool doors (report/lint, clean/sweep/repath/own, compile/decompile + the round-trip) and the `CompileController` YAML authoring language. Read for any controller build, inspection, or round-trip.
-- **`docs/blender.md`** — Blender operating knowledge: headless batch + Blender MCP usage, the `avatarprep` extension.
-- **`docs/workflow.md`** — cross-system orchestration above any one tool: goals, sequencing, Unity↔Blender handoffs.
-- **`docs/dispatched-work.md`** — the standing brief for a session handed a kickoff block: the verify→plan→sign-off arc, channels, terminal state, the inbox. Read when a launch prompt or pasted block points you at it.
-- **`docs/tool-design.md`** — the design constitution for everything agent-facing: tool interfaces, and where knowledge lives (routing ladder, managed echoes, trap-lifting, governed diagnostics). Read before adding or changing tools, skills, or any agent-directed prose.
-- **`TOOLS.md`** — the system tool index: every callable across `vrc-unity-tools` / `vrc-blender-tools`. Read it to see the whole tool surface at once.
+- **`docs/nondestructive.md`** — how NDMF / Modular Avatar / VRCFury compose on a clone, and the reference-hardening every avatar tool depends on. Always-read before avatar work.
+- **`docs/unity.md`** — Unity operating knowledge; always-read. Controller tooling is `animator.md`'s.
+- **`docs/unity-tools.md`** — per-tool contracts for `agent-tools` and `avatar-tools`. Read when driving one, alongside `unity.md`.
+- **`docs/animator.md`** + **`docs/animator-schema.md`** — read for any controller build, inspection, or round-trip; the second is the `CompileController` YAML authoring language.
+- **`docs/blender.md`** — Blender operating knowledge; read for any mesh or armature work.
+- **`docs/workflow.md`** — which skill a task routes to, how tasks hand off, and the Unity↔Blender seam.
+- **`docs/dispatched-work.md`** — read when a launch prompt or pasted block points you at it.
+- **`docs/tool-design.md`** — read before adding or changing a tool, a skill, or any agent-directed prose.
+- **`TOOLS.md`** — the tool index; read to see the whole callable surface at once.
 - **`docs/runtime.md`** + **`docs/gimmicks.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns); skip for other work. Exception: `gimmicks.md` §Packaging owns `globalParams` for any VRCFury `FullController`.
-- **`docs/optimization.md`** — the performance rank: what each ranked stat counts on the built avatar, the lever that moves each and what it costs, the tool split (d4rk sweep, AAO surgical, Limitex textures), and the options-not-edits rule. Read for any rank or budget work, and before composing to a stated rank line.
-- **`docs/verify.md`** — how to prove a claim about an avatar: the method ladder, evidence rules, the enforced play-mode gate, what needs a real client. Read before verifying anything, not just gimmick work.
-- **`docs/emulator.md`** — the Av3Emulator harness: driving and observing an avatar in play mode — runtimes, remote clones, injected contacts, grabs, OSC-in-play, session cost. Read before driving any play session.
-- **`docs/vrchat-client.md`** — the agent-driven live desktop client: launch/relaunch, OSCQuery reads, instance policy, two-client runs. Read when a claim needs the shipping client.
-- **`docs/osc.md`** — the avatar parameter wire: address families, the exact-typing rule a mismatch silently violates, the latching-vs-momentary contract, and the emulator's OSC surface. Read for any rig driven or read over OSC; `vrc-bridge` keeps its own design record.
-- **`docs/menus.md`** — expression-menu authoring on composed avatars: where menus live, the control vocabulary, toggles as dependency closures, MA-first substrate choice. Read for any menu/toggle work.
-- **`docs/outfits.md`** — base-body (kisekae) clothing conventions: layered toggleable clothing meshes, the clothing↔body-blendshape coupling and the body-morph sliders that gate dynamics alongside it, and the FX controller as its authoritative map. Read before de-conflicting a base under a composed outfit, and before dropping or baking down any layer a base's own FX drives.
-- **`docs/LAYOUT.md`** — Unity venue conventions: the vendor untouched/copy-on-write principles, durable-vs-disposable, the filing trees, and **§Vendor mutation** — the enumerated cases where writing under `Vendor/` is sanctioned. Read before creating, filing, or writing any asset in a Unity venue.
-- **`docs/bootstrap.md`** — from-zero workspace assembly: clone the sub-repos, install + wire Unity·Blender·MCP, verify. Point a fresh agent here to stand the workspace up.
-- **`docs/new-project.md`** — runbook for adding another Unity project (an untracked working venue: seed the folder, VPM restore, wire the Editor). Skip in normal sessions.
+- **`docs/optimization.md`** — read for any rank or budget work, and before composing to a stated rank line.
+- **`docs/verify.md`** — read before proving any claim about an avatar, not just gimmick work.
+- **`docs/emulator.md`** — read before driving any play session.
+- **`docs/vrchat-client.md`** — read when a claim needs the shipping client.
+- **`docs/osc.md`** — read for any rig driven or read over OSC; `vrc-bridge` keeps its own design record.
+- **`docs/menus.md`** — read for any menu or toggle work.
+- **`docs/outfits.md`** — base-body (kisekae) clothing conventions. Read before de-conflicting a base under a composed outfit, and before dropping or baking down any layer a base's own FX drives.
+- **`docs/LAYOUT.md`** — venue conventions, **§Vendor mutation** enumerating where a write under `Vendor/` is sanctioned. Read before creating, filing, or writing any asset in a venue.
+- **`docs/bootstrap.md`** — point a fresh agent here to stand the workspace up.
+- **`docs/new-project.md`** — adding another Unity venue; skip in normal sessions.
 - **`references/README.md`** — routing table of open-source projects we learn from.
 
 ## Rules
