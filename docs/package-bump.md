@@ -1,6 +1,6 @@
 # VPM package bump — the fact home
 
-Our tooling reflects into MA / VRCFury / NDMF / the emulator by design (no vendor assembly is a compile-time reference of shipped code), so a package bump re-validates exact member signatures that vendors have moved before. The **`package-bump` skill owns the process** — the staged arc, its gates, and the report shape; this doc holds the facts the arc consumes. Commands live in `bootstrap.md` §3.
+Our tooling reflects into MA / VRCFury / NDMF / the emulator by design, so a package bump re-validates exact member signatures that vendors have moved before. The **`package-bump` skill owns the process** — the staged arc, its gates, and the report shape; this doc holds the facts the arc consumes. Commands live in `bootstrap.md` §3.
 
 ## Command facts the help text does not surface
 
@@ -10,7 +10,7 @@ Our tooling reflects into MA / VRCFury / NDMF / the emulator by design (no vendo
 
 ## Pin-surface map (which upgrade obliges which re-read)
 
-Route to the homes — each file's own comments carry the member-level detail; do not restate it here. Files sit under `com.ryan6vrc.agent-tools/Editor/` except `CauReflect.cs` / `AvatarRecord.cs` / `OwnMaterial.cs`, which are `com.ryan6vrc.avatar-tools/Editor/`.
+Route to the homes — each file's own comments carry the member-level detail. Files sit under `com.ryan6vrc.agent-tools/Editor/` except `CauReflect.cs` / `AvatarRecord.cs` / `OwnMaterial.cs`, which are `com.ryan6vrc.avatar-tools/Editor/`.
 
 | Package | Pin homes |
 |---|---|
@@ -24,4 +24,4 @@ Route to the homes — each file's own comments carry the member-level detail; d
 
 ## Beyond the pins: behavior the docs measured
 
-A vendor release can add or remove play-mode behavior our measured doc claims depend on — signature-stable, invisible to every canary. The tell in the source diff is the vendor's hook/patch trees (VRCFury `Editor-*/Hooks/`, MA `Editor/HarmonyPatches/`): a hook added or removed there is a behavior change at the exact layer `emulator.md` and `osc.md` measure, so name the affected claim and re-measure it or record why it stands (a removed vendor workaround whose job the SDK took over changes nothing while the SDK is unmoved).
+A vendor release can add or remove play-mode behavior our measured doc claims depend on, signature-stable and invisible to every canary. The tell in the source diff is the vendor's hook/patch trees (VRCFury `Editor-*/Hooks/`, MA `Editor/HarmonyPatches/`): a hook added or removed there is a behavior change at the exact layer `emulator.md` and `osc.md` measure, so name the affected claim and re-measure it or record why it stands (a removed vendor workaround whose job the SDK took over changes nothing while the SDK is unmoved).

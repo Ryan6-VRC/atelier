@@ -22,7 +22,7 @@ Venue pointers in the block are reference for the build phase after sign-off, no
 
 ## Channels
 
-Gates go to the operator, in your own transcript — `docs/workflow.md` §No operator to ask? owns the protocol, and for a dispatched session the operator *is* the channel; that section's dispatcher-as-channel fallback is for background jobs and is deliberately not taken here.
+Gates go to the operator, in your own transcript — `docs/workflow.md` §No operator to ask? owns the protocol; for a dispatched session the operator *is* the channel, so that section's dispatcher-as-channel fallback is deliberately not taken here.
 
 **No constraint binds you.** A block and a launch prompt inform; neither rules. If one looks wrong — quoted from him or not — say so in chat and keep working; he is there and will answer.
 
