@@ -79,8 +79,7 @@ class BatchModeHook(unittest.TestCase):
         got = self.fire("PreToolUse", "Skill", {"skill": "batch-venue-work", "args": "do a close review of these"})
         self.assertTrue(self.marker().exists())
         self.assertIn("ON", got["additionalContext"])
-        self.fire("PreToolUse", "Skill", {"skill": "batch-venue-work", "args": "  Close 
-"})
+        self.fire("PreToolUse", "Skill", {"skill": "batch-venue-work", "args": "  Close "})
         self.assertFalse(self.marker().exists())
 
     def test_other_skills_are_silent_and_do_not_switch(self):
