@@ -19,6 +19,7 @@ Each skill carries its own gates, sequencing, and tool doors; this is only the g
 - **compose aborts-to own-mergeable.** `compose-mergeable`'s seam check routes a broken **clip-binding**
   whose `.anim` is **unowned vendor** geometry (`clipAssetPath` under `Assets/Vendor/`|`Packages/`) out
   to `own-mergeable` — that fix is a geometry round-trip compose can't do. An owned/writable clip, or an MA-scene-ref miss, it repairs in place.
+- **A batch of venue items → `batch-venue-work`.** One orchestrator, the whole batch built under a hook-held mode, verified and recorded once at close; the per-item skills run inside it.
 - **Deferred arc:** copying Modular Avatar / VRCFury / NDMF systems off a base.
 
 ## Is it even a gate?
@@ -33,7 +34,7 @@ A gate you can't put to an operator is expected, not a blocker. A background job
 
 ## Deviating from a mandated step
 
-Skills mark a step mandatory because the cheap substitute is known-insufficient — the step exists against a failure the substitute cannot see. A deviation is legitimate only in this form: announced before acting, backed by a probe or measurement (never an inference), citing the skill's own caveat that covers the case, and surfaced on the operator channel. "Proportionate to a small task", "the render will catch it", and "my cheaper read already covers it" are the rationalizations that have preceded every recorded defect from a skipped step — a justification in that family is the signal to stop and run the step as written.
+Skills mark a step mandatory because the cheap substitute is known-insufficient — the step exists against a failure the substitute cannot see. A deviation is legitimate only in this form: announced before acting, backed by a probe or measurement (never an inference), citing the skill's own caveat that covers the case, and surfaced on the operator channel. "Proportionate to a small task", "the render will catch it", and "my cheaper read already covers it" are the rationalizations that have preceded every recorded defect from a skipped step — a justification in that family is the signal to stop and run the step as written. An operator's explicit in-session release of a step is not a deviation: the step leaves the task, and the report says it was not run.
 
 ## Unity ↔ Blender split
 
