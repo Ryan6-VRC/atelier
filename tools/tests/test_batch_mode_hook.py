@@ -1,7 +1,6 @@
 # tools/tests/test_batch_mode_hook.py
-"""The hook's contract is five arms keyed on one marker file. Each arm rests on a measured host
-fact (updatedInput reaches the subagent; a Skill call fires PreToolUse with its args; a deny carries
-its reason), none of which is a documented contract, so each is pinned here.
+"""The hook's contract is four arms keyed on one marker file. Each arm rests on a measured host
+fact (updatedInput reaches the subagent; a Skill call fires PreToolUse with its args), none of which is a documented contract, so each is pinned here.
 
 Every fixture points CLAUDE_PROJECT_DIR and TEMP at temp dirs, so a run never reads the real skill
 or leaves a marker a live session could pick up. pwsh is required; without it the fixture skips."""
@@ -121,32 +120,6 @@ class BatchModeHook(unittest.TestCase):
         got = self.fire("PreToolUse", "Agent", {"prompt": "x"})
         self.assertIn("worker-rails.md", got["updatedInput"]["prompt"])
 
-    # --- the prose fence ---
-
-    def test_markdown_write_is_denied_with_reason(self):
-        self.on()
-        got = self.fire("PreToolUse", "Write",
-                        {"file_path": str(self.proj / "Venue" / "Assets" / "README.md")})
-        self.assertEqual(got["permissionDecision"], "deny")
-        self.assertIn("close", got["permissionDecisionReason"])
-
-    def test_markdown_edit_and_notebook_are_denied(self):
-        self.on()
-        self.assertEqual(self.fire("PreToolUse", "Edit", {"file_path": "a/b.md"})["permissionDecision"], "deny")
-        self.assertEqual(self.fire("PreToolUse", "NotebookEdit", {"notebook_path": "a/b.md"})["permissionDecision"], "deny")
-
-    def test_non_markdown_write_is_silent(self):
-        self.on()
-        self.assertIsNone(self.fire("PreToolUse", "Write", {"file_path": "a/b.prefab"}))
-
-    def test_markdown_write_allowed_when_off(self):
-        self.assertIsNone(self.fire("PreToolUse", "Write", {"file_path": "a/b.md"}))
-
-    def test_subagent_markdown_write_is_denied_too(self):
-        self.on()
-        got = self.fire("PreToolUse", "Write", {"file_path": "a/b.md"}, agent="A1")
-        self.assertEqual(got["permissionDecision"], "deny")
-
     # --- the prompt line and the compaction dump ---
 
     def test_prompt_gets_the_dispatch_line(self):
@@ -154,6 +127,10 @@ class BatchModeHook(unittest.TestCase):
         got = self.fire("UserPromptSubmit", extra={"prompt": "do the thing"})
         self.assertIn("named blocker", got["additionalContext"])
         self.assertIn("close", got["additionalContext"])
+
+    def test_writes_are_never_blocked(self):
+        self.on()
+        self.assertIsNone(self.fire("PreToolUse", "Write", {"file_path": "a/README.md"}))
 
     def test_prompt_silent_when_off(self):
         self.assertIsNone(self.fire("UserPromptSubmit", extra={"prompt": "hi"}))

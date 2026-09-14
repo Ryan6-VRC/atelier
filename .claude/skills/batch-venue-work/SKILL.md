@@ -5,7 +5,7 @@ description: Use when the operator hands over a batch of venue asset work to bui
 
 # Batch venue work
 
-Invoking this skill switches the session into batch mode: the deliverable is the whole batch, built by as many subagents as it has work for, against one Editor, with verification and prose done once at the end. `tools/batch-mode-hook.ps1` holds the mode for the session by machine, not memory: it appends `.claude/skills/batch-venue-work/worker-rails.md` to every subagent brief, refuses markdown writes until close, restates the dispatch rule on every prompt, and re-dumps this body after compaction. The per-item skills own the work; this skill owns sequencing, the brief, and the operator's instruction ledger.
+Invoking this skill switches the session into batch mode: the deliverable is the whole batch, built by as many subagents as it has work for, against one Editor, with verification and prose done once at the end. `tools/batch-mode-hook.ps1` holds the mode for the session by machine, not memory: it appends `.claude/skills/batch-venue-work/worker-rails.md` to every subagent brief, restates the batch rule on every prompt, and re-dumps this body after compaction. The per-item skills own the work; this skill owns sequencing, the brief, and the operator's instruction ledger.
 
 **No operator to ask?** `workflow.md` §No operator to ask? — its batch form: work that does not depend on an answer proceeds, work that does is left undone and named, never guessed, and the questions surface in one block when the operator can see the scene. A subject left visibly wrong turns a question into a glance; a plausible value hides it.
 
@@ -13,7 +13,7 @@ Invoking this skill switches the session into batch mode: the deliverable is the
 
 - **Unlimited fan-out against one Editor** — CLAUDE.md rule 9's carve-out. The Unity bridge queues every call onto the Editor's main thread in order, so agents serialise at the transport and collide only on content: disjoint buckets, nobody in play mode, and the scene saved by one live agent at a time are the whole safety condition. Spawn everything that is not blocked, now. Width is spent, never rationed, and a granted width is not re-asked.
 - **Gates only.** Play mode, bakes and uploads are the operator's unless the batch says otherwise. State that default in the plan in one line; do not ask it.
-- **No prose until close.** The hook refuses `.md` writes, yours included. No skill authoring, no inbox notes, no record mid-batch; agents carry what the record needs in their reports.
+- **No prose until close, yours included.** No skill authoring, no inbox notes, no record mid-batch; agents carry what the record needs in their reports, and no brief asks for a file.
 - **You drive no Editor call yourself.** Your reads queue behind the fan-out while the operator waits on you. Dispatch reads too, on a cheap model.
 - **Free text only.** Never `AskUserQuestion`; the operator answers a plan in prose.
 

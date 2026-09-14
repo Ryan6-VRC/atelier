@@ -58,7 +58,7 @@
         ]
       },
       {
-        "matcher": "Skill|Agent|Write|Edit|NotebookEdit",
+        "matcher": "Skill|Agent",
         "hooks": [
           {
             "type": "command",

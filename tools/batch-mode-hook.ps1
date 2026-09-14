@@ -14,14 +14,14 @@
 #                      through updatedInput, so the brief carries the rails whether or not the
 #                      coordinator wrote them. Measured on the shipped binary: updatedInput reaches the
 #                      subagent as its prompt. A prompt already carrying the rails is left alone.
-#   PreToolUse/Write|Edit|NotebookEdit   mode on and the target is .md: DENIED, with the reason. This is
-#                      the one arm that blocks, deliberately: mid-batch prose is the failure the mode
-#                      exists against, and a nudge in briefs was already tried and ignored. Bash-side
-#                      markdown writes are not caught; this is a fence on the tools that carry a path.
+#   (No write fence. A block on .md writes was built and dropped: an agent has too many ways to write a
+#    file for a path-keyed block to be a fence, and a fence that only sometimes holds teaches the wrong
+#    thing. The rails and the prompt line carry the no-prose rule instead.)
 #   UserPromptSubmit   mode on: one line, the mode's age and the dispatch-or-name rule.
 #   SessionStart       (matched to `compact` in settings) mode on: the skill body dumped whole, since
 #                      compaction dropped it.
-# Every other path exits 0 silently. Marker expiry is 12 hours: longer than any batch, short enough
+# Every other path exits 0 silently; nothing here ever blocks a call. Marker expiry is 12 hours:
+# longer than any batch, short enough
 # that a session that never closed cannot poison the next day's.
 
 $ErrorActionPreference = 'Stop'
@@ -62,7 +62,7 @@ try {
         if ($skillArgs -match '(^|\s)close(\s|$)') {
             Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
             Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext =
-                'Batch mode is OFF for this session: markdown writes are allowed again and subagent briefs no longer carry the worker rails. The closing pass runs now: reviewers, then the venue record, then commit.' } }
+                'Batch mode is OFF for this session: subagent briefs no longer carry the worker rails and prompts no longer restate the batch rule. The closing pass runs now: reviewers, then the venue record, then commit.' } }
             exit 0
         }
         New-Item -ItemType Directory -Force -Path $markerRoot | Out-Null
@@ -71,7 +71,7 @@ try {
             Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-2) } |
             Remove-Item -Force -ErrorAction SilentlyContinue
         Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext =
-            'Batch mode is ON for this session (tools/batch-mode-hook.ps1): every subagent brief gets worker-rails.md appended, markdown writes are refused until `/batch-venue-work close`, and each prompt restates the dispatch-or-name rule.' } }
+            'Batch mode is ON for this session (tools/batch-mode-hook.ps1): every subagent brief gets worker-rails.md appended and each prompt restates the batch rule, until `/batch-venue-work close`.' } }
         exit 0
     }
 
@@ -90,21 +90,13 @@ try {
             Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'allow'; updatedInput = $updated } }
             exit 0
         }
-        if ($tool -eq 'Write' -or $tool -eq 'Edit' -or $tool -eq 'NotebookEdit') {
-            $path = if ($ti.file_path) { [string]$ti.file_path } elseif ($ti.notebook_path) { [string]$ti.notebook_path } else { $null }
-            if ($path -and $path -match '\.md$') {
-                Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'deny'; permissionDecisionReason =
-                    'Batch mode: no prose until the batch closes. Markdown writes are refused until `/batch-venue-work close` has run. Carry the fact in your report; the closing pass writes the record once.' } }
-                exit 0
-            }
-        }
         exit 0
     }
 
     if ($event -eq 'UserPromptSubmit') {
         $mins = [int]((Get-Date) - $since).TotalMinutes
         Emit @{ hookSpecificOutput = @{ hookEventName = 'UserPromptSubmit'; additionalContext =
-            "Batch mode, on for $mins min. Every instruction in this prompt becomes a live agent or a named blocker in this turn; you drive no Editor call yourself; markdown writes are refused until ``/batch-venue-work close``." } }
+            "Batch mode, on for $mins min. Every instruction in this prompt becomes a live agent or a named blocker in this turn; you drive no Editor call yourself; no prose from anyone until ``/batch-venue-work close``." } }
         exit 0
     }
 
