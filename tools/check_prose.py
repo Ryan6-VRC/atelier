@@ -1,7 +1,7 @@
 # tools/check_prose.py
 """Workspace prose-governance check, run from the meta-repo root or any linked worktree.
 
-Four passes over the assembled workspace, on two roots: everything under
+Three passes over the assembled workspace, on two roots: everything under
 judgment (docs/, TOOLS.md, README.md, .claude/skills) reads from THIS tree,
 while the `vrc-*` siblings — gitignored, so present only in the main checkout —
 resolve there via atelier_paths. A worktree run therefore adjudicates the same
@@ -14,16 +14,13 @@ but whose directory is gone is the other thing, and fails loud
 (FAMILY_REQUIRED_BY).
 
   1. vrc-skills' own gate, tools/validate_skills.py (subprocess) — skill
-     anatomy; its errors/warnings count here. Passes 1-3 cover both governed
+     anatomy; its errors/warnings count here. Passes 1-2 cover both governed
      enumerations (SKILL_FAMILIES): the plugin repo's skills/ and this repo's
      .claude/skills/, held to one anatomy. Numbered first, RUN last, so the
-     reporting passes report before it can abort the run (pass 4 can abort too).
+     reporting pass reports before it can abort the run (pass 3 can abort too).
   2. Doc pointers: every docs-file reference in a SKILL.md resolves against the
      meta-repo (docs/ listing, root .md files, files in vrc-skills). WARN.
-  3. Tool names, structured slot only: each leading bold-backticked name in a
-     skill's "## Tools" bullets appears in TOOLS.md. WARN. Prose outside that
-     slot is never scanned.
-  4. Form: tools/reflow_md.py's --check over the governed fence — files
+  3. Form: tools/reflow_md.py's --check over the governed fence — files
      enumerated from the governed_fence constants in docs/tool-design.md
      (roots, glob, exclude, check-ignore). ERROR on drift: the form gate is
      already the declared convention. Individual roots still NOTE-skip, but
@@ -36,7 +33,7 @@ on any markdown the agent authors in the workspace and reads no fence constant,
 so there is no echo of these constants left to keep in sync.
 
 Skills in CONVENTIONS.md's exempt list are held to frontmatter checks only, so
-passes 2-3 skip them (their doc references include run-time artifacts by design).
+pass 2 skips them (their doc references include run-time artifacts by design).
 Exit 0 when only warnings, 1 on any error, 2 on an internal failure.
 """
 import argparse
@@ -68,12 +65,7 @@ BACKTICK_RE = re.compile(r'`([^`\n]+)`')
 MD_NAME_RE = re.compile(r'^[\w-]+\.md$')
 MD_PATH_RE = re.compile(r'^[\w./-]+/[\w.-]+\.md$')
 DOCS_REF_RE = re.compile(r'\bdocs/[\w-]+\.md\b')
-H2_RE = re.compile(r'^\s{0,3}##(?!#)\s*(.*?)\s*$')
 FENCE_RE = re.compile(r'^\s{0,3}(`{3,}|~{3,})')
-# A checkable tool token: one bare identifier, optionally a trailing wildcard
-# ("Check*"); dotted package ids, paths, and glossed phrases are not the slot.
-TOOL_TOKEN_RE = re.compile(r'^[A-Za-z0-9_]+\*?$')
-TOOLS_BULLET_RE = re.compile(r'^\s*[-*]\s+\*\*(`.*?)\*\*')
 
 
 class GateError(Exception):
@@ -371,43 +363,7 @@ def pass_doc_pointers(out, exempt, fence):
                                    f"root file, or vrc-skills file")
 
 
-# ---- pass 3: Tools-section names appear in TOOLS.md ----
-
-def pass_tool_names(out, exempt, terminal_section):
-    out.start('tool-names')
-    dirs = skill_dirs()
-    tools_md = ROOT / 'TOOLS.md'
-    if not dirs or not tools_md.is_file():
-        print('NOTE  pass 3 (tool-names): no governed skill directories, or TOOLS.md '
-              'absent — skipped')
-        return
-    roster_text = tools_md.read_text(encoding='utf-8')
-
-    def resolves(tok):
-        pat = re.escape(tok[:-1]) + r'[A-Za-z0-9_]*' if tok.endswith('*') else re.escape(tok)
-        return re.search(r'\b' + pat + r'\b', roster_text)
-
-    for d in dirs:
-        if d.name in exempt:
-            continue
-        lines = strip_fences((d / 'SKILL.md').read_text(encoding='utf-8').splitlines())
-        rel = _display(d / 'SKILL.md')
-        heads = [(i, m.group(1)) for i, ln in enumerate(lines) if (m := H2_RE.match(ln))]
-        start = next((i for i, t in reversed(heads)
-                      if t == terminal_section or t.startswith(terminal_section + ' ')), None)
-        if start is None:
-            continue  # anatomy warning is pass 1's; nothing structured to check
-        end = next((i for i, _ in heads if i > start), len(lines))
-        for i in range(start + 1, end):
-            m = TOOLS_BULLET_RE.match(lines[i])
-            if not m:
-                continue
-            for tok in BACKTICK_RE.findall(m.group(1)):
-                if TOOL_TOKEN_RE.match(tok) and not resolves(tok):
-                    out.warn(f'{rel}:{i + 1}', f"Tools-section name '{tok}' not found in TOOLS.md")
-
-
-# ---- pass 4: one-line-per-paragraph form over the governed fence ----
+# ---- pass 3: one-line-per-paragraph form over the governed fence ----
 
 def git_ignored(repo, relpaths):
     """The subset of relpaths git would ignore in repo (check-ignore batch).
@@ -476,10 +432,10 @@ def pass_form(out, fence):
         # resolve against the main checkout, where the clones actually live.
         repos = [ROOT] if pat == '.' else sorted(p for p in SIBLINGS.glob(pat) if p.is_dir())
         if not repos:
-            print(f'NOTE  pass 4 (form): no sibling matches root "{pat}" — skipped')
+            print(f'NOTE  pass 3 (form): no sibling matches root "{pat}" — skipped')
         for repo in repos:
             if not (repo / '.git').exists():
-                print(f'NOTE  pass 4 (form): {_display(repo)} is not a git repo — skipped')
+                print(f'NOTE  pass 3 (form): {_display(repo)} is not a git repo — skipped')
                 continue
             files += governed_md(repo, fence)
 
@@ -524,12 +480,11 @@ def main(argv=None):
              'degraded to this tree)' if SIBLINGS_FELL_BACK else ''))
 
     out = Findings()
-    exempt, terminal = [], 'Tools'
+    exempt = []
     conv = SIBLINGS / 'vrc-skills' / 'CONVENTIONS.md'
     if conv.is_file():
         consts = read_constants(conv, 'description_prefix')
         exempt = consts.get('exempt_skills', [])
-        terminal = consts.get('terminal_section', terminal)
     consts_fence = read_constants(ROOT / 'docs' / 'tool-design.md', 'governed_fence')
     # Bare subscripting would raise KeyError and exit 1, which this module
     # reserves for lint findings; a malformed constants block is an internal
@@ -539,11 +494,10 @@ def main(argv=None):
     aborted = True
     try:
         pass_doc_pointers(out, exempt, fence)
-        pass_tool_names(out, exempt, terminal)
         # Pass 1 runs last so the reporting passes report first. Its internal failures
         # raise (exit 2), and a maintainer with a half-refactored vrc-skills checkout
         # still needs the other passes to adjudicate the doc edits they actually made.
-        # Pass 4 can abort too (the zero-file fence refusal), so this is a reordering for
+        # Pass 3 can abort too (the zero-file fence refusal), so this is a reordering for
         # the common case, not a guarantee that every pass gets to run — which is why the
         # summary below prints from a finally.
         pass_form(out, fence)

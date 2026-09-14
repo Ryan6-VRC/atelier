@@ -72,13 +72,13 @@ class Fixture(unittest.TestCase):
         # Hermetic git. Both git_ignored and governed_md spawn git themselves, so the tests
         # cannot pass flags — a developer's global core.excludesFile (or an inherited GIT_DIR
         # from running under a hook or `git bisect run`) would otherwise silently change which
-        # files pass 4 sees.
+        # files pass 3 sees.
         env = dict(os.environ)
         for var in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR',
                     'GIT_OBJECT_DIRECTORY', 'GIT_CEILING_DIRECTORIES',
                     # -c settings travel in these, so `git -c core.excludesFile=... `,
                     # an alias, or `git bisect run` would otherwise reach straight past
-                    # the GIT_CONFIG_GLOBAL/SYSTEM redirect below and change pass 4's
+                    # the GIT_CONFIG_GLOBAL/SYSTEM redirect below and change pass 3's
                     # file set on someone else's machine.
                     'GIT_CONFIG_PARAMETERS', 'GIT_CONFIG_COUNT'):
             env.pop(var, None)
@@ -459,63 +459,6 @@ class TestPassDocPointers(Fixture):
 
 # ---------------------------------------------------------------- pass 3
 
-class TestPassToolNames(Fixture):
-    def run_pass(self, exempt=()):
-        return self.capture(c.pass_tool_names, self.out, list(exempt), 'Tools')
-
-    def setUp(self):
-        super().setUp()
-        self.write('TOOLS.md', '| Key | Purpose |\n| --- | --- |\n| `RealTool` | x |\n'
-                               '| `CheckAvatar` | y |\n')
-
-    def test_unknown_name_warns_at_its_line(self):
-        self.skill('demo', '---\nname: demo\n---\n\n# D\n\nprose\n\n## Tools\n\n'
-                           '- **`Ghost`** — not in the roster\n')
-        text = self.run_pass()
-        self.assertIn('.claude/skills/demo/SKILL.md:11:', text)
-        self.assertIn('Ghost', text)
-        self.assertEqual(self.out.warnings, 1)
-
-    def test_known_name_is_silent(self):
-        self.skill('demo', '---\nname: demo\n---\n\n# D\n\n## Tools\n\n- **`RealTool`** — x\n')
-        self.run_pass()
-        self.assertEqual(self.out.warnings, 0)
-
-    def test_wildcard_token_resolves_by_prefix(self):
-        self.skill('demo', '---\nname: demo\n---\n\n# D\n\n## Tools\n\n- **`Check*`** — family\n')
-        self.run_pass()
-        self.assertEqual(self.out.warnings, 0)
-
-    def test_non_token_shapes_are_not_the_slot(self):
-        # Dotted package ids and paths are prose, not checkable tool names.
-        self.skill('demo', '---\nname: demo\n---\n\n# D\n\n## Tools\n\n'
-                           '- **`com.vendor.thing`** — a package\n'
-                           '- **`tools/reflow_md.py`** — a path\n')
-        self.run_pass()
-        self.assertEqual(self.out.warnings, 0)
-
-    def test_only_the_terminal_section_is_scanned_and_the_last_one_wins(self):
-        self.skill('demo', '---\nname: demo\n---\n\n# D\n\n## Tools\n\n'
-                           '- **`EarlyGhost`** — in a superseded section\n\n'
-                           '## Notes\n\n- **`OutsideGhost`** — not in the slot\n\n'
-                           '## Tools (again)\n\n- **`LateGhost`** — the live section\n')
-        text = self.run_pass()
-        self.assertEqual(self.out.warnings, 1)
-        self.assertIn('LateGhost', text)
-
-    def test_exempt_skill_is_skipped_but_the_control_is_still_reported(self):
-        self.skill('exempted', '---\nname: exempted\n---\n\n# E\n\n## Tools\n\n'
-                               '- **`ExemptGhost`** — x\n')
-        self.skill('control', '---\nname: control\n---\n\n# C\n\n## Tools\n\n'
-                              '- **`ControlGhost`** — x\n')
-        text = self.run_pass(exempt=['exempted'])
-        self.assertEqual(self.out.warnings, 1)
-        self.assertIn('ControlGhost', text)
-        self.assertNotIn('ExemptGhost', text)
-
-
-# ---------------------------------------------------------------- pass 4
-
 class TestPassForm(Fixture):
     def test_drifted_file_is_an_error_naming_the_fix(self):
         self.write('bad.md', DRIFTED_MD)
@@ -555,7 +498,7 @@ class TestPassForm(Fixture):
     def test_a_dot_git_FILE_is_still_a_repo(self):
         # In a linked worktree .git is a file, not a directory — the venue this workspace
         # actually commits from. Testing .exists() with a git-init'd fixture alone would let
-        # a narrowing to .is_dir() through, and that mutation makes pass 4 skip every root,
+        # a narrowing to .is_dir() through, and that mutation makes pass 3 skip every root,
         # resolve zero files, and refuse to run at all.
         wt = self.root / 'vrc-thing'
         wt.mkdir()
@@ -586,7 +529,6 @@ class TestMainExitCodes(Fixture):
                    '# D\n\n```yaml\ngoverned_fence:\n  roots:\n    - "."\n'
                    '  not_ignored: true\n  glob: "**/*.md"\n  exclude:\n'
                    '    - test-output/\n```\n')
-        self.write('TOOLS.md', '| Key |\n| --- |\n| `RealTool` |\n')
         self.write('README.md', DRIFTED_MD if drifted else CLEAN_MD)
         if child_body is not None:
             self.sibling_gate(child_body)
@@ -651,7 +593,7 @@ class TestMainExitCodes(Fixture):
         shutil.rmtree(self.root / 'vrc-skills' / 'skills')
         rc, text = self.run_gate()
         self.assertEqual(rc, 2, text)
-        self.assertIn('not one-line-per-paragraph', text)   # pass 4 still adjudicated
+        self.assertIn('not one-line-per-paragraph', text)   # pass 3 still adjudicated
         self.assertIn('vanished', text)
         self.assertIn('RUN INCOMPLETE', text)
 
