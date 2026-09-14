@@ -56,6 +56,17 @@
             "statusMessage": "Checking for venue writes"
           }
         ]
+      },
+      {
+        "matcher": "Skill|Agent|Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR/tools/batch-mode-hook.ps1\"",
+            "timeout": 10,
+            "statusMessage": "Checking batch mode"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -90,6 +101,29 @@
             "command": "sh \"$CLAUDE_PROJECT_DIR/tools/unity-instances-hook.sh\"",
             "timeout": 10,
             "statusMessage": "Reading Unity Editor heartbeats"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR/tools/batch-mode-hook.ps1\"",
+            "timeout": 10,
+            "statusMessage": "Checking batch mode"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR/tools/batch-mode-hook.ps1\"",
+            "timeout": 10,
+            "statusMessage": "Checking batch mode"
           }
         ]
       }
