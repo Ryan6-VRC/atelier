@@ -8,7 +8,7 @@
 # hook fire in the session sees the same answer without any per-agent bookkeeping.
 #
 # Arms, by hook_event_name:
-#   PreToolUse/Skill   `batch-venue-work` turns the mode on; args containing `close` turn it off. Both
+#   PreToolUse/Skill   `batch-venue-work` turns the mode on; args of exactly `close` turn it off. Both
 #                      answer with one line of context so the model knows which state it is in.
 #   PreToolUse/Agent   mode on: worker-rails.md (beside the skill) is appended to the subagent's prompt
 #                      through updatedInput, so the brief carries the rails whether or not the
@@ -27,7 +27,9 @@
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 
-function Emit($obj) { $obj | ConvertTo-Json -Depth 6 -Compress | Write-Output }
+# Depth 20: an Agent input is flat today, but a truncated nested value serializes as a string and the
+# rewrite would silently ship it; the test pins nested/array/bool/null fields round-tripping intact.
+function Emit($obj) { $obj | ConvertTo-Json -Depth 20 -Compress -WarningAction SilentlyContinue | Write-Output }
 
 try {
     $raw = [Console]::In.ReadToEnd()
@@ -59,7 +61,8 @@ try {
         $skill = [string]$ti.skill
         if ($skill -notmatch '(^|:)batch-venue-work$') { exit 0 }
         $skillArgs = [string]$ti.args
-        if ($skillArgs -match '(^|\s)close(\s|$)') {
+        # The whole argument, not a word in it: `do a close review of these` opens a batch.
+        if ($skillArgs.Trim() -ieq 'close') {
             Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
             Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext =
                 'Batch mode is OFF for this session: subagent briefs no longer carry the worker rails and prompts no longer restate the batch rule. The closing pass runs now: reviewers, then the venue record, then commit.' } }
@@ -80,14 +83,16 @@ try {
     if ($event -eq 'PreToolUse') {
         if ($tool -eq 'Agent') {
             $prompt = [string]$ti.prompt
-            if ($prompt -match 'Batch mode rails') { exit 0 }
+            if ($prompt -match '(?m)^--- Batch mode rails') { exit 0 }
             $rails = $null
             try { $rails = Get-Content -LiteralPath ([System.IO.Path]::Combine($skillDir, 'worker-rails.md')) -Raw -ErrorAction Stop } catch { }
             if (-not $rails) { $rails = 'Batch mode rails: read `.claude/skills/batch-venue-work/worker-rails.md` before doing anything; this hook could not read it.' }
             $updated = @{}
             foreach ($p in $ti.PSObject.Properties) { $updated[$p.Name] = $p.Value }
             $updated['prompt'] = $prompt.TrimEnd() + "`n`n" + $rails.TrimEnd() + "`n"
-            Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'allow'; updatedInput = $updated } }
+            # No permissionDecision: the rewrite reaches the subagent without one (measured headless under
+            # default permissions), and an `allow` here would silently bypass the Agent permission prompt.
+            Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; updatedInput = $updated } }
             exit 0
         }
         exit 0

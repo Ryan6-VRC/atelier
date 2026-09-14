@@ -1,6 +1,8 @@
 # tools/tests/test_batch_mode_hook.py
 """The hook's contract is four arms keyed on one marker file. Each arm rests on a measured host
-fact (updatedInput reaches the subagent; a Skill call fires PreToolUse with its args), none of which is a documented contract, so each is pinned here.
+fact (updatedInput reaches the subagent; a Skill call fires PreToolUse with its args; a subagent's
+payload carries its parent's session_id), measured headless and not documented. The tests here pin
+the script's side of each; the host side is re-measured with a headless `claude -p` run.
 
 Every fixture points CLAUDE_PROJECT_DIR and TEMP at temp dirs, so a run never reads the real skill
 or leaves a marker a live session could pick up. pwsh is required; without it the fixture skips."""
@@ -72,6 +74,15 @@ class BatchModeHook(unittest.TestCase):
         self.assertFalse(self.marker().exists())
         self.assertIn("OFF", got["additionalContext"])
 
+    def test_close_is_the_whole_argument_not_a_word(self):
+        self.on()
+        got = self.fire("PreToolUse", "Skill", {"skill": "batch-venue-work", "args": "do a close review of these"})
+        self.assertTrue(self.marker().exists())
+        self.assertIn("ON", got["additionalContext"])
+        self.fire("PreToolUse", "Skill", {"skill": "batch-venue-work", "args": "  Close 
+"})
+        self.assertFalse(self.marker().exists())
+
     def test_other_skills_are_silent_and_do_not_switch(self):
         self.assertIsNone(self.fire("PreToolUse", "Skill", {"skill": "compose-mergeable", "args": ""}))
         self.assertFalse(self.marker().exists())
@@ -93,13 +104,21 @@ class BatchModeHook(unittest.TestCase):
         self.on()
         got = self.fire("PreToolUse", "Agent",
                         {"prompt": "Own the hat.", "subagent_type": "general-purpose", "model": "opus"})
-        self.assertEqual(got["permissionDecision"], "allow")
+        self.assertNotIn("permissionDecision", got)  # a rewrite, never a permission bypass
         new = got["updatedInput"]
         self.assertTrue(new["prompt"].startswith("Own the hat."))
         # The rails are read as UTF-8 and re-emitted as UTF-8: the em-dash must round-trip.
         self.assertIn("RAILS-SENTINEL — with an em-dash.", new["prompt"])
         self.assertEqual(new["subagent_type"], "general-purpose")
         self.assertEqual(new["model"], "opus")
+
+    def test_nested_input_fields_round_trip_intact(self):
+        self.on()
+        deep = {"prompt": "x", "run_in_background": True, "isolation": None,
+                "tags": ["a", "b"], "opts": {"k": {"j": {"i": [1, {"z": False}]}}}}
+        new = self.fire("PreToolUse", "Agent", deep)["updatedInput"]
+        for k in ("run_in_background", "isolation", "tags", "opts"):
+            self.assertEqual(new[k], deep[k], k)
 
     def test_agent_brief_untouched_when_off(self):
         self.assertIsNone(self.fire("PreToolUse", "Agent", {"prompt": "Own the hat."}))
@@ -108,8 +127,14 @@ class BatchModeHook(unittest.TestCase):
         self.on()
         self.assertIsNone(self.fire("PreToolUse", "Agent",
                                     {"prompt": "x\n\n--- Batch mode rails ---\nRAILS-SENTINEL"}))
+        # Mentioning the rails is not carrying them.
+        got = self.fire("PreToolUse", "Agent", {"prompt": "Find out why the Batch mode rails were missing."})
+        self.assertIn("RAILS-SENTINEL", got["updatedInput"]["prompt"])
 
-    def test_spawn_from_inside_a_subagent_gets_rails(self):
+    def test_marker_is_keyed_on_session_not_agent(self):
+        # The host fact this rests on (a subagent's hook payload carries its parent's session_id
+        # plus its own agent_id) was measured headless, not here; this pins only that the hook
+        # keys on the session and ignores agent_id, so that payload shape finds the marker.
         self.on()
         got = self.fire("PreToolUse", "Agent", {"prompt": "nested"}, agent="A1")
         self.assertIn("RAILS-SENTINEL", got["updatedInput"]["prompt"])
