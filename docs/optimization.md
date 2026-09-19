@@ -28,7 +28,7 @@ Canon: `Packages/com.vrchat.base/Runtime/VRCSDK/Dependencies/VRChat/Resources/Va
 | textureMegabytes | 40 | 75 | 110 | 150 | §Texture memory |
 | contactCount | 8 | 16 | 24 | 32 | non-local components only: `localOnly` on a sender or receiver exempts it, and `contactCompleteCount` is the unrated total; §One component, many roles |
 | constraintsCount / constraintDepth | 100 / 20 | 250 / 50 | 300 / 80 | 350 / 100 | none owned; §One component, many roles |
-| animatorCount | 1 | 4 | 16 | 32 | merge into the FX layer (MA `Merge Animator`, VRCFury `FullController`); the count falls only when the child `Animator` is deleted (MA's `deleteAttachedAnimator`) |
+| animatorCount | 1 | 4 | 16 | 32 | merge into the FX layer (MA `Merge Animator`, VRCFury `FullController`); the count falls only when the child `Animator` is deleted (MA's `deleteAttachedAnimator`; VRCFury deletes one whose GameObject carries a VRCFury component) |
 | lightCount | 0 | 0 | 0 | 1 | none owned; §One component, many roles |
 | audioSourceCount | 1 | 4 | 8 | 8 | none owned; §One component, many roles |
 | particleSystemCount / particleTotalCount / particleMaxMeshPolyCount | 0 / 0 / 0 | 4 / 300 / 1000 | 8 / 1000 / 2000 | 16 / 2500 / 5000 | none owned; §One component, many roles |

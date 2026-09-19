@@ -24,7 +24,7 @@ Building avatar systems — state machines, constraints, contacts, network sync 
 | World-geometry point (aim, attach-at-distance) | `VRCRaycast`: bone-origin ray → result transform (usable as constraint source) + `_Hit`/`_Ratio`/`_Distance` params | 0 bits; **per-client, not local** — every copy runs its own ray (`runtime.md`) |
 | State on one specific other player | `VRCRaycast` masked to the observing client's own capsule + a per-observer latch (below) | 0 bits *per target*; the whole instance's state costs the same few bits as one target |
 | Inter-avatar contact without receivers | DPS/SPS shader-space (light *range* encodes channel; SPS ships in VRCFury) | 0 bits; both ends need the shader |
-| Perpetual decorative motion (spinning gears) | a looping clip in the module's merged controller, folded into an existing DBT where there is one | 0 bits |
+| Perpetual decorative motion (spinning gears) | a looping clip on its own layer in the module's merged controller | 0 bits |
 
 **PhysBone drop/carry — what actually crosses the wire** (pick by whether the drop must persist for a late joiner, and by what you can verify without two clients):
 
