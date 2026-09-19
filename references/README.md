@@ -36,6 +36,9 @@ Match your task → project (`file`).
 **Particles**
 - Re-fire a particle burst from an FX animator without clearing bursts still in flight → `Particle-Bufferer` (`Editor/BufferParticleCreator.cs`)
 
+**Culling**
+- Tell whether a region is on this client's screen (a `CullCompletely` sub-animator races FX for a heartbeat contact) → `IsRendering-Detection` (`IsRendering Detection.prefab`, `Resources/Animations/IsRendering Sub.controller`); reproduced as `vrc-patterns/render-detect`
+
 **Network sync & contacts**
 - Sync an object's world position/rotation across the network (contacts+drivers, float→bool packing for cheap params) → `Custom-Object-Sync` (`CustomObjectSyncCreator.cs`, `ControllerGenerationMethods.cs`)
 - Attach an object to another player's contact (6 proximity contacts + parent constraint) → `Contact-Tracker` (`Contact Tracker.prefab`, `Contact Tracker FX.controller`)
@@ -94,6 +97,7 @@ Match your task → project (`file`).
 | [OSCmooth](https://github.com/regzo2/OSCmooth) | M | MIT |
 | [VRCFaceTracking](https://github.com/benaclejames/VRCFaceTracking) | M | Apache-2.0 |
 | [Particle-Bufferer](https://github.com/VRLabs/Particle-Bufferer) | M | MIT — ships as VPM `dev.vrlabs.particle-bufferer` off VRLabs' `Components` listing (`https://api.vrlabs.dev/listings/category/Components`), but it is in no project's manifest here, so a clone is the only way to read it |
+| [IsRendering-Detection](https://github.com/VRLabs/IsRendering-Detection) | M | MIT — © 2023 VRLabs LLC. Ships as the VPM package `dev.vrlabs.isrendering-detection`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/render-detect` is derived from it |
 | [unity-shaders](https://github.com/lereldarion/unity-shaders) | M | MIT — © 2025 Lereldarion. Ships as the VPM package `lereldarion.unity-shaders`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/debug-shaders` is derived from it |
 | [robust-weight-transfer](https://github.com/sentfromspacevr/robust-weight-transfer) | M | **GPL-3.0 — clean-room only.** The algorithm is published independently of this code: Abdrashitov, Raichstat, Monsen & Hill, *Robust Skin Weights Transfer via Weight Inpainting*, SIGGRAPH Asia 2023 — read the paper for anything we implement, and this clone only to see what a working implementation chose. Ships on Jinxxy as a paid one-click addon; the repo is the same code |
 
