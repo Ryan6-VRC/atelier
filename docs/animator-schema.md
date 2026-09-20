@@ -2,7 +2,7 @@
 
 The YAML language `CompileController` compiles into a `.controller` (`animator.md` owns the tool contract — PASS/FAIL, atomicity, advisories). This document is the surface you author against: every key, the accepted values, and the traps. The **enforcement mechanism is the parser + validator** — they refuse unknown keys, bad values, and semantic defects **by name and line**, so a wrong guess is a legible error, never silent corruption. Author against this, and iterate on the error text when unsure.
 
-The three fixtures under `vrc-unity-tools/fixtures/animator-substrate/` (`debounce`, `smoother`, `codec`) are the runnable companions — each compiles clean, lints PASS, and is emulator-verified. Snippets below are drawn from them. The definitive grammar is `AnimatorSchemaYaml.cs` (parse) + `ControllerEmit.cs` (emit) + `SchemaValidation.cs` (validate), and on the read side `ControllerDecompile.cs` + `AnimatorSchemaEmit.cs` (serialize); when this doc and those disagree, the code wins — tell someone.
+The fixtures under `vrc-unity-tools/fixtures/animator-substrate/` (`debounce`, `smoother`, `codec`, `shared-tree`) are the runnable companions — each compiles clean and lints PASS, the first three emulator-verified. Snippets below are drawn from them. The definitive grammar is `AnimatorSchemaYaml.cs` (parse) + `ControllerEmit.cs` (emit) + `SchemaValidation.cs` (validate), and on the read side `ControllerDecompile.cs` + `AnimatorSchemaEmit.cs` (serialize); when this doc and those disagree, the code wins — tell someone.
 
 The surface is the compile↔decompile round-trip for the controller **graph**: the layers, states, transitions, motions, and behaviours you author both compile and survive a `DecompileController` read ([Decompile output](#decompile-output)). Authoring metadata a `.controller` does not store — `basis`, `role`, and per-param `aap`/`scratch`/`vrc` (they live in the descriptor / `VRCExpressionParameters`) — decompiles to canonical form, not its authored value (`avatar-root` / `fx`; params rebuild as name+type+ default only), and [`menu:`](#menu) does not decompile at all. The much-shrunken [Not yet in the schema](#not-yet-in-the-schema) section lists what a compile still rejects.
 
@@ -10,7 +10,7 @@ The surface is the compile↔decompile round-trip for the controller **graph**: 
 
 A bounded block/flow YAML: 2-space block mappings and `- ` sequences, flow `{k: v}` / `[a, b]`, `#` comments, single/double quotes. Scalars infer: `true`/`false`/`on`/`off` → bool, `~` or empty → null, integer → int, decimal → float, else string (quote a string that would otherwise infer, e.g. `"on"`). Inference applies to **names in value position** too — a state named `On`/`Off` makes `to: On` parse as a boolean; prefer names that aren't YAML literals (`Idle`/`Disabled`) over quoting every reference.
 **Refused by name+line:** anchors `&`, aliases `*`, tags `!`, block scalars `|`/`>`, multi-doc `---`, tab
-indentation. Duplicate keys in one mapping are refused (names are identity).
+indentation. Duplicate keys in one mapping are refused (names are identity). To point several motion slots at one blend tree — what an alias would be reached for — use [`trees:` + `shared:`](#shared-trees): a graph edge, not a textual expansion.
 
 ## Document skeleton
 
@@ -24,6 +24,7 @@ defaults: { … }              # inherited transition/WD settings (below)
 parameters: { … }            # map: name → spec
 layers: [ … ]                # ordered list of layers
 clips: { … }                 # map: name → inline clip
+trees: { … }                 # map: name → blend tree several motion slots share (optional)
 menu: [ … ]                  # ordered list of expression-menu controls (optional)
 _notes: anything             # any TOP-LEVEL key starting `_` is compile-ignored (Decompile's output channel)
 ```
@@ -185,12 +186,13 @@ It is a second key rather than a path form of `default:` because the two are **i
 
 ## motions and blend trees
 
-A state's `motion` (and a tree child) is exactly one of: a `clip`, a `ref`, a `tree`, or `~` (empty state).
+A state's `motion` (and a tree child) is exactly one of: a `clip`, a `ref`, a `tree`, a [`shared`](#shared-trees), or `~` (empty state).
 
 ```yaml
 motion: { clip: aap_min }                             # an inline clip, by name (must be under clips:)
 motion: { ref: "Assets/Anims/Walk.anim" }             # a project-path .anim / .asset motion
 motion: { ref: { guid: 0123…, fileID: 7400000 } }     # an FBX-embedded / SDK-proxy motion
+motion: { shared: FT Blendshape Driver }              # a tree declared once under trees:
 motion:                                               # a blend tree
   tree: direct
   children:
@@ -211,9 +213,37 @@ Tree `kind` (case-sensitive): `1d`, `simpleDirectional2d`, `freeformDirectional2
 
 **Trap — a `direct` tree's state duration is data, and every child curve plays against it.** A state whose motion is a direct tree with weight-sum ≥ 1 takes effective length Σ(child weight × child length) — live weights make it change per frame's readings — and each child clip's curves are sampled at normalizedTime × that child's own length, so a curve keyed in seconds plays stretched by the duration ratio (measured: a 0.1 s ease beside 0.5 s siblings at reading-driven weights ran ~11× slow, stretching MORE as the weights rose); below a weight-sum of 1 the duration normalizes instead. `set:` values are immune. `exitTime` reads the same data-dependent duration — exploitable as a weight-scaled dwell, and the reason a dwell child gets padded deliberately. Author timing intent inside such a state only three ways: every child tiny and near-equal (the stretch collapses toward real frames), a deliberate exitTime dwell built on the formula, or move the timed curve to a plain single-clip state.
 
-Trees nest (a child with `tree:`) and refs chain across `.asset` files. A **bare** `ref: { guid }` that doesn't resolve fails the compile. Marking it `ref: { guid: …, unresolved: true }` instead **tolerates** a genuinely-missing asset: the motion slot emits null, a clean-empty state, and the compile advises rather than fails. This is the round-trip's one lossy step (a dangling vendor ref decompiles back with the same marker) — not a license to author against an asset you could fix.
+Trees nest (a child with `tree:`) and refs chain across `.asset` files. **A blend tree living in another asset decompiles INLINE, not as a `ref:`** — the path/sub-asset test the read side applies to a clip has no counterpart for a tree, so a document can carry trees, and the parameters they read, that the `.controller` file itself never mentions. Read a decompiled document as the reachable graph, not as a transcript of one file. A **bare** `ref: { guid }` that doesn't resolve fails the compile. Marking it `ref: { guid: …, unresolved: true }` instead **tolerates** a genuinely-missing asset: the motion slot emits null, a clean-empty state, and the compile advises rather than fails. This is the round-trip's one lossy step (a dangling vendor ref decompiles back with the same marker) — not a license to author against an asset you could fix.
 
 A **path** `ref:` to a project `.anim` may resolve to a hand-owned clip or to one a clips file authored via `CompileClips` — the controller cannot tell them apart, which is exactly what lets a clip be *promoted* from YAML to human ownership with no controller edit (§clips; compile the clips file first — `animator.md`).
+
+## shared trees
+
+`trees:` declares a blend tree once; `shared: <name>` plays it from as many motion slots as you like, and the compile emits **one** `BlendTree` sub-asset with that many parents. Author it when a tree is genuinely one object — a face-tracking driver reached from a local root, a remote root, and a bare edit-here state is the canonical case; inlining it per parent instead triples both the document and the built controller, and a retune then has to land three times.
+
+```yaml
+trees:
+  FT Blendshape Driver:
+    tree: direct
+    children: [ … ]
+
+layers:
+  - name: FT
+    states:
+      Local Root:
+        motion:
+          tree: direct
+          children:
+            - { shared: FT Blendshape Driver, directWeight: FT/DirectBlend }
+      Edit Driver:
+        motion: { shared: FT Blendshape Driver }
+```
+
+The entry body is a tree body, with two subtractions. **The map key is the name**, so a `name:` inside it is refused. **Placement belongs on the reference, never the entry** — `directWeight`, `threshold`, `x`/`y` position a child *within one parent*, and a shared tree has several, so those keys are refused on the entry too.
+
+A shared tree may reference shared trees. A cycle is a named compile refusal; the read side needs no such guard, because Unity's importer breaks a blend-tree cycle on load whatever the asset text says.
+
+**A `trees:` entry must be reachable from a state motion.** Liveness is transitive and cycles do not confer it: an entry referenced only by itself, or only by another unreachable entry, is refused rather than silently never built (emission is lazy, so nothing would otherwise notice). A single live reference is legal and compiles — see the asymmetry in [Decompile output](#decompile-output).
 
 ## clips
 
@@ -347,6 +377,8 @@ Two consequences before relying on the field. **The gate cannot see an icon**, s
 
 **The `_notes:` block.** Any **top-level** `_`-prefixed key is compile-ignored — Decompile's output channel, carrying the incidental walk data it could not put in the document proper. Inert on re-compile.
 
+**Shared trees are recovered, at two or more parents.** A blend tree the reachable graph reaches from two or more parent slots becomes one [`trees:`](#shared-trees) entry keyed by its own name; one parent stays inline, so a document with no sharing decompiles exactly as it always did. Two consequences follow. A singly-referenced `trees:` entry you authored **comes back inlined** — legal, and the one place the round-trip is not a fixpoint on its own output, because one parent is not sharing. And an **unnamed** multi-parent tree, or two of them carrying the same name, is inlined per parent with a Note instead of shared: `Blend Tree` is Unity's default name for a tree made in the graph editor, so refusing would strand vendor controllers behind a rename we have no right to make. Both cost a missed dedup, never a wrong graph.
+
 **Layout.** Each arranged machine emits a `layout:` block ([above](#layout)); a machine still on the default grid emits none, so decompiling a never-touched controller adds no coordinate noise.
 
 **Import tolerances** (applied silently, listed in `_notes.tolerances`):
@@ -355,7 +387,7 @@ Two consequences before relying on the field. **The gate cannot see an icon**, s
 
 **Named refusals.** A construct the schema's shape can't round-trip makes Decompile refuse by name and write **no** yaml rather than approximate; iterate on the message. Two kinds. *Out of vocabulary:* anything the decoder doesn't model (synced layers, a `Trigger` param, an IK-pass layer, an unsupported SMB or motion type, a clip binding on a component type outside the §clips allowlist, an embedded clip's object-reference (PPtr) curve — a material swap has no schema form (a standalone `.anim` swap stays an untouched `ref:`), an unknown driver `ChangeType`…), enforced not by a blocklist but by a **completeness sweep** — it refuses **any** non-default field it doesn't explicitly consume on a state, transition, blend tree, or VRC behaviour, so an unmodeled field (a state's `cycleOffset`/`iKOnFeet`/`tag`, a transition `offset`, a future SDK addition) fails loud instead of silently dropping. *Not expressible in the canonical form:* sibling states or sub-machines with identical names, a direct state and sub-machine sharing a name, or two siblings differing only in whitespace (the name-keyed maps collide or reorder); a real node named `Exit` addressed bare (collides with the exit keyword); driver operations that interleave change-types or repeat a `(type, name)`; two distinct embedded clips sharing a name; **two clip bindings that reconstruct to the same `set:`/`curves:` key** (a declared parameter whose name also reads as `path/Component.property` shadows the scene binding of that name — the map would keep one curve and drop the other); **a default state the layer root cannot address** (a `m_DefaultState` outside this layer, or a broken reference to a deleted state — either would decode to no key and rebuild booting whichever state was added first); a condition parameter whose whitespace can't survive the single-space grammar; any emitted string containing a line break.
 
-**The fixpoint.** A controller you **own** (decompile) round-trips exactly — DecompileController→CompileController→DecompileController reaches a fixpoint. The single acknowledged lossy step is a genuinely-broken vendor motion ref (`unresolved` → null slot → empty child).
+**The fixpoint.** A controller you **own** (decompile) round-trips exactly — DecompileController→CompileController→DecompileController reaches a fixpoint. The single acknowledged lossy step is a genuinely-broken vendor motion ref (`unresolved` → null slot → empty child). The theorem is over a **decompiled** document; a hand-authored one can differ on its first pass without contradicting it, a singly-referenced `trees:` entry (above) being the common case.
 
 ## Not yet in the schema
 
