@@ -34,9 +34,9 @@ Items, buckets, agents, and which agents start now. Defaults stated, not asked. 
 
 Bringing material in mutates project-wide state — import settings, category folders — that a second writer cannot see.
 
-### 4. Own — parallel, one agent per item
+### 4. Own — parallel, sized per §Mode
 
-Each item's source, working file and output prefab are disjoint; state the bucket and say the batch is parallel.
+Each item's source, working file and output prefab are disjoint, so items that route through the same skill can share an agent; state each agent's buckets and say the batch is parallel.
 
 ### 5. Compose — one scene agent
 
