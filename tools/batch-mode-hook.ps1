@@ -8,8 +8,10 @@
 # hook fire in the session sees the same answer without any per-agent bookkeeping.
 #
 # Arms, by hook_event_name:
-#   PreToolUse/Skill   `batch-venue-work` turns the mode on; args of exactly `close` turn it off. Both
-#                      answer with one line of context so the model knows which state it is in.
+#   PreToolUse/Skill   `batch-venue-work` turns the mode on; args whose first word is `close` turn it
+#                      off, the rest being the operator's instruction for the closing pass. Both answer
+#                      with one line of context so the model knows which state it is in, and a re-arm
+#                      of a mode already on says so, since that is how a mistyped close reads.
 #   PreToolUse/Agent   mode on: worker-rails.md (beside the skill) is appended to the subagent's prompt
 #                      through updatedInput, so the brief carries the rails whether or not the
 #                      coordinator wrote them. Measured on the shipped binary: updatedInput reaches the
@@ -61,8 +63,9 @@ try {
         $skill = [string]$ti.skill
         if ($skill -notmatch '(^|:)batch-venue-work$') { exit 0 }
         $skillArgs = [string]$ti.args
-        # The whole argument, not a word in it: `do a close review of these` opens a batch.
-        if ($skillArgs.Trim() -ieq 'close') {
+        # The first word, not any word: `close, then fix the menus` closes; `do a close review of these`
+        # opens a batch. An operator types instructions after the verb, so an exact match left the mode on.
+        if ($skillArgs -imatch '^\s*close(\s|[,.:;]|$)') {
             Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
             Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext =
                 'Batch mode is OFF for this session: subagent briefs no longer carry the worker rails and prompts no longer restate the batch rule. The closing pass runs now: reviewers, then the venue record, then commit.' } }
@@ -73,8 +76,9 @@ try {
         Get-ChildItem -LiteralPath $markerRoot -File -Filter '*.marker' -ErrorAction SilentlyContinue |
             Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-2) } |
             Remove-Item -Force -ErrorAction SilentlyContinue
-        Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext =
-            'Batch mode is ON for this session (tools/batch-mode-hook.ps1): every subagent brief gets worker-rails.md appended and each prompt restates the batch rule, until `/batch-venue-work close`.' } }
+        $ctx = if ($on) { 'Batch mode was already ON and is still ON (tools/batch-mode-hook.ps1). If this invocation meant to close the batch, it did not: closing needs arguments whose first word is `close`.' }
+               else { 'Batch mode is ON for this session (tools/batch-mode-hook.ps1): every subagent brief gets worker-rails.md appended and each prompt restates the batch rule, until `/batch-venue-work close`.' }
+        Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext = $ctx } }
         exit 0
     }
 
