@@ -74,13 +74,28 @@ class BatchModeHook(unittest.TestCase):
         self.assertFalse(self.marker().exists())
         self.assertIn("OFF", got["additionalContext"])
 
-    def test_close_is_the_whole_argument_not_a_word(self):
+    def test_close_is_the_first_word_not_any_word(self):
         self.on()
         got = self.fire("PreToolUse", "Skill", {"skill": "batch-venue-work", "args": "do a close review of these"})
         self.assertTrue(self.marker().exists())
-        self.assertIn("ON", got["additionalContext"])
+        self.assertIn("still ON", got["additionalContext"])
         self.fire("PreToolUse", "Skill", {"skill": "batch-venue-work", "args": "  Close "})
         self.assertFalse(self.marker().exists())
+
+    def test_close_with_trailing_instructions_turns_it_off(self):
+        for args in ("close and review the menus first", "close, skip Somi", "CLOSE\nthen commit"):
+            self.on()
+            got = self.fire("PreToolUse", "Skill", {"skill": "batch-venue-work", "args": args})
+            self.assertFalse(self.marker().exists(), args)
+            self.assertIn("OFF", got["additionalContext"])
+
+    def test_a_word_starting_with_close_opens(self):
+        self.fire("PreToolUse", "Skill", {"skill": "batch-venue-work", "args": "closet outfits batch"})
+        self.assertTrue(self.marker().exists())
+
+    def test_first_arm_does_not_claim_already_on(self):
+        got = self.on()
+        self.assertNotIn("already", got["additionalContext"])
 
     def test_other_skills_are_silent_and_do_not_switch(self):
         self.assertIsNone(self.fire("PreToolUse", "Skill", {"skill": "compose-mergeable", "args": ""}))
