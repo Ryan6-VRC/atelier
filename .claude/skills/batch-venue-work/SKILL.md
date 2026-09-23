@@ -19,9 +19,11 @@ Invoking this skill switches the session into batch mode: the deliverable is the
 
 ## The flow
 
-### 1. Survey — one agent, one bucket map back
+### 1. Read the venue, then survey — one agent, one bucket map back
 
-Each item, its source, its bucket, what it pulls in. Two minutes of your own reading is the cap: a coordinator that surveys by hand plans from a partial read, and every wrong plan launches before the first agent does.
+Before briefing anyone, read the body of every per-item skill the batch's items route through, yourself: they hold the rules a plan is checked against (scope, gates, what is a refit) and the vocabulary a survey's report is read with, and neither survives delegation, since an agent sent to read chooses what is relevant before the question exists. A doc a skill routes to is delegated as a question, never read as a list. Then read how the venue says this kind of work is done: the runbook its entry route names, found by listing the venue's own top-level docs (`Assets/*.md`) rather than assumed absent when no route names one, and the bucket READMEs it sends the batch's items through. Brief the survey agent to those skills and that runbook, never to a reading list of your own; a survey pointed at the wrong documents returns a confident map the plan then inherits. The survey maps what the runbook cannot: each item, its source, its bucket, what it pulls in. Survey the items through the agent, not by hand; the reading is yours.
+
+**A survey's "this item cannot be done as asked" is a claim, not a finding.** Check it against the runbook and the skill that owns the step before it reaches the plan; the plan parks only what the runbook itself rules out of scope, by name, and never offers a route the owning skill would refuse in place of one it already has. The shape that recurs: a package with no variant for the row's body is a lineage question the `reproportion` skill's *Cross-base* answers — an equivalency edge chained before the reproportion carries a shipped variant across (`docs/blender.md` §Edge filing; the edges filed beside the target avatar per `docs/LAYOUT.md`, each `_note` saying what it covers) — and a `mochifit` refit is for a body no edge reaches, never a plan option beside it.
 
 ### 2. Plan — one screen
 
