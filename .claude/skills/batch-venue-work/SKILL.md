@@ -19,9 +19,11 @@ Invoking this skill switches the session into batch mode: the deliverable is the
 
 ## The flow
 
-### 1. Survey — one agent, one bucket map back
+### 1. Read the domain, then survey — one agent, one bucket map back
 
-Each item, its source, its bucket, what it pulls in. Two minutes of your own reading is the cap: a coordinator that surveys by hand plans from a partial read, and every wrong plan launches before the first agent does.
+Before briefing anyone, read how the venue says its work is done, yourself: any runbook the venue carries for this kind of batch (list the venue's own top-level docs and READMEs rather than assuming there is none) and every doc it sends the batch's items through. Brief the survey agent to that runbook, never to a reading list of your own; a survey pointed at the wrong documents returns a confident map the plan then inherits. The survey maps what the runbook cannot: each item, its source, its bucket, what it pulls in. Survey the items through the agent, not by hand; the domain reading is yours.
+
+**A package with no variant for the row's body is a lineage question, not a blocker.** Whenever the target avatar's proportion edges (filed per `docs/LAYOUT.md`'s `Blender/Avatars/` tree) connect a shipped variant to it, an equivalency edge chained before the reproportion carries the outfit across, and the item proceeds like any other. `docs/blender.md` §State stamps and §Edge filing define the `(base, state)` pair and the edge kinds; the `reproportion` skill's *Cross-base* decides when an equivalency bridges; each edge's `_note` says what it covers. A `mochifit` refit is only for a body no edge path reaches. Put that case to the operator; never offer a refit as a plan option.
 
 ### 2. Plan — one screen
 
