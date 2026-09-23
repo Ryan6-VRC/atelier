@@ -19,11 +19,11 @@ Invoking this skill switches the session into batch mode: the deliverable is the
 
 ## The flow
 
-### 1. Read the domain, then survey — one agent, one bucket map back
+### 1. Read the venue, then survey — one agent, one bucket map back
 
-Before briefing anyone, read how the venue says its work is done, yourself: any runbook the venue carries for this kind of batch (list the venue's own top-level docs and READMEs rather than assuming there is none) and every doc it sends the batch's items through. Brief the survey agent to that runbook, never to a reading list of your own; a survey pointed at the wrong documents returns a confident map the plan then inherits. The survey maps what the runbook cannot: each item, its source, its bucket, what it pulls in. Survey the items through the agent, not by hand; the domain reading is yours.
+Before briefing anyone, read how the venue says this kind of work is done: the runbook its entry route names, found by listing the venue's own top-level docs (`Assets/*.md`) rather than assumed absent when no route names one, and the bucket READMEs it sends the batch's items through. Brief the survey agent to that runbook, never to a reading list of your own; a survey pointed at the wrong documents returns a confident map the plan then inherits. The survey maps what the runbook cannot: each item, its source, its bucket, what it pulls in. Survey the items through the agent, not by hand; the reading is yours.
 
-**A package with no variant for the row's body is a lineage question, not a blocker.** Whenever the target avatar's proportion edges (filed per `docs/LAYOUT.md`'s `Blender/Avatars/` tree) connect a shipped variant to it, an equivalency edge chained before the reproportion carries the outfit across, and the item proceeds like any other. `docs/blender.md` §State stamps and §Edge filing define the `(base, state)` pair and the edge kinds; the `reproportion` skill's *Cross-base* decides when an equivalency bridges; each edge's `_note` says what it covers. A `mochifit` refit is only for a body no edge path reaches. Put that case to the operator; never offer a refit as a plan option.
+**A survey's "this item cannot be done as asked" is a claim, not a finding.** Check it against the runbook and the skill that owns the step before it reaches the plan; the plan parks only what the runbook itself rules out of scope, by name, and never offers a route the owning skill would refuse in place of one it already has. The shape that recurs: a package with no variant for the row's body is a lineage question the `reproportion` skill's *Cross-base* answers — an equivalency edge chained before the reproportion carries a shipped variant across (`docs/blender.md` §Edge filing; the edges filed beside the target avatar per `docs/LAYOUT.md`, each `_note` saying what it covers) — and a `mochifit` refit is for a body no edge reaches, never a plan option beside it.
 
 ### 2. Plan — one screen
 
