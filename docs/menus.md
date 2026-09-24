@@ -33,7 +33,7 @@ How menu controls are authored on avatars composed non-destructively — the mod
 3. **Blendshape naming conventions** on the base (`Shrink_*`, `*_OFF`, `Corset`, `Toe_heels`) — suggestive, not authoritative.
 4. **Ask the user, or verify visually** — `RenderAvatar` both states.
 
-When a garment mesh duplicates a base-body blendshape name, dependent reactions drive **every** mesh carrying it, in lockstep. Edges that hold whenever the outfit is worn (heels, corset) attach to the outfit root, not a per-piece toggle.
+When a garment mesh duplicates a base-body blendshape name, dependent reactions drive **every** mesh carrying it, in lockstep.
 
 ## Substrate: MA-first, escalate to VRCFury
 
