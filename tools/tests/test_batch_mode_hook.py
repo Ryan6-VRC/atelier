@@ -1,7 +1,8 @@
 # tools/tests/test_batch_mode_hook.py
 """The hook's contract is four arms keyed on one marker file. Each arm rests on a measured host
-fact (updatedInput reaches the subagent; a Skill call fires PreToolUse with its args; a subagent's
-payload carries its parent's session_id), measured headless and not documented. The tests here pin
+fact (updatedInput reaches the subagent; a Skill call fires PreToolUse with its args; a typed slash
+command fires UserPromptSubmit with the raw text and no Skill event; a subagent's payload carries
+its parent's session_id), measured headless and not documented. The tests here pin
 the script's side of each; the host side is re-measured with a headless `claude -p` run.
 
 Every fixture points CLAUDE_PROJECT_DIR and TEMP at temp dirs, so a run never reads the real skill
@@ -166,6 +167,47 @@ class BatchModeHook(unittest.TestCase):
         got = self.fire("UserPromptSubmit", extra={"prompt": "do the thing"})
         self.assertIn("named blocker", got["additionalContext"])
         self.assertIn("close", got["additionalContext"])
+
+    # --- the typed slash command: UserPromptSubmit carries the raw text and no Skill event fires ---
+
+    def typed(self, prompt):
+        got = self.fire("UserPromptSubmit", extra={"prompt": prompt})
+        if got is not None:
+            # A copy-pasted 'PreToolUse' here would pass every text assertion while the host discards it.
+            self.assertEqual("UserPromptSubmit", got["hookEventName"])
+        return got
+
+    def test_typed_open_arms(self):
+        got = self.typed("/batch-venue-work these six rows")
+        self.assertTrue(self.marker().exists())
+        self.assertIn("ON", got["additionalContext"])
+        self.assertNotIn("already", got["additionalContext"])
+
+    def test_typed_close_disarms(self):
+        self.on()
+        got = self.typed("/batch-venue-work close")
+        self.assertFalse(self.marker().exists())
+        self.assertIn("OFF", got["additionalContext"])
+
+    def test_typed_close_followed_by_more_lines_disarms(self):
+        self.on()
+        got = self.typed("/batch-venue-work close\nthen commit the venue record")
+        self.assertFalse(self.marker().exists())
+        self.assertIn("OFF", got["additionalContext"])
+
+    def test_typed_open_while_on_says_already_on(self):
+        self.on()
+        got = self.typed("/batch-venue-work colse")
+        self.assertTrue(self.marker().exists())
+        self.assertIn("already ON", got["additionalContext"])
+
+    def test_mention_mid_sentence_is_not_the_switch(self):
+        self.assertIsNone(self.typed("later run /batch-venue-work close for me"))
+        self.assertFalse(self.marker().exists())
+        self.on()
+        got = self.typed("remind me how /batch-venue-work close works")
+        self.assertTrue(self.marker().exists())
+        self.assertIn("named blocker", got["additionalContext"])  # the ordinary age line, mode untouched
 
     def test_writes_are_never_blocked(self):
         self.on()

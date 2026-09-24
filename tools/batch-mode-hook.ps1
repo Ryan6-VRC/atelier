@@ -12,6 +12,10 @@
 #                      off, the rest being the operator's instruction for the closing pass. Both answer
 #                      with one line of context so the model knows which state it is in, and a re-arm
 #                      of a mode already on says so, since that is how a mistyped close reads.
+#   UserPromptSubmit   a prompt whose first line is the typed `/batch-venue-work …` takes the same
+#                      switch, same answers. Measured headless: a typed slash command reaches the
+#                      hooks as UserPromptSubmit carrying the raw text and fires no Skill event, so
+#                      without this arm a typed `/batch-venue-work close` left the mode on.
 #   PreToolUse/Agent   mode on: worker-rails.md (beside the skill) is appended to the subagent's prompt
 #                      through updatedInput, so the brief carries the rails whether or not the
 #                      coordinator wrote them. Measured on the shipped binary: updatedInput reaches the
@@ -59,15 +63,23 @@ try {
     $tool = [string]$ev.tool_name
     $ti = $ev.tool_input
 
-    if ($event -eq 'PreToolUse' -and $tool -eq 'Skill') {
-        $skill = [string]$ti.skill
-        if ($skill -notmatch '(^|:)batch-venue-work$') { exit 0 }
-        $skillArgs = [string]$ti.args
+    # The typed form: first line only, anchored at the slash, so a close followed by more lines of
+    # instruction still matches, and a prompt merely mentioning the skill mid-sentence does not.
+    $typed = $event -eq 'UserPromptSubmit' -and
+             ([string]$ev.prompt) -imatch '^/(?:[\w.-]+:)?batch-venue-work(?:[ \t]+([^\r\n]*))?(?:\r?\n|$)'
+    if ($typed) { $skillArgs = [string]$Matches[1] }
+
+    if (($event -eq 'PreToolUse' -and $tool -eq 'Skill') -or $typed) {
+        if (-not $typed) {
+            $skill = [string]$ti.skill
+            if ($skill -notmatch '(^|:)batch-venue-work$') { exit 0 }
+            $skillArgs = [string]$ti.args
+        }
         # The first word, not any word: `close, then fix the menus` closes; `do a close review of these`
         # opens a batch. An operator types instructions after the verb, so an exact match left the mode on.
         if ($skillArgs -imatch '^\s*close(\s|[,.:;]|$)') {
             Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
-            Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext =
+            Emit @{ hookSpecificOutput = @{ hookEventName = $event; additionalContext =
                 'Batch mode is OFF for this session: subagent briefs no longer carry the worker rails and prompts no longer restate the batch rule. The closing pass runs now: reviewers, then the venue record, then commit.' } }
             exit 0
         }
@@ -78,7 +90,7 @@ try {
             Remove-Item -Force -ErrorAction SilentlyContinue
         $ctx = if ($on) { 'Batch mode was already ON and is still ON (tools/batch-mode-hook.ps1). If this invocation meant to close the batch, it did not: closing needs arguments whose first word is `close`.' }
                else { 'Batch mode is ON for this session (tools/batch-mode-hook.ps1): every subagent brief gets worker-rails.md appended and each prompt restates the batch rule, until `/batch-venue-work close`.' }
-        Emit @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext = $ctx } }
+        Emit @{ hookSpecificOutput = @{ hookEventName = $event; additionalContext = $ctx } }
         exit 0
     }
 
