@@ -99,6 +99,16 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | `stamp_base` | Stamp `avatarprep_base` (avatar lineage) on an armature; a deliberate agent assertion. |
 | `rename_objects` | Rename scene objects as a **set**, so a swap (`Face=Body Body=Body_Base`) is legal rather than a silent `Body.001`; emits the `{ourName: sourceName}` map a by-name material copy consumes. Object names only. Behavior: `blender.md`. |
 
+### vrc-blender-tools · weights & fit
+
+| Key | Purpose |
+| --- | --- |
+| `transfer_weights` | Transfer the body's skin weights onto garments by robust inpainting while every garment bone keeps its weight exactly; narrows or blends out a region of the body's skin (the legs) per garment, `--whatif` runs the whole transfer in memory, and each target is stamped with its recipe line. The one door needing the provisioned wheels. Behavior: `blender.md`. |
+| `report_fit` | Report how skinned garments fit their body through a sweep of bone turns, per class and region: new penetration, edge poke, body-through, stretch, slide. Counts and depths, never a verdict; prints the body frame and garment extents `transfer_weights` takes. Behavior: `blender.md`. |
+| `compare_fit` | `report_fit` over two or more labelled blends on identical steps, or one blend against its simulated transfer (`--simulate-transfer`), as per-metric, per-region deltas; never a verdict. Behavior: `blender.md`. |
+| `push_garment` | Push the part of a garment the body pulls through under motion outward by a fraction of a millimetre, into Basis and every key; refuses contact already there at rest, and a second push. Behavior: `blender.md`. |
+| `fold_bones` | Fold a doomed bone chain's weight into surviving neighbours and remove it; `--map auto --map-out` writes a suggested table and stops. Unity references to the removed bones are outside what it sees. Behavior: `blender.md`. |
+
 ### vrc-blender-tools · proportions & export
 
 | Key | Purpose |
