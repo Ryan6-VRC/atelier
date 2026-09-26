@@ -62,6 +62,8 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | `RemapMaterials` | Swap materials by asset path across a hierarchy. |
 | `ConstrainedDuplicate` | Clone a hierarchy and wire VRC constraints between original and duplicate bones. |
 | `GrabPhysBone` | Simulate player manipulation of a physbone in play mode: `GrabPhysBone.Run`/`GrabPhysBone.Reach` grab, `GrabPhysBone.Move`, `GrabPhysBone.Release`, `GrabPhysBone.Advance` steps an exact frame count, `GrabPhysBone.Held` reports state. A held grab pauses the venue. Contract: `unity-tools.md`. |
+| `WriteDynamics` | Write a caller-authored VRC dynamics table onto a prefab or scene root: nodes (optionally with a physbone or collider), physbone root moves, physbone field sets, constraint source tables. Validates the whole table before any write; `whatIf` previews; in play it rewrites field sets and constraint weights live. Contract: `unity-tools.md`. |
+| `DrivePhysBones` | Pose bones in play mode and sample every physbone chain under a root: tip travel from rest, jitter, garment-inside-body counts, frames per pose. Async: `DrivePhysBones.Run`, then poll `DrivePhysBones.Status()`. Contract: `unity-tools.md`. |
 
 ### vrc-unity-tools · publish
 
