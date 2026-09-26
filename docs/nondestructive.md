@@ -52,7 +52,7 @@ The two frameworks store references differently, which decides what survives a c
 
 **So a variant customises a VRCFury component by removing the inherited one and adding its own.** Neither operation is a property modification: nothing in VRCFury reads `m_RemovedComponents` or the added-component list, and the fixer touches neither. That is what makes prefab inheritance usable for a configuration that must redirect a `FullController` at its own build, or drop a toggle its composition drives itself.
 
-**The cost of that freedom is that a removal is unvalidated.** Nothing in VRCFury, and nothing in any gate, will tell you a removal was wrong or that a base's newly-added component never reached a variant. A variant's removals are worth stating in prose beside it, because prose is the only place that record can live.
+**The cost of that freedom is that a removal is unvalidated.** Nothing in VRCFury, and nothing in any gate, will tell you a removal was wrong or that a base's newly-added component never reached a variant. `ReportPrefab` (`unity-tools.md`) lists every level's removals, so the list is not prose's to keep; a removal's *reason* is, beside the prefab, because the prefab cannot show it.
 
 ## Merge behaviours that change what you author
 
