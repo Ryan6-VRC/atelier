@@ -19,7 +19,7 @@ Each skill carries its own gates, sequencing, and tool doors; this is only the g
 - **compose aborts-to own-mergeable.** `compose-mergeable`'s seam check routes a broken **clip-binding**
   whose `.anim` is **unowned vendor** geometry (`clipAssetPath` under `Assets/Vendor/`|`Packages/`) out
   to `own-mergeable` — that fix is a geometry round-trip compose can't do. An owned/writable clip, or an MA-scene-ref miss, it repairs in place.
-- **Clipping mid-task routes to `fix-clipping`.** A clipping report during `compose-mergeable`, `own-mergeable` or `map-outfit-shapes` hands the classification to `fix-clipping`, which owns the dynamics fix and routes the static, slider, weight and fit branches back out to those skills (and `reproportion`/`mochifit` for a whole-outfit mismatch); the task stays with `fix-clipping` across the handoff.
+- **Clipping mid-task routes to `fix-clipping`.** A clipping report during `compose-mergeable`, `own-mergeable` or `map-outfit-shapes` hands the classification to `fix-clipping`, which owns the dynamics fix and routes the rest out: static and slider clipping to `map-outfit-shapes`, pose overlap and skin poke to `weightpaint`, coverage deletion to `own-mergeable`, and a whole-outfit mismatch to `reproportion`/`mochifit`; the task stays with `fix-clipping` across the handoff. `weightpaint` also takes a direct skin-weights ask, on demand only: owning a garment never runs it.
 - **A batch of venue items → `batch-venue-work`.** One orchestrator, the whole batch built under a hook-held mode, verified and recorded once at close; the per-item skills run inside it.
 - **Deferred arc:** copying Modular Avatar / VRCFury / NDMF systems off a base.
 

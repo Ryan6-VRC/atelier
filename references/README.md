@@ -50,7 +50,7 @@ Match your task → project (`file`).
 
 **Blender prep (headless bpy)**
 - Shape-key-safe rest-pose bake → `Cats` (`tools/armature_manual.py` `PoseToRest`); FBX export `tools/importer.py`; visemes `tools/viseme.py`; eyes `tools/eyetracking.py`; fix model `tools/armature.py`
-- Decide whether two surfaces are coincident, and transfer skin weights across them → `robust-weight-transfer` (`weighttransfer.py` `find_matches_closest_surface` for the match test, `inpaint` for the vertices it rejects, `smooth_weigths` for the pass after)
+- Decide whether two surfaces are coincident, and transfer skin weights across them → `robust-skin-weights-transfer` (`src/utils.py`: `find_matches_closest_surface` for the match test, `inpaint` for the vertices it rejects, `smooth` for the pass after). `vrc-blender-tools`' `transfer_weights` is our port of it, with robust-laplacian's point-cloud Laplacian for the inpaint; `robust-weight-transfer` is study-only
 
 **Optimization techniques (learn, don't import)**
 - Mesh/material merge, atlas, blendshape prune, shader-rewrite → `d4rkAvatarOptimizer` (`d4rkAvatarOptimizer.cs`, `ShaderAnalyzer.cs`); `anatawa12 AvatarOptimizer` (`Processors/TraceAndOptimize/`, `ObjectMapping/`)
@@ -99,7 +99,8 @@ Match your task → project (`file`).
 | [Particle-Bufferer](https://github.com/VRLabs/Particle-Bufferer) | M | MIT — ships as VPM `dev.vrlabs.particle-bufferer` off VRLabs' `Components` listing (`https://api.vrlabs.dev/listings/category/Components`), but it is in no project's manifest here, so a clone is the only way to read it |
 | [IsRendering-Detection](https://github.com/VRLabs/IsRendering-Detection) | M | MIT — © 2023 VRLabs LLC. Ships as the VPM package `dev.vrlabs.isrendering-detection`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/render-detect` is derived from it |
 | [unity-shaders](https://github.com/lereldarion/unity-shaders) | M | MIT — © 2025 Lereldarion. Ships as the VPM package `lereldarion.unity-shaders`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/debug-shaders` is derived from it |
-| [robust-weight-transfer](https://github.com/sentfromspacevr/robust-weight-transfer) | M | **GPL-3.0 — clean-room only.** The algorithm is published independently of this code: Abdrashitov, Raichstat, Monsen & Hill, *Robust Skin Weights Transfer via Weight Inpainting*, SIGGRAPH Asia 2023 — read the paper for anything we implement, and this clone only to see what a working implementation chose. Ships on Jinxxy as a paid one-click addon; the repo is the same code |
+| [robust-skin-weights-transfer](https://github.com/rin-23/RobustSkinWeightsTransferCode) | M | MIT — © 2024 Rinat Abdrashitov. The reference code for Abdrashitov, Raichstat, Monsen & Hill, *Robust Skin Weights Transfer via Weight Inpainting*, SIGGRAPH Asia 2023; `vrc-blender-tools`' `transfer_weights` ports its match, inpaint and smooth, and takes the inpaint's Laplacian from Nicholas Sharp's [robust-laplacian](https://github.com/nmwsharp/robust-laplacians-py) (MIT, a pip wheel `provision_deps.py` installs; not cloned). Clone as `references/robust-skin-weights-transfer` |
+| [robust-weight-transfer](https://github.com/sentfromspacevr/robust-weight-transfer) | L | **GPL-3.0 — study-only.** sentfromspacevr's Blender add-on over the same paper, adding flipped-normal matching and robust-laplacian's Laplacian; `transfer_weights` rebuilds both from their MIT sources and uses no line of it. Read it only to see what a working add-on chose; never import, load or copy it. Ships on Jinxxy as a paid one-click addon; the repo is the same code |
 
 ## POINT
 

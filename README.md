@@ -123,6 +123,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | `CheckSeam` | The mechanical fit gate to run before any render: world-position coincidence of weighted humanoid bones, certifying the humanoid skeleton and not accessory placement. `CheckSeam.Run` reflects a placed mergeable's seam mapping; `CheckSeam.CheckBare` takes two skeletons with no *resolvable* seam yet and requires an explicit `maxOffsetMm`. Contract: `unity-tools.md`. |
 | `ReportShapeOverlap` | Same-mesh blendshape overlap — the locator for the double-subtraction a worn base `Shrink_*` and an outfit `ShapeChanger` stack over the same vertices, invisible to every other gate here. **Pass `outfitRoot`** or the weight-0 MA reactions never ingest. A report, not a verdict; `map-outfit-shapes` owns the disposition. Contract: `unity-tools.md`. |
 | `ReportClearance` | Rest-pose clearance between a body mesh and the physbone chains around it: per joint the gap to the body against the chain's own radius, the gap to every referenced collider (`restContactCm=`), chains already inside the body (`insideBodyCm=`), angle limits with lateral lock flagged, capsule `endToEnd` beside authored `height`, collider coverage per chain, and the bones weighting body vs garment near each chain. Reads the NDMF proxy where one exists and says which surface it read. A report, not a verdict; `fix-clipping` owns the disposition. Contract: `unity-tools.md`. |
+| `ReportPenetration` | Garment vertices behind the nearest body face at the current pose, edit or play — a nearest-surface sign, not a containment test. Contract: `unity-tools.md`. |
 | `ReportGimmick` | Topology digest of a gimmick subtree: contact/physbone/raycast/constraint tables and the mechanically-certain idioms, complete by construction. A declared `parameter` is never traced into an animator; that seam is `ReportComposition`'s. Contract: `unity-tools.md`. |
 | `ReportPrefab` | A prefab instance or variant read as its chain, one block per level: objects and components added and removed, property overrides tiered so framework churn is counted rather than read. `ReportPrefab.Run` takes a scene handle (outermost root) or a `.prefab` path; `ReportPrefab.Dependents` is the reverse read, everything under `Assets/` that contains the asset. Contract: `unity-tools.md`. |
 | `ReportComposition` | Where behaviour comes from on a **composed** avatar: the merge-surface table, per-parameter declaration/writers/readers across every merged surface, and the authored menu-control union. Plain is authored; `bake:true` measures composed truth, **two-phase** (`ReportComposition.Run` → `ReportComposition.Verify`) — a timed-out call is re-read, never re-run. Contract: `unity-tools.md`. |
@@ -166,6 +167,8 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | `RemapMaterials` | Swap materials by asset path across a hierarchy. |
 | `ConstrainedDuplicate` | Clone a hierarchy and wire VRC constraints between original and duplicate bones. |
 | `GrabPhysBone` | Simulate player manipulation of a physbone in play mode: `GrabPhysBone.Run`/`GrabPhysBone.Reach` grab, `GrabPhysBone.Move`, `GrabPhysBone.Release`, `GrabPhysBone.Advance` steps an exact frame count, `GrabPhysBone.Held` reports state. A held grab pauses the venue. Contract: `unity-tools.md`. |
+| `WriteDynamics` | Write a caller-authored VRC dynamics table onto a prefab or scene root: nodes (optionally with a physbone or collider), physbone root moves, physbone field sets, constraint source tables. The whole table is resolved first, and its one Undo group reverts whole on a refusal or a `whatIf` preview; in play it rewrites field sets and constraint weights live, and a play field set is async: `WriteDynamics.Run`, then poll `WriteDynamics.Status()`. Contract: `unity-tools.md`. |
+| `DrivePhysBones` | Pose bones in play mode and sample every physbone chain under a root: tip travel from rest in root space and in each chain's own frame, jitter, per-pose `ReportPenetration` counts and `RenderAvatar` frames. Async: `DrivePhysBones.Run`, then poll `DrivePhysBones.Status()`. Contract: `unity-tools.md`. |
 
 ### vrc-unity-tools · publish
 
@@ -199,6 +202,16 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | `mark_coverage` | Mark the body triangles an explicit garment set hides — rays from the skin in a cone, blocked only by garment faces on the skin's own bones — and emit the Modular Avatar Delete carrier shape key at polygon granularity. `--whatif` reports; the real run writes the key into the base blend the linked body resolves to, refusing a changed body. Behavior: `blender.md`. |
 | `stamp_base` | Stamp `avatarprep_base` (avatar lineage) on an armature; a deliberate agent assertion. |
 | `rename_objects` | Rename scene objects as a **set**, so a swap (`Face=Body Body=Body_Base`) is legal rather than a silent `Body.001`; emits the `{ourName: sourceName}` map a by-name material copy consumes. Object names only. Behavior: `blender.md`. |
+
+### vrc-blender-tools · weights & fit
+
+| Key | Purpose |
+| --- | --- |
+| `transfer_weights` | Transfer the body's skin weights onto garments by robust inpainting while every garment bone keeps its weight exactly; narrows or blends out a region of the body's skin (the legs) per garment, `--whatif` runs the whole transfer in memory, and each target is stamped with its recipe line. The one door needing the provisioned wheels. Behavior: `blender.md`. |
+| `report_fit` | Report how skinned garments fit their body through a sweep of bone turns, per class and region: new penetration, edge poke, body-through, stretch, slide. Counts and depths, never a verdict; prints the body frame and garment extents `transfer_weights` takes. Behavior: `blender.md`. |
+| `compare_fit` | `report_fit` over two or more labelled blends on identical steps, or one blend against its simulated transfer (`--simulate-transfer`), as per-metric, per-region deltas; never a verdict. Behavior: `blender.md`. |
+| `push_garment` | Push the part of a garment the body pulls through under motion outward by a fraction of a millimetre, into Basis and every key; refuses contact already there at rest, and a second push. Behavior: `blender.md`. |
+| `fold_bones` | Fold a doomed bone chain's weight into surviving neighbours and remove it; `--map auto --map-out` writes a suggested table and stops. Unity references to the removed bones are outside what it sees. Behavior: `blender.md`. |
 
 ### vrc-blender-tools · proportions & export
 
