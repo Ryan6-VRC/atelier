@@ -1,6 +1,6 @@
 ---
 name: batch-venue-work
-description: Use when the operator hands over a batch of venue asset work to build as one job under one orchestrator — "I want these six compositions", a set of vendor packages to import, own and compose, any multi-item run where the goal is the whole batch built fast and verified once at the end — and to close it ("/batch-venue-work close"). Not a wave of fresh sessions on metarepo or tooling work (dispatch), not one brief for a later session (kickoff), not the per-item asset skills, which this skill calls.
+description: Use when the operator hands over a batch of venue asset work to build as one job under one orchestrator — "I want these six compositions", a set of vendor packages to import, own and compose, any multi-item run where the goal is the whole batch built fast and verified once at the end — and to close it ("/batch-venue-work close"). Not rows that each need play drives and the operator's pick, such as a physbone rig per costume (a fresh session per row), not a wave of fresh sessions on metarepo or tooling work (dispatch), not one brief for a later session (kickoff), not the per-item asset skills, which this skill calls.
 ---
 
 # Batch venue work
@@ -57,5 +57,7 @@ Verify happens here, once, and is never omitted, but it is sized to the batch ra
 Under 250 words; the hook appends the rails, so do not paste them. End state; the bucket boundary as a sentence; the traps that fail silently; what not to fix; a few lines back. Name the file that adjudicates a fact rather than the fact, and mark anything relayed from another agent's report as a claim to verify. Nothing on method, nothing on how to confirm: a build agent is fast, and the scaffolding in its brief is what makes it slow.
 
 ## Out of scope by default
+
+**Per-row work that needs play and an operator pick is not a batch.** A physbone rig per costume is the known case: each row took several play drives, an arrangement the operator picked, his addenda and his sign-off inside the row's own session, and this mode leaves play to him and runs no row to sign-off. Run such rows as a fresh session per row, one at a time, under one coordinator that carries each row's rulings into the next brief.
 
 Blendshape-driven clips: the operator fixes them by hand faster than an agent reasons about them; leave the row at its fail-safe value and report. A visual defect the operator reports is on the composed, posed avatar in Unity and is measured in triangles; one pass, no loops.

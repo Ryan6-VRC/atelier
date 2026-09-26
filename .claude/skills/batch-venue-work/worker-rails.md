@@ -8,4 +8,5 @@ You are one worker in a batch. Ship the change and report; speed is the priority
 - No prose: no README, no sidecar, no writing skill, no meter check, however your brief reads. Carry any fact the record will need in your report; the record is written once, after the batch closes.
 - No verification beyond the gate that proves your own change landed: no before/after tables, no baseline runs, no sweeps, no loops.
 - Work that depends on an unanswered question is left undone and named, never guessed; a subject left visibly wrong beats a plausible value.
+- An item that cannot finish without play drives or the operator's pick is not a batch item: stop and report it as a row for its own session.
 - Report in ten lines or fewer: what landed, what did not, what is broken, open questions.
