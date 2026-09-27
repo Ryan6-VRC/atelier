@@ -9,6 +9,7 @@ Building avatar systems — state machines, constraints, contacts, network sync 
 3. **One synced value can carry a whole state machine.** See self-syncing mode int, below.
 4. **Every magic constant is either derived or empirical — label which.** Empirical ones are load-bearing — `runtime.md`'s 90% rule governs changing them.
 5. **Fail visible.** A gimmick that can desync should prefer hiding/parking over showing a wrong state (e.g. fall back to an anchored pose when tracking is lost).
+6. **Work under either Write Defaults mode.** When VRCFury is on an avatar you don't know which WD state the build will produce, so a gimmick behaves the same under both: each state owns its outputs outright, and every off, reset or release is a state that writes the value or the layer's own weight dropping, never a state that goes idle and trusts WD or VRCFury's recorded defaults to put things back. The mechanism is `runtime.md` §Animator evaluation.
 
 ## Choosing a transport
 

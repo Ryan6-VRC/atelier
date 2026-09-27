@@ -41,6 +41,8 @@ defaults:
   transition: { duration: 0, exitTime: none, interruption: none }
 ```
 
+**`writeDefaults:` is a request the build may overrule: when VRCFury is on the avatar you don't know which WD state you will get, so write the controller to work under both.** In the YAML that means every state's `motion` keys every binding its layer animates, at the value that state wants, and a value comes back to rest only through a state whose clip writes rest or through the layer's weight, never through a `motion: ~` or idle state, which returns it to rest under WD ON and holds its last value under WD OFF. Set `writeDefaults: on` for a Direct-tree layer, the one mode a layer may depend on. The mechanism is `runtime.md` §Animator evaluation.
+
 `transition.exitTime` accepts only `none` here (a per-transition `exitTime:` sets an actual value).
 `interruption`: `none | source | destination | sourceThenDestination | destinationThenSource`.
 
