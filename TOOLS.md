@@ -70,7 +70,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 
 | Key | Purpose |
 | --- | --- |
-| `UploadAvatar` | Batch-upload composed avatars live to VRChat, driving Continuous Avatar Uploader by reflection (optional; absent → REFUSE with the fix). Operator-gated, never autonomous; `whatIf` previews readiness without uploading. |
+| `UploadAvatar` | Batch-upload composed avatars live to VRChat, driving Continuous Avatar Uploader by reflection (optional; absent → REFUSE with the fix). Operator-gated (`upload-avatar` owns the trigger); `whatIf` previews readiness without uploading. |
 | `RenderThumbnail` | Baked posed portrait for an avatar's upload thumbnail, **edit-mode** default: bakes the **full VRC SDK preprocess chain**, optimizers included, so it shows what actually uploads — `RenderAvatar` never bakes. One deterministic synchronous call; its PNG feeds `UpdateAvatarRecord`, since `UploadAvatar` takes no image. |
 | `ReportAvatarRecord` | An uploaded avatar's **live** blueprint record as the server holds it — the scene is not evidence about what is published; this is. Ids, URLs and the account name never enter output. Async: `ReportAvatarRecord.Run`, then poll `ReportAvatarRecord.Status()`. Contract: `unity-tools.md` §Publish. |
 | `UpdateAvatarRecord` | Edit an already-uploaded avatar's name, description, tags and **thumbnail** — no bundle, no re-upload. Fields are null-means-unchanged; `expectCurrentName` is required and chains from `ReportAvatarRecord`. An image is a **second write that can fail alone**, and no later read can confirm it. `ReleaseStatus` is deliberately not settable. Contract: `unity-tools.md` §Publish. |
