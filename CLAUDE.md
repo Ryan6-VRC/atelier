@@ -18,7 +18,7 @@ Atelier/                        (this folder = session cwd; workspace docs + lau
 ├─ vrc-patterns/                reusable pattern/gimmick example library (YAML-sourced VPM package; own repo)
 ├─ vrc-mcp-proxy/               owned stdio MCP proxy wrapping the pinned MCP-for-Unity server (allowlist + per-tool transforms)
 ├─ vrc-mesh-optimizer/          NDMF mesh optimizer: deformation-aware decimation + hidden-triangle removal (VPM package; own repo)
-├─ test-output/                 disposable: headless-run results/logs, gitignored + self-pruned at 30d
+├─ test-output/                 disposable: headless-run results/logs, gitignored + self-pruned at 14d
 ├─ docs/local/                  untracked working artifacts: dispatch board, coordinator state, transient briefs
 └─ references/                  open-source projects we study/replicate; routing in references/README.md
 ```
