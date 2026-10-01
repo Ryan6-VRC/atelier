@@ -54,6 +54,7 @@ Match your task → project (`file`).
 
 **Optimization techniques (learn, don't import)**
 - Mesh/material merge, atlas, blendshape prune, shader-rewrite → `d4rkAvatarOptimizer` (`d4rkAvatarOptimizer.cs`, `ShaderAnalyzer.cs`); `anatawa12 AvatarOptimizer` (`Processors/TraceAndOptimize/`, `ObjectMapping/`)
+- Decimate an avatar's meshes at build, blendshape frames carried through each collapse, as an NDMF Optimizing pass before AAO → `Meshia.MeshSimplification-touma` (`Runtime/AttributeErrorQuadric.cs`, `Ndmf/Editor/NdmfPlugin.cs`); `vrc-mesh-optimizer` names it as its closest ancestor
 
 **Test & ship**
 - Verify in Play Mode; drive params over OSC (9000/9001) → `av3emulator` (`LyumaAv3Runtime`, `LyumaAv3Osc`)
@@ -100,6 +101,7 @@ Match your task → project (`file`).
 | [IsRendering-Detection](https://github.com/VRLabs/IsRendering-Detection) | M | MIT — © 2023 VRLabs LLC. Ships as the VPM package `dev.vrlabs.isrendering-detection`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/render-detect` is derived from it |
 | [unity-shaders](https://github.com/lereldarion/unity-shaders) | M | MIT — © 2025 Lereldarion. Ships as the VPM package `lereldarion.unity-shaders`, but it is in no project's manifest here, so a clone is the only way to read it; `vrc-patterns/debug-shaders` is derived from it |
 | [robust-skin-weights-transfer](https://github.com/rin-23/RobustSkinWeightsTransferCode) | M | MIT — © 2024 Rinat Abdrashitov. The reference code for Abdrashitov, Raichstat, Monsen & Hill, *Robust Skin Weights Transfer via Weight Inpainting*, SIGGRAPH Asia 2023; `vrc-blender-tools`' `transfer_weights` ports its match, inpaint and smooth, and takes the inpaint's Laplacian from Nicholas Sharp's [robust-laplacian](https://github.com/nmwsharp/robust-laplacians-py) (MIT, a pip wheel `provision_deps.py` installs; not cloned). Clone as `references/robust-skin-weights-transfer` |
+| [Meshia.MeshSimplification](https://github.com/touma-tw/Meshia.MeshSimplification) | M | MIT — © 2025 Ram.Type-0; touma-tw's fork. Clone as `references/Meshia.MeshSimplification-touma`. `vrc-mesh-optimizer` was written from scratch and credits it in its README's ancestors section |
 | [robust-weight-transfer](https://github.com/sentfromspacevr/robust-weight-transfer) | L | **GPL-3.0 — study-only.** sentfromspacevr's Blender add-on over the same paper, adding flipped-normal matching and robust-laplacian's Laplacian; `transfer_weights` rebuilds both from their MIT sources and uses no line of it. Read it only to see what a working add-on chose; never import, load or copy it. Ships on Jinxxy as a paid one-click addon; the repo is the same code |
 
 ## POINT
