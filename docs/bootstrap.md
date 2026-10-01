@@ -16,6 +16,7 @@ Atelier/
 ├─ vrc-bridge/          github.com/Ryan6-VRC/vrc-bridge
 ├─ vrc-patterns/        github.com/Ryan6-VRC/vrc-patterns
 ├─ vrc-mcp-proxy/       github.com/Ryan6-VRC/vrc-mcp-proxy
+├─ vrc-mesh-optimizer/  github.com/Ryan6-VRC/vrc-mesh-optimizer
 └─ vrc-skills/          github.com/Ryan6-VRC/vrc-skills
 ```
 

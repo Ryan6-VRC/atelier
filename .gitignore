@@ -10,6 +10,7 @@
 /vrc-unity-tools/
 /vrc-patterns/
 /vrc-mcp-proxy/
+/vrc-mesh-optimizer/
 
 # All untracked working scratch: dispatch board, coordinator state, briefs, specs, samples.
 # Not the repo root — an unignored root .md lands inside the governed-prose fence.
