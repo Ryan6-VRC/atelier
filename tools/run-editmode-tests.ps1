@@ -46,14 +46,20 @@ if ([string]::IsNullOrWhiteSpace($SourceProject)) {
   catch { Write-Host "OUTCOME=RUN_ERROR $($_.Exception.Message)"; exit 5 }
 }
 # Run-output goes to a disposable sibling of TestEditor, never into tracked tooling: gitignored
-# wholesale, worktree-local, and safe to delete at any time. Pruned at 30 days because nothing
-# reads an old run — output accrues one file per -Tag, so it grows with wave count, not runs.
+# wholesale, worktree-local, and safe to delete at any time. Pruned at 14 days because nothing
+# reads an old run. Every tool's run folder lands here too, so the prune walks folders: a top-level
+# entry goes whole once nothing under it was written in the window, never half a run's rows.
 $out = Join-Path $PSScriptRoot "../test-output"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 $out = (Resolve-Path $out).Path
-Get-ChildItem $out -File -ErrorAction SilentlyContinue |
-  Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } |
-  Remove-Item -Force -ErrorAction SilentlyContinue
+$cutoff = (Get-Date).AddDays(-14)
+Get-ChildItem $out -Force -ErrorAction SilentlyContinue |
+  Where-Object {
+    if (-not $_.PSIsContainer) { return $_.LastWriteTime -lt $cutoff }
+    -not (Get-ChildItem $_.FullName -File -Recurse -Force -ErrorAction SilentlyContinue |
+      Where-Object { $_.LastWriteTime -ge $cutoff } | Select-Object -First 1)
+  } |
+  Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
 function Get-SdkVersion($proj, $pkg) {
   $pj = Join-Path $proj "Packages/$pkg/package.json"
