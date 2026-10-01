@@ -29,7 +29,7 @@ Every agent-facing tool across `vrc-unity-tools` / `vrc-blender-tools`, one row 
 | Key | Purpose |
 | --- | --- |
 | `ImportPackage` | The heavy-import door, **two-phase** so the result survives a transport timeout: `ImportPackage.Run(path)` kicks off the async import, `ImportPackage.Verify(path, expectedRoot)` re-reads the log — re-read rather than re-import. Contract: `unity-tools.md`. |
-| `ConformImportSettings` | Corrects the five import settings that hard-fail a driven upload: `ConformImportSettings.Run(scope, whatIf)`, the scope an asset folder (recursive) or a placed avatar root, where `whatIf` previews the SDK panel's own importer errors pre-build. `.meta`-only, re-runnable, no `force`. Contract: `unity-tools.md`. |
+| `ConformImportSettings` | Corrects the five import settings that hard-fail a driven upload: `ConformImportSettings.Run(scope, whatIf)`, the scope an asset folder (recursive), one asset, or a placed avatar root, where `whatIf` previews the SDK panel's own importer errors pre-build. `.meta`-only, re-runnable, no `force`. Contract: `unity-tools.md`. |
 
 ### vrc-unity-tools · transplant kit (vendor → owned)
 
