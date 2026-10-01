@@ -8,6 +8,7 @@
 !/vrc-bridge/
 !/vrc-patterns/
 !/vrc-mcp-proxy/
+!/vrc-mesh-optimizer/
 
 # Local scratch: dispatch board, coordinator state, briefs, specs. Agent-authored, so
 # agent-searchable — the governed-prose fence excludes it separately, by path.
