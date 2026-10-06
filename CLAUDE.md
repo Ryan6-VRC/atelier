@@ -41,7 +41,7 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 - **`TOOLS.md`** — the tool index; read to see the whole callable surface at once.
 - **`docs/runtime.md`** + **`docs/gimmicks.md`** — gimmick/animator/network-sync work only: runtime (physics) then gimmicks (patterns); skip for other work. Exception: `gimmicks.md` §Packaging owns `globalParams` for any VRCFury `FullController`.
 - **`docs/optimization.md`** — read for any rank or budget work, and before composing to a stated rank line.
-- **`docs/verify.md`** — read before proving any claim about an avatar, not just gimmick work.
+- **`docs/verify.md`** — read when a claim needs bake, play or client evidence.
 - **`docs/emulator.md`** — read before driving any play session.
 - **`docs/vrchat-client.md`** — read when a claim needs the shipping client.
 - **`docs/osc.md`** — read for any rig driven or read over OSC; `vrc-bridge` keeps its own design record.
@@ -54,17 +54,17 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 
 ## Rules
 
-1. **Observe before changing.** Read the current state first: exports, callers, shared utilities, scenes, prefabs, Blender files, generated assets, and known-good examples. Do not rewrite what you do not understand.
+1. **Observe before changing.** Read the current state of what you are about to change first. Do not rewrite what you do not understand.
 2. **Simplicity first.** Make the smallest change that solves the requested problem. No features beyond what asked, no abstractions for single-use code. If a senior engineer would call it overcomplicated, simplify.
-3. **Prefer deterministic edits.** Use generated scripts, editor tools, Git diffs, and checkpoints over raw asset/YAML edits or opaque write operations.
-4. **Examples and tested patterns are ground truth.** When patterns conflict, choose the more recent, more tested, or more local example; say why, and flag the discarded pattern. Do not average incompatible approaches.
-5. **Verify intent, not just output.** Tests, scene checks, import checks, and diagnostics should prove the reason the behavior matters. A check that still passes after breaking the business or asset logic is wrong.
-6. **Checkpoint after significant steps.** Summarize what changed, what was verified, and what remains. Do not continue from a state you cannot describe back.
-7. **Fail loud.** "Done" is wrong if anything was skipped silently. Surface uncertainty, missing inputs, and named offenders.
+3. **Prefer deterministic edits.** Use generated scripts, editor tools, and Git diffs over raw asset/YAML edits or opaque write operations.
+4. **Examples and tested patterns are ground truth.** When patterns conflict, choose the more recent, more tested, or more local example. Do not average incompatible approaches.
+5. **Size verification to the change.** The cheapest check that would fail if the change were wrong; one play session per fix cycle, at its final head, carrying the cycle's whole list; a full suite once per PR. Name what you did not run.
+6. **Checkpoint after significant steps.** Do not continue from a state you cannot describe back.
+7. **Fail loud.** Surface uncertainty, missing inputs and named offenders. An unrun check you named is a fine outcome; a skipped one you did not name is not.
 8. **Everything here is live public.** Credit commercial and open-source ancestors by name; refer to personal projects, personas, and private avatars generically (`vrc-patterns/CONVENTIONS.md` §Provenance has the mechanics).
 9. **One pinned Editor per harness; serialize only what interleaves.** Every fork and subagent shares the session's single MCP connection, so `set_active_instance` is session-wide and outlives the agent that called it: every agent under one harness pins the same Editor, and a re-pin by any of them silently re-routes everyone's calls. Inside that Editor, reads run in parallel and so do writes to disjoint assets; play sessions, builds, uploads, domain reloads and writes to a shared asset run serially, one agent at a time. When you delegate, name the Editor and the bucket the subagent owns; `batch-venue-work` is this shape at scale.
-10. **Package source is the authority on package behavior.** Everything we build on ships its source on disk under `Packages/` — Modular Avatar, VRCFury, NDMF, the optimizers (d4rk / Limitex), the shaders (lilToon / Poiyomi). When you need precision about what one *does* — a mechanism, an edge case, an exact name — read that source and assert from it or a live measurement, never from a doc summary or your prior. Our docs orient you to where to look and the traps; they do not adjudicate your specific case.
-11. **A lean is not a constraint.** The operator's "I'd rather", "I favour", "probably X" is a weighted preference: carry it forward as a preference, with the weight it was given, and keep the option space open. Only a stated rule, a written spec, or an explicit "must"/"never" binds. When you relay or brief work for another agent, quote the operator's framing rather than restating it; a preference rewritten as a rule combines with the next rule into a deadlock nobody asked for, and the agent holding it stops searching. If you notice you have hardened one, say so and unwind it.
+10. **Package source is the authority on package behavior.** Everything we build on ships its source on disk under `Packages/` — Modular Avatar, VRCFury, NDMF, the optimizers (d4rk / Limitex), the shaders (lilToon / Poiyomi). When a load-bearing claim needs precision about what one *does* — a mechanism, an edge case, an exact name — read that source and assert from it or a live measurement, never from a doc summary or your prior. Our docs orient you to where to look and the traps; they do not adjudicate your specific case.
+11. **A lean is not a constraint.** The operator's "I'd rather", "I favour", "probably X" is a weighted preference: carry it forward as a preference, with the weight it was given, and keep the option space open. Only a stated rule, a written spec, or an explicit "must"/"never" binds. When you relay or brief work for another agent, relay a lean with its weight, never as a rule. If you notice you have hardened one, say so and unwind it.
 
 ## Writing for agents (docs, runbooks, skills, comments, handoffs)
 
