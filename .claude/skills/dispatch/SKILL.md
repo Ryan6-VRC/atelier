@@ -10,14 +10,13 @@ You are the coordinator: author each launch prompt, sequence workers around the 
 
 ## The launch prompt
 
-2–4 sentences wrapped around two pointers: the block (by file + ID — workers run at the workspace root, so don't paste it; paste only a block the worker genuinely cannot reach) and `docs/dispatched-work.md`, named as a read-before-planning prerequisite so the receipt gate covers it. Worker policy lives in that doc — the prompt adds only what is per-launch: the singleton/venue assignment and any provenance the block doesn't state.
+2–4 sentences wrapped around two pointers: the block (by file + ID — workers run at the workspace root, so don't paste it; paste only a block the worker genuinely cannot reach) and `docs/dispatched-work.md`, named as a read-before-planning prerequisite. Worker policy lives in that doc — the prompt adds only what is per-launch: the singleton/venue assignment and any provenance the block doesn't state.
 
-Four checks, each a real failure compressed — run every assembled prompt, and every mid-wave resume message, against all four:
+Three checks, each a real failure compressed — run every assembled prompt, and every mid-wave resume message, against all three:
 
-1. **The policy travels by pointer, and so does the block.** The prompt names `docs/dispatched-work.md` under the receipt clause and paraphrases none of it — a paraphrase is an unmanaged echo, and the in-hand version wins over the doc. Never restate a block's claims in your own voice or dress one as the operator's: dispatch invents no rules. `docs/local/tools/attrib-check.sh` flags authority claims carrying none of his words — audit an inherited block before launching it.
-2. **Receipts checked at sign-off.** The plan states, for each named doc, `dispatched-work.md` included, the one constraint in it that binds this job, in the worker's own words; no constraint, no sign-off.
-3. **The edit gate is phrased as intent.** "No edit intended to survive into the PR", never "no edits" — the flat form outlaws the probes and spikes the worker doc sanctions.
-4. **No merge-permission phrasing.** Scan the full prompt, block included, for "land it", "ship when ready", and kin — a casual resume message mid-wave re-triggers the self-merge failure the doc's terminal-state rule exists against.
+1. **The policy travels by pointer, and so does the block.** The prompt names `docs/dispatched-work.md` and paraphrases none of it — a paraphrase is an unmanaged echo, and the in-hand version wins over the doc. Never restate a block's claims in your own voice or dress one as the operator's: dispatch invents no rules. `docs/local/tools/attrib-check.sh` flags authority claims carrying none of his words — audit an inherited block before launching it.
+2. **The edit gate is phrased as intent.** "No edit intended to survive into the PR", never "no edits" — the flat form outlaws the probes and spikes the worker doc sanctions.
+3. **No merge-permission phrasing.** Scan the full prompt, block included, for "land it", "ship when ready", and kin — a casual resume message mid-wave re-triggers the self-merge failure the doc's terminal-state rule exists against.
 
 ## Coordinating
 
