@@ -37,7 +37,7 @@ Canon: `Packages/com.vrchat.base/Runtime/VRCSDK/Dependencies/VRChat/Resources/Va
 | clothCount / clothMaxVertices | 0 / 0 | 1 / 50 | 1 / 100 | 1 / 200 | none owned |
 | physicsColliderCount / physicsRigidbodyCount | 0 / 0 | 1 / 1 | 8 / 8 | 8 / 8 | none owned |
 | raycastCount | 1 | 4 | 8 | 15 | none owned |
-| aabb extent | 1.25 | 2 | 2.5 / 3 / 2.5 | 2.5 / 3 / 2.5 | renderer bounds (VRCFury `BoundingBoxFix`, MA `Mesh Settings`) |
+| aabb extent | 1.25 | 2 | 2.5 / 3 / 2.5 | 2.5 / 3 / 2.5 | renderer bounds (VRCFury `BoundingBoxFix`, MA `Mesh Settings`); VRCFury's fix forces `updateWhenOffscreen` off on every non-DPS/TPS skinned renderer and refits it to the avatar's bounds, so one drawing far from its bones needs a clip keying `SkinnedMeshRenderer.m_UpdateWhenOffscreen` to 1 (restores it in av3emu) |
 
 **Every count is taken over the built avatar with inactive objects included.** An inactive renderer, an inactive physbone, a garment behind a toggle — all count at full weight. The only thing that removes an always-inactive object from the count is an unused-object sweep deleting it at build: d4rk's `DeleteUnusedComponents` (on in the house profile; `DeleteUnusedGameObjects` is a separate default-off pass over unreferenced objects and not what this rides on), or AAO `TraceAndOptimize`'s `removeUnusedObjects` where one is placed. A saving taken by deactivation is conditional on whichever sweep the avatar actually carries. Where a toggle only selects between two states the avatar could ship as separate uploads, ship two configurations: the absent piece leaves the build entirely.
 
