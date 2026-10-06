@@ -50,7 +50,7 @@ Every instruction line in an operator prompt becomes a live agent or a named blo
 
 Ends the mode when the arguments' first word is `close`; the rest is the operator's instruction for the closing pass. Read the hook's answer before dispatching: a mode still on hands every closing agent rails that refuse the bakes and prose it was sent for.
 
-Verify happens here, once, and is never omitted, but it is sized to the batch rather than multiplied by it. One agent bakes and gates each composition in turn; no renders unless the operator asks for one or a gate's finding needs an image to settle. A few reviewers read its results, several compositions apiece, and one or two prose agents write the venue record across all buckets (`docs/VENUE.md` binds). Then commit. Closing agents carry no rails, so their briefs restate the one rail they still need: an Editor drop mid-call is a domain reload (`docs/unity.md`).
+Verify happens here, once, and is never omitted, but it is sized to the batch rather than multiplied by it. One agent bakes and gates each composition in turn; no renders unless the operator asks for one or a gate's finding needs an image to settle. Its results stand without a review seat unless a gate fails, and one or two prose agents write the venue record across all buckets (`docs/VENUE.md` binds). Then commit. Closing agents carry no rails, so their briefs restate the one rail they still need: an Editor drop mid-call is a domain reload (`docs/unity.md`).
 
 ## The brief
 

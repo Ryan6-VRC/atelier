@@ -14,7 +14,7 @@ Blocks live in `docs/local/kickoffs.md` — untracked, and main-working-tree onl
 Include each that applies, in the shortest form that works:
 
 - **Problem** — what's wrong and why it matters, grounded in `path:line` anchors and concrete facts; the receiver starts from zero and cannot see what you've seen. A problem observed in a recorded session also carries a **backing anchor**: a distinctive verbatim phrase to grep the session store for (an error string, a symbol, the observer's words), plus the session id if known. None recorded? Say so.
-- **Read before planning** — the docs the worker may not plan without, closing with the receipt clause: *your plan states, for each, the one constraint in it that binds this job*. Any block touching an avatar, pattern entry, or controller names `docs/nondestructive.md` and its domain doc here itself — the workspace-level read-first rule loses to a dense block under task pressure, so the block carries its own prerequisites.
+- **Read before planning** — the docs the worker may not plan without. Any block touching an avatar, pattern entry, or controller names `docs/nondestructive.md` and its domain doc here itself — the workspace-level read-first rule loses to a dense block under task pressure, so the block carries its own prerequisites.
 - **Useful facts** — the non-derivable context that saves a rediscovery: half-made decisions, ruled-out paths and why, the worked precedent already in a repo.
 - **Where to look** — reference surface beyond the prerequisites: files, non-code config, and the docs to keep honest.
 - **Constraints** — the hard rails, stated firmly; they are the boundary, not a suggestion.
@@ -26,7 +26,7 @@ Include each that applies, in the shortest form that works:
 
 **Distinguish directive from hypothesis explicitly.** Operator rulings and measured facts are firm — say so, so the worker doesn't re-litigate them. Everything else is the worker's to stress-test, and a block that states a guess in a directive voice manufactures false confidence downstream.
 
-**Attribute in the register it was said in.** An operator ruling quotes the words or timestamps the utterance; a remark made in passing stays a remark, and never becomes a firm dated ruling in a gate line. Inflating register manufactures the same false confidence as inventing the words outright, and is far easier to do without noticing. **The register stays in the block**: the receiver commits code and a one-line why, never the ruling, its number, its date, or the operator's name.
+**Attribute in the register it was said in.** Mark a ruling as firm; a remark made in passing stays a remark, and never becomes a firm dated ruling in a gate line. Inflating register manufactures the same false confidence as inventing the words outright, and is far easier to do without noticing. **The register stays in the block**: the receiver commits code and a one-line why, never the ruling, its number, its date, or the operator's name.
 
 **Write the gap; don't fill it.** "The operator flagged this from observation and does not know the mechanism" is a complete gate line — it tells the worker its job is diagnosis. Supplying a mechanism you merely inferred converts a genuine brainstorm into a job with a false target, and the worker spends its session confirming your guess instead of finding the cause. A block is authored interactively, so when the gap is load-bearing, ask the operator rather than closing it yourself.
 

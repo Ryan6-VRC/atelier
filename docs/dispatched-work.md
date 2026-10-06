@@ -4,7 +4,7 @@ Primary reader: a fresh session handed a kickoff block, whether launched in a di
 
 ## The arc
 
-Verify → brainstorm → plan → sign-off → build → open PR. The gates below are hard.
+Brainstorm → plan → sign-off → build → open PR. The gates below are hard.
 
 **Verify the premise first.** A block sounds authoritative however thin its research was — don't inherit that confidence. Check the stated problem holds before planning around it; a backing anchor's transcript shows the problem was *seen*, not that it was characterized right or still holds. Scale skepticism to the block's stated provenance: an auto-triaged finding gets the full verify-the-premise pass; an operator ruling gets little — don't re-litigate it.
 
@@ -12,11 +12,11 @@ Verify → brainstorm → plan → sign-off → build → open PR. The gates bel
 
 **Provenance stays in the handoff, never in the repo.** A handoff or plan may quote the operator or timestamp an utterance so the next session knows what is firm; the committed work carries none of it — no `(operator-ruled …)` tag, no numbered ruling, no spec citation. A decision you derived *from* a ruling is labeled your inference in the handoff, however confident.
 
-**Plan with receipts, then WAIT.** Post the plan in your own transcript and wait for explicit operator sign-off — "no questions" is not sign-off. For each doc the block or launch prompt names as a prerequisite, this one included, the plan states the one constraint in it that binds this job — in your own words, tied to the specific avatar, entry, or tool, which a grep cannot produce; no constraint, no sign-off. Sessions have cited doc sections verbatim-unread — reconstructed from the block's own description of them — and then edited the exact invariant the unread doc stated.
+**Plan, then WAIT.** Post the plan in your own transcript and wait for explicit operator sign-off — "no questions" is not sign-off.
 
 ## Before sign-off
 
-Probes, measurements, and reverted spikes are sanctioned and expected — a recommendation that could only be reasoned about is worth little. The gate is *no edit intended to survive into the PR*; disclose each spike in the plan as evidence.
+Probes, measurements, and reverted spikes are sanctioned where a question needs one. The gate is *no edit intended to survive into the PR*; disclose each spike in the plan as evidence.
 
 Venue pointers in the block are reference for the build phase after sign-off, not a go-order.
 
