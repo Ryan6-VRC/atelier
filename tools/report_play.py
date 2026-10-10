@@ -24,6 +24,8 @@ class Take:
         self.comments, self.events, self.header, self.rows = [], [], None, []
         with open(path, encoding="utf-8") as fh:
             for line in fh:
+                if not line.endswith("\n"):
+                    break  # the writer is mid-line; a cut last cell would otherwise pass the count below
                 line = line.rstrip("\n")
                 if not line:
                     continue
