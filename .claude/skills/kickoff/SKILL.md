@@ -1,6 +1,6 @@
 ---
 name: kickoff
-description: Use when authoring a kickoff block that hands a problem to a fresh session to brainstorm — writing the brief, not doing the work ("write a kickoff", "mint a block", "spec this for a later session"). One block; launching a wave of them is `dispatch`.
+description: Use when the operator asks to author or revise a kickoff block in `docs/local/kickoffs.md` — a brainstorm brief that hands an open problem to a fresh session ("write a kickoff", "mint a block", "rewrite H4"). Not a handoff carrying in-progress work into a fresh session ("give me a prompt to paste", "I'm deep in context"), not a launch prompt for an existing block or plan (`dispatch`), and not recording a decision or a subagent's report; none of those writes a board block unless the operator asks for one.
 ---
 
 # Kickoff
