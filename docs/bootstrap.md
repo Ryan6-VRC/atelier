@@ -54,7 +54,7 @@ Two shapes to recognize before reading output as failure: `install` prints a sca
 
 `vrc-get` resolves/upgrades but **cannot create** a project — `AvatarProject`'s seed skeleton already ships it, so the seed clone is enough.
 
-**Unity MCP.** Claude Code connects through the owned **`vrc-mcp-proxy`** (the shipped `.mcp.json` runs `uv run --project vrc-mcp-proxy …` over **stdio**), which spawns the **pinned** upstream MCP-for-Unity server itself and relays JSON-RPC — allowlisting tools and applying per-tool transforms. The **upstream server pin and its bump runbook live in the proxy repo** (`docs/bump-runbook.md` there); that runbook owns every version bump — don't chase one from here.
+**Unity MCP.** Claude Code connects through the owned **`vrc-mcp-proxy`** (the shipped `.mcp.json` runs `uv run --project vrc-mcp-proxy …` over **stdio**), which spawns the **pinned** upstream MCP-for-Unity server itself and relays JSON-RPC — allowlisting tools and applying per-tool transforms. The **upstream server pin and its bump runbook live in the proxy repo** (`vrc-mcp-proxy/docs/bump-runbook.md`); that runbook owns every version bump — don't chase one from here.
 
 Per Editor, once: install the in-Editor package (CoplayDev/unity-mcp, MIT) — *Window → MCP for Unity → Configure All Detected Clients* registers the client. Pin the Unity-side git URL to the **tag matching the proxy's server pin**, not `#main`: `https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#<proxy-pin-tag>`. The package-update flow is unchanged — Package Manager → *MCP for Unity* → **Update**, or delete the `packages-lock.json` entry to re-resolve.
 
