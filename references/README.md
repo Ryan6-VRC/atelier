@@ -49,7 +49,7 @@ Match your task → project (`file`).
 - The sender side of that wire convention — binary encoding against declared params → `VRCFaceTracking` (`VRCFaceTracking.Core/OSC/DataTypes/BinaryBaseParameter.cs`)
 
 **Blender prep (headless bpy)**
-- Shape-key-safe rest-pose bake → `Cats` (`tools/armature_manual.py` `PoseToRest`); FBX export `tools/importer.py`; visemes `tools/viseme.py`; eyes `tools/eyetracking.py`; fix model `tools/armature.py`
+- Shape-key-safe rest-pose bake → `Cats` (plugin files, under its `tools/`: `armature_manual.py` `PoseToRest`); FBX export `importer.py`; visemes `viseme.py`; eyes `eyetracking.py`; fix model `armature.py`
 - Decide whether two surfaces are coincident, and transfer skin weights across them → `robust-skin-weights-transfer` (`src/utils.py`: `find_matches_closest_surface` for the match test, `inpaint` for the vertices it rejects, `smooth` for the pass after). `vrc-blender-tools`' `transfer_weights` is our port of it, with robust-laplacian's point-cloud Laplacian for the inpaint; `robust-weight-transfer` is study-only
 
 **Optimization techniques (learn, don't import)**
