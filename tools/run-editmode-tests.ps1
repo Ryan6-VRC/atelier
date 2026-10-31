@@ -247,8 +247,8 @@ if ($crashed) {
   Write-Host ("OUTCOME=COMPLETED exit={0} total={1} passed={2} failed={3} skipped={4}{5}" -f $r.code,$tr.total,$tr.passed,$tr.failed,$tr.skipped,$pkgNote)
   # A skip is not a pass, and a bare `skipped=N` reads as green. The suite carries deliberate
   # not-fabricable gaps (documented in their reasons) alongside cases that self-Ignore when an EXTERNAL
-  # vendor fixture is absent — the latter silently withdraw an acceptance theorem, which is the rule-7
-  # failure a count alone hides. Name each one and its reason so the withdrawal is legible in the log.
+  # vendor fixture is absent — the latter silently withdraw an acceptance theorem, which a count
+  # alone hides. Name each one and its reason so the withdrawal is legible in the log.
   if ([int]$tr.skipped -gt 0) {
     foreach ($tc in $x.SelectNodes("//test-case[@result='Skipped']")) {
       $why = $tc.SelectSingleNode("reason/message")
