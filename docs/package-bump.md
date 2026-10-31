@@ -4,13 +4,14 @@ Our tooling reflects into MA / VRCFury / NDMF / the emulator by design, so a pac
 
 ## Command facts the help text does not surface
 
-- `vrc-get upgrade -p <venue> <id>` takes **one package per invocation**.
+- `vrc-get upgrade -y -p <venue> <id>` takes **one package per invocation**.
+- **`-y` is not optional for an agent.** An upgrade whose resolution changes more than one package (`com.vrchat.avatars` pulls in `com.vrchat.base`) asks for confirmation, and with stdin closed, as in the agent's Bash tool, vrc-get 1.9.1 reprints the prompt in a tight loop at full CPU and writes nothing.
 - It rewrites only the `locked` block; `dependencies` is the *requested range* and staying below `locked` is the tool's normal shape, not drift to repair.
 - No live Editor on the venue during any `vrc-get` operation (`bootstrap.md` §3 owns the churn trap).
 
 ## Pin-surface map (which upgrade obliges which re-read)
 
-Route to the homes — each file's own comments carry the member-level detail. Files sit under `com.ryan6vrc.agent-tools/Editor/` except `CauReflect.cs` / `AvatarRecord.cs` / `OwnMaterial.cs`, which are `com.ryan6vrc.avatar-tools/Editor/`.
+Route to the homes — each file's own comments carry the member-level detail. Files sit under `com.ryan6vrc.agent-tools/Editor/` except `CauReflect.cs` / `AvatarRecord.cs` / `OwnMaterial.cs` / `ControllerEmit.cs` / `ControllerDecompile.cs` / `CleanController.cs`, which are `com.ryan6vrc.avatar-tools/Editor/`.
 
 | Package | Pin homes |
 |---|---|
@@ -21,6 +22,7 @@ Route to the homes — each file's own comments carry the member-level detail. F
 | CAU / Poiyomi / lilToon | `CauReflect.cs`, `AvatarRecord.cs`, `OwnMaterial.cs` — **no headless coverage** (TestEditor carries none of them), so a bump of these is verified only by using the door live |
 | d4rk / limitex | no reflection pins; `ReportPackageTests` pins their assembly names only |
 | AAO | no reflection pins and no coverage of any kind — nothing here notices an AAO change |
+| VRChat SDK | `faceTrackingSets` in `ControllerEmit.cs` / `ControllerDecompile.cs` / `CleanController.cs` / `ControllerRules.cs` / `ReportController.cs`, gated by the `VRC_FT_SETS_PRESENT` versionDefine (com.vrchat.avatars ≥ 3.10.6) in both packages' Editor and Tests asmdefs, each test carrying an `Assert.Ignore` twin for the other side of that floor. `DecodeFaceTrackingSets` reads each `BlendSet` field by hand, below the completeness sweep, so a field an SDK release adds to `BlendSet` is dropped silently — re-read the element's fields |
 
 ## Beyond the pins: behavior the docs measured
 

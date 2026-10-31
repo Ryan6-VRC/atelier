@@ -294,7 +294,7 @@ The decidable proxy: *if editing the YAML would beat editing the clip for every 
 
 ## behaviours (state-machine behaviours)
 
-A `behaviours:` list (on a state or any machine's root) of **single-key maps** — `{ <kind>: { … } }`. All seven VRC SMB kinds are implemented; an unknown kind or field is fail-loud by name. Enum-valued fields take a **camelCase token**, never a raw number — the token→enum maps are `ControllerEmit`'s `*Tokens` dictionaries, the single authority both compile and decompile read.
+A `behaviours:` list (on a state or any machine's root) of **single-key maps** — `{ <kind>: { … } }`. All eight VRC SMB kinds are implemented; an unknown kind or field is fail-loud by name. Enum-valued fields take a **camelCase token**, never a raw number — the token→enum maps are `ControllerEmit`'s `*Tokens` dictionaries, the single authority both compile and decompile read.
 
 ```yaml
 behaviours:
@@ -341,6 +341,21 @@ Each is a flat field map; the enum fields use the tokens shown (fail-loud on an 
 ```
 
 **`layerControl` vs `playableLayer` asymmetry (the SDK's, not ours):** `playableLayer.layer` is an **enum token** (which playable), while `layerControl.layer` is an **int index** (which layer *within* the `playable:` playable). `playAudio` carries the full `VRCAnimatorPlayAudio` surface — see `ControllerEmit.PopulatePlayAudio` for every field.
+
+### `faceTrackingSets` — the face-tracking Blendshapes Set behaviour (com.vrchat.avatars ≥ 3.10.6)
+
+```yaml
+- faceTrackingSets:
+    sets:                                         # Blendshapes Set name → entry; map order is the behaviour's list order
+      Lids: 0.25                                  # a constant weight, 0..1
+      Eyes: EyeTrackingActive                     # a parameter, read as-is
+      Mouth: { weight: 1, lerpSpeed: 10 }         # a constant reached at lerpSpeed per second (0..100; 0 = instant)
+      Cheek: { source: Gate, sourceMin: 0, sourceMax: 1, destMin: 1, destMax: 0, lerpSpeed: 30 }
+```
+
+Each entry sets one named Blendshapes Set's weight when the state is entered, since a VRChat state behaviour runs on the first frame of the transition into its state; a parameter source is read at that moment only, so a value that keeps changing reaches the set only through re-entry. Any of `sourceMin`/`sourceMax`/`destMin`/`destMax` turns range conversion on, an absent one taking 0/1/0/1, and a reversed pair inverts. A compile refuses more than 64 entries on one behaviour (the SDK processes only the first 64; split across two behaviours), a weight or destination bound outside 0..1, a `lerpSpeed` outside 0..100, a boolean or non-finite number where a number goes (quote a parameter named like a YAML boolean), an empty set name or source, `weight` and `source` together, and a range key on a constant. A `source` must be a declared parameter (`undeclaredParam`). **A `source` a clip animates is not refused** — `driverOnAnimatedParam` does not cover this kind, and whether the read sees the animated value or the declared default is not established — so feed a set from a clip-computed value by stepping through constant entries on a transition ladder, whose conditions read the AAP. **VRCFury renames each set to `VF{n}_<name>` and rewrites only the controllers of the FullController that declares the set**, so name the set as that FullController declares it and keep the behaviour in the same FullController. Below com.vrchat.avatars 3.10.6 final (a 3.10.6 prerelease counts as below) the document still parses and the compile refuses the kind by name.
+
+Decompile writes each entry in its shortest form, and refuses a controller that names one set twice.
 
 ## menu
 
@@ -391,6 +406,7 @@ Two consequences before relying on the field. **The gate cannot see an icon**, s
 **Import tolerances** (applied silently, listed in `_notes.tolerances`):
 - **Mixed Write Defaults** → the layer's **modal** WD value becomes the layer policy and the minority states keep an explicit `writeDefaults:` override (tie → `true`); re-emit reproduces the same per-state mix.
 - **`timeParameterActive` with an empty parameter** → normalized to unbound motion time.
+- **A `faceTrackingSets` field the SDK inspector hides for its entry's source type** (a constant's source and ranges, a parameter entry's weight, its ranges while conversion is off) → recompiles at the inspector's new-element values (weight 1, ranges 0/1/0/1, no source); the note names each entry whose hidden field held anything else, and what it held.
 
 **Named refusals.** A construct the schema's shape can't round-trip makes Decompile refuse by name and write **no** yaml rather than approximate; iterate on the message. Two kinds. *Out of vocabulary:* anything the decoder doesn't model (synced layers, a `Trigger` param, an IK-pass layer, an unsupported SMB or motion type, a clip binding on a component type outside the §clips allowlist, an embedded clip's object-reference (PPtr) curve — a material swap has no schema form (a standalone `.anim` swap stays an untouched `ref:`), an unknown driver `ChangeType`…), enforced not by a blocklist but by a **completeness sweep** — it refuses **any** non-default field it doesn't explicitly consume on a state, transition, blend tree, or VRC behaviour, so an unmodeled field (a state's `cycleOffset`/`iKOnFeet`/`tag`, a transition `offset`, a future SDK addition) fails loud instead of silently dropping. *Not expressible in the canonical form:* sibling states or sub-machines with identical names, a direct state and sub-machine sharing a name, or two siblings differing only in whitespace (the name-keyed maps collide or reorder); a real node named `Exit` addressed bare (collides with the exit keyword); driver operations that interleave change-types or repeat a `(type, name)`; two distinct embedded clips sharing a name; **two clip bindings that reconstruct to the same `set:`/`curves:` key** (a declared parameter whose name also reads as `path/Component.property` shadows the scene binding of that name — the map would keep one curve and drop the other); **a default state the layer root cannot address** (a `m_DefaultState` outside this layer, or a broken reference to a deleted state — either would decode to no key and rebuild booting whichever state was added first); a condition parameter whose whitespace can't survive the single-space grammar; any emitted string containing a line break.
 
