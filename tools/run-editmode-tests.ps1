@@ -106,7 +106,7 @@ function Copy-PackageIn($pkg, [switch]$Soft) {
 $sv = Get-UnityProjectVersion $SourceProject
 $tv = Get-UnityProjectVersion $Project
 # The SOURCE side must be readable. Tolerating $null would skip the guard in silence exactly when the
-# baseline is broken, and a check that could not run is not a check that passed (CLAUDE.md rule 7) —
+# baseline is broken, and a check that could not run is not a check that passed —
 # this file already refuses loudly for that class of defect on the source's packages below.
 if ($null -eq $sv) {
   Write-Host "OUTCOME=RUN_ERROR $SourceProject has no readable ProjectSettings/ProjectVersion.txt — is it a Unity project?"
@@ -247,8 +247,8 @@ if ($crashed) {
   Write-Host ("OUTCOME=COMPLETED exit={0} total={1} passed={2} failed={3} skipped={4}{5}" -f $r.code,$tr.total,$tr.passed,$tr.failed,$tr.skipped,$pkgNote)
   # A skip is not a pass, and a bare `skipped=N` reads as green. The suite carries deliberate
   # not-fabricable gaps (documented in their reasons) alongside cases that self-Ignore when an EXTERNAL
-  # vendor fixture is absent — the latter silently withdraw an acceptance theorem, which is the rule-7
-  # failure a count alone hides. Name each one and its reason so the withdrawal is legible in the log.
+  # vendor fixture is absent — the latter silently withdraw an acceptance theorem, which a count
+  # alone hides. Name each one and its reason so the withdrawal is legible in the log.
   if ([int]$tr.skipped -gt 0) {
     foreach ($tc in $x.SelectNodes("//test-case[@result='Skipped']")) {
       $why = $tc.SelectSingleNode("reason/message")

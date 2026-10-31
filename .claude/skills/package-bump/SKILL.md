@@ -25,7 +25,7 @@ Low-pin-surface packages together first; then the heavily-pinned vendor (the pin
 
 ### 4. Source-check the pins per stage
 
-Diff snapshot vs new payload (`git diff --no-index --name-status`, or GNU `diff -rq` from the Bash tool — PowerShell's `diff` is `Compare-Object` and rejects those flags), then read every **changed** file the pin map routes to — a pinned file absent from the diff needs no read, and rule 10 means the verdict comes from the source on disk, never a release note. Also diff the vendor hook/patch trees (`docs/package-bump.md` §Beyond the pins): an added or removed hook is a behavior change no canary sees — name the doc claim it touches and re-measure it, or record why it stands.
+Diff snapshot vs new payload (`git diff --no-index --name-status`, or GNU `diff -rq` from the Bash tool — PowerShell's `diff` is `Compare-Object` and rejects those flags), then read every **changed** file the pin map routes to — a pinned file absent from the diff needs no read, and rule 8 means the verdict comes from the source on disk, never a release note. Also diff the vendor hook/patch trees (`docs/package-bump.md` §Beyond the pins): an added or removed hook is a behavior change no canary sees — name the doc claim it touches and re-measure it, or record why it stands.
 
 ### 5. Live rungs
 
