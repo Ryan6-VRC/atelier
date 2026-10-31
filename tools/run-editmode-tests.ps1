@@ -106,7 +106,7 @@ function Copy-PackageIn($pkg, [switch]$Soft) {
 $sv = Get-UnityProjectVersion $SourceProject
 $tv = Get-UnityProjectVersion $Project
 # The SOURCE side must be readable. Tolerating $null would skip the guard in silence exactly when the
-# baseline is broken, and a check that could not run is not a check that passed (CLAUDE.md rule 7) —
+# baseline is broken, and a check that could not run is not a check that passed —
 # this file already refuses loudly for that class of defect on the source's packages below.
 if ($null -eq $sv) {
   Write-Host "OUTCOME=RUN_ERROR $SourceProject has no readable ProjectSettings/ProjectVersion.txt — is it a Unity project?"
