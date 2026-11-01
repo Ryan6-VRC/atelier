@@ -44,7 +44,7 @@ Per-system operating details and domain knowledge — install paths, MCP wiring,
 - **`docs/verify.md`** — read when a claim needs bake, play or client evidence.
 - **`docs/emulator.md`** — read before driving any play session.
 - **`docs/vrchat-client.md`** — read when a claim needs the shipping client.
-- **`docs/face-tracking.md`** — read for any native face-tracking build, probe or feel question; the client's input timing and built-ins, where smoothing can and cannot live, and the bake-probe trap.
+- **`docs/face-tracking.md`** — read for any native face-tracking build, probe or feel question.
 - **`docs/osc.md`** — read for any rig driven or read over OSC; `vrc-bridge` keeps its own design record.
 - **`docs/menus.md`** — read for any menu or toggle work.
 - **`docs/outfits.md`** — base-body (kisekae) clothing conventions. Read before de-conflicting a base under a composed outfit, and before dropping or baking down any layer a base's own FX drives.
