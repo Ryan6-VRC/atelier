@@ -323,8 +323,7 @@ class TestBlankOut(unittest.TestCase):
             self.assertEqual(out.count("{"), 1)
 
     def test_nul_byte_source_is_read(self):
-        # ReportConsole.cs carries raw NUL bytes; rg/grep/git grep call it binary and skip
-        # it silently, which would drop a five-door class from the census.
+        # A raw NUL byte inside a string literal is blanked like any other character.
         out = self._blanked('var s = "a\x00b";\npublic static string E(){}\n')
         self.assertIn("public static string E(", out)
 

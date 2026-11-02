@@ -260,11 +260,7 @@ def _depth1_body(blanked: str, decl_start: int) -> str:
 
 def extract_unity_doors(repo: Path) -> tuple:
     """(doors, statics, namespaces): {class: {door name}}, {class: {every public static name}},
-    {class: declared namespace}.
-
-    Reads with Python, never a shelled grep: `ReportConsole.cs` carries raw NUL bytes, and
-    `rg`/`grep`/`git grep` all classify it as binary and skip it without a word — silently
-    dropping a five-door tool class from the census."""
+    {class: declared namespace}."""
     doors, statics, namespaces = {}, {}, {}
     for cs in sorted(_require_dir(repo / "packages").rglob("*.cs")):
         blanked = blank_out(_read(cs))
