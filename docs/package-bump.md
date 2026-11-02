@@ -11,7 +11,7 @@ Our tooling reflects into MA / VRCFury / NDMF / the emulator by design, so a pac
 
 ## Pin-surface map (which upgrade obliges which re-read)
 
-Route to the homes — each file's own comments carry the member-level detail. Files sit under `com.ryan6vrc.agent-tools/Editor/` except `CauReflect.cs` / `AvatarRecord.cs` / `OwnMaterial.cs` / `ControllerEmit.cs` / `ControllerDecompile.cs` / `CleanController.cs`, which are `com.ryan6vrc.avatar-tools/Editor/`.
+Route to the homes — each file's constants and comments carry the member-level detail. Files sit under `com.ryan6vrc.agent-tools/Editor/` except `CauReflect.cs` / `AvatarRecord.cs` / `OwnMaterial.cs` / `ControllerEmit.cs` / `ControllerDecompile.cs` / `CleanController.cs`, which are `com.ryan6vrc.avatar-tools/Editor/`.
 
 | Package | Pin homes |
 |---|---|
