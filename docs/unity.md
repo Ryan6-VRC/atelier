@@ -20,11 +20,13 @@ Transport is stdio; Claude Code connects through our **`vrc-mcp-proxy`** (siblin
 
 ## Agent-callable tools
 
-The agent inspection harness (`agent-tools`) and the vendor→owned avatar kit (`avatar-tools`) are the static-method tools you call via `execute_code`; their per-tool contracts are **`docs/unity-tools.md`**'s, read before driving one. The two conventions the whole surface shares:
+The agent inspection harness (`agent-tools`) and the vendor→owned avatar kit (`avatar-tools`) are the static-method tools you call via `execute_code`; their per-tool contracts are **`docs/unity-tools.md`**'s, read before driving one. The three conventions the whole surface shares:
 
 **Invocation.** Every door in both kits is a `public static` method called via `execute_code`, but the **handle style splits by kit and family** — string handles, typed `GameObject`/`Transform`/`AnimatorController` refs, or a mix — so read the call shape off the door's own row in `unity-tools.md`, where every door carries one, rather than inferring a kind. One handle kind is neither a project handle nor a typed ref and so has no row to read: a **session handle**, minted at runtime and dead when the play session ends (`GrabPhysBone`'s grab handle, `RenderThumbnailPlay.Shoot`'s poll tag) — a string only because a snippet cannot carry a typed ref to the next call. Namespaces: agent-tools under **`Ryan6Vrc.AgentTools.Editor`**, avatar-tools under **`Ryan6Vrc.AvatarTools.Editor`** — but the **assembly** capitalizes the acronym (`Ryan6VRC.…Editor`), so an assembly-qualified reflection lookup uses `Ryan6VRC` while the type namespace is `Ryan6Vrc`.
 
 **Preview grammar.** Every mutating tool takes a default-off preview: **`whatIf`** when the tool can run its full plan and mutate nothing (preview == execute), or **`preflight`** when the operation can't be dry-run at all and only its preconditions are checkable (`MatchHumanoidRig`, whose reimport *is* the operation). The dividing line is *ran the plan and mutated nothing* vs *couldn't run the op at all* — not complete-vs-incomplete numbers, so `CopyDescriptor` stays `whatIf` even though its remap counts land only on execute.
+
+**Waiting.** An async door returns at once and names its poll, and that poll is the done test: call it in a fresh `execute_code` after a plain timed wait and read the words it returns, which say what finished looks like. A status file a door names for a wedged editor is read for its fields before any loop keys on one, because a grep for a field the file does not carry ends at once or never. A Bash waiter that runs out its timeout prints `TIMEOUT` and exits nonzero: a background task completing means only that the waiter ended, so read the door's result before reporting anything to the operator. Bound every such wait by the heartbeat (`emulator.md` §Never wait blind).
 
 ## Geometry-change reconcile (reproportion / re-export)
 
